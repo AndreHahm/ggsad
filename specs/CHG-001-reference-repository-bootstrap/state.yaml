@@ -130,6 +130,10 @@ history:
   event: pair-review-attempt-blocked-by-tooling
   actor: agent:codex
   reason: "Codex CLI job task-msd06eah-ndu6va dispatched for PR-001, completed in 31s without reviewing anything: Codex's own sandbox could not launch PowerShell (Windows error 1920), blocking every read-only command it needed. It correctly declined to fabricate a review and reported one blocking finding (PRF-001, evidence.md Section 9) describing its own environment failure, with every review-scope area explicitly marked not assessed. Not a code finding -- the review has not actually happened yet. Needs human:project-owner's decision on how to get Codex a working command environment."
+- timestamp: "2026-08-03T21:53:00Z"
+  event: pair-review-retry-blocked-by-same-tooling-issue
+  actor: agent:codex
+  reason: "human:project-owner reinstalled the Codex plugin at user scope (runtime mode changed direct -> shared) and asked to retry. Job task-msd1x0jk-jhb3qn dispatched (fresh thread, not resumed), completed in 22s: same root cause, more specific -- CreateProcessAsUserW failed: 1920 spawning pwsh.exe to run git status. Recorded as PRF-002 (evidence.md Section 9). Reproducing across two independent attempts and two plugin installs suggests a genuine Codex-CLI-on-Windows sandbox compatibility issue, not a transient fluke."
 pair_review:
   requestor:
     id: agent:claude-code
