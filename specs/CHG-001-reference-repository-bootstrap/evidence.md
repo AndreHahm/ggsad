@@ -227,10 +227,14 @@ draft-to-ready transition.
   schemas, CLI behavior, path/overwrite safety, YAML security, atomic state updates, invalid-
   transition preservation, stand-alone operation, GSD authority boundaries, deferred-scope
   exclusion, tests and evidence
-- Review Target: commit `63e725a` on `main` ("feat(chg-001): reference repository bootstrap
-  implementation"), preceded by baseline commit `b5d5995` ("chore: bootstrap repository
-  governance and GSD tooling"). `human:project-owner` authorized committing 2026-08-03; working
-  tree confirmed clean after both commits.
+- Review Target: the tip of `main` at the time Codex is dispatched (see `git log --oneline` for
+  the exact commit; this file's own content is part of that commit, so it deliberately doesn't
+  hardcode its own future hash). The implementation itself (`src/ggsad/`, `tests/`) landed in
+  commit `63e725a` ("feat(chg-001): reference repository bootstrap implementation"), preceded by
+  `b5d5995` ("chore: bootstrap repository governance and GSD tooling"); later commits on top of
+  it only update governance-artifact bookkeeping to record the commit and review dispatch, so
+  reviewing the tip is equivalent to reviewing `63e725a`'s code against current governance state.
+  `human:project-owner` authorized committing 2026-08-03; working tree confirmed clean throughout.
 - Result: **In Progress** — dispatched to the Codex CLI (`human:project-owner` authorized use of
   the newly-installed, authenticated Codex CLI as the distinct reviewer)
 - Review Evidence: pending; will be recorded here once Codex returns findings
