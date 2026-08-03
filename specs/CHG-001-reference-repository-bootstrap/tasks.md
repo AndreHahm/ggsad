@@ -574,12 +574,14 @@
     - GSD subordination;
     - excluded-scope compliance.
   - Output: stable findings with severity, status, artifact reference, and required action.
-  - Status: In progress — `human:project-owner` authorized using the newly-installed Codex CLI
-    (verified ready and authenticated) as the distinct reviewer.
-    actually gets invoked as a genuinely distinct reviewer (external Codex CLI access,
-    `human:project-owner` acting as reviewer, or an explicit recorded waiver). I cannot review my
-    own work and call it Pair Review — the constitution is explicit that "a second pass, subagent,
-    or new context of the same participant is not automatically an independent review."
+  - Status: **Blocked — attempted, did not complete.** `human:project-owner` authorized using the
+    Codex CLI (verified ready and authenticated). Dispatched (job `task-msd06eah-ndu6va`); Codex's
+    own sandbox could not launch PowerShell ("Windows error 1920"), blocking every read-only
+    command it needed. It correctly declined to fabricate a review and returned one blocking
+    finding (PRF-001, in `evidence.md` §9) describing its own environment failure, with every
+    review-scope area explicitly marked "not assessed." This is not a code finding — the review
+    itself hasn't happened yet. Needs `human:project-owner`'s decision on how to get Codex a
+    working read-only command environment before re-dispatching.
 
 - [!] **T-077 — Resolve Reviewer findings**
   - Requestor: agent:claude-code
@@ -644,7 +646,7 @@
 
 | Task | Category | Reason | Waiting For | Safe State | Resume Condition |
 |---|---|---|---|---|---|
-| — | — | No open waits. T-075 resolved (commits `b5d5995`/`63e725a`, 2026-08-03); T-076 in progress via Codex CLI. | — | — | — |
+| T-076 | WAIT_EXTERNAL_SYSTEM | Codex CLI's sandbox cannot launch PowerShell on this machine (Windows error 1920), blocking every read-only command it needs to actually conduct the review | human:project-owner | Working tree clean, both commits intact, no fabricated review recorded | human:project-owner resolves the Codex sandbox/PowerShell issue (or names an alternative), then T-076 is re-dispatched |
 
 ## 11. Completion Summary
 

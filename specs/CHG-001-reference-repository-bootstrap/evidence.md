@@ -235,20 +235,31 @@ draft-to-ready transition.
   it only update governance-artifact bookkeeping to record the commit and review dispatch, so
   reviewing the tip is equivalent to reviewing `63e725a`'s code against current governance state.
   `human:project-owner` authorized committing 2026-08-03; working tree confirmed clean throughout.
-- Result: **In Progress** — dispatched to the Codex CLI (`human:project-owner` authorized use of
-  the newly-installed, authenticated Codex CLI as the distinct reviewer)
-- Review Evidence: pending; will be recorded here once Codex returns findings
+- Result: **Attempted, did not complete.** Dispatched to the Codex CLI (task `task-msd06eah-ndu6va`,
+  completed in 31s). Codex's own sandbox could not launch PowerShell ("Windows error 1920"),
+  which blocked every read-only command it needed (reading governing docs, the implementation,
+  tests, git history, running the coverage tool) — it could not access the repository at all.
+  Codex correctly declined to fabricate a review it hadn't actually performed and returned a
+  single blocking finding describing its own environment failure, with every review-scope area
+  explicitly marked "not assessed." This is honest behavior from the reviewer, not a review
+  result about CHG-001's code — recorded here as PRF-001 accordingly.
+- Review Evidence: `task-msd06eah-ndu6va` (Codex CLI job ID); full output reproduced below
 
 ### Findings
 
-Pending — see Review Evidence above.
+| ID | Category | Severity | Artifact / Reference | Summary | Status | Disposition |
+|---|---|---|---|---|---|---|
+| PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | open | `human:project-owner` decision needed on how to re-run Codex with working read-only command execution (different sandbox mode, different invocation, etc.) |
+
+No findings about CHG-001's actual code, tests, or governance artifacts exist yet — the review
+never reached the point of examining them.
 
 ### Blocking-Finding Summary
 
-- Open Blocking Findings: Pending review completion
-- Resolution Evidence: Not applicable yet
-- Re-verification Required: Not applicable yet
-- Re-verification Result: Not applicable
+- Open Blocking Findings: 1 (PRF-001 — review-environment failure, not a code finding)
+- Resolution Evidence: None yet
+- Re-verification Required: Yes — the full review must be re-run once PRF-001 is resolved
+- Re-verification Result: Not applicable yet
 
 ## 10. Approval Evidence
 
@@ -303,13 +314,17 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ### Definition of Wait
 
-- Triggered: **Yes** — Pair Review is required and is in progress but not yet complete.
+- Triggered: **Yes** — Pair Review is required, was attempted, and did not complete: Codex's own
+  sandbox could not execute any read-only command (PRF-001), so it has not actually examined the
+  code yet.
 - Criteria: `spec.md` § Flow Gates § Additional Wait Conditions — Verify-Done requires Pair Review
-  complete with no open blocking finding.
-- Evidence: Section 9 above. The blockers noted in an earlier revision of this document (no stable
-  commit; no established reviewer mechanism) are resolved: `human:project-owner` authorized
-  committing (`b5d5995`, `63e725a`) and authorized using the Codex CLI as the distinct reviewer.
-- Result: **Waiting** on review completion, not on any unresolved decision — see Section 15.
+  complete with no open blocking finding; PRF-001 is currently the one open blocking finding, and
+  it blocks the review itself, not just its outcome.
+- Evidence: Section 9 above. The earlier blockers (no stable commit; no established reviewer
+  mechanism) are resolved — `human:project-owner` authorized committing (`b5d5995`, `63e725a`) and
+  authorized using the Codex CLI. A new, different blocker (PRF-001) replaced them on dispatch.
+- Result: **Waiting** on `human:project-owner` to resolve Codex's sandbox/PowerShell issue, then
+  on a successful re-run of the review — see Section 15.
 
 ### Current Definition of Done (Build-Done)
 
@@ -338,17 +353,23 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 - Transition Evidence: `state.yaml` `history` — an engine-appended `draft-to-ready` event with
   `action: complete`, `previous_status: draft`, `new_status: ready`.
 - Remaining Actions:
-  1. Await Codex's Pair Review findings (dispatched this session, Review ID `PR-001`).
-  2. Resolve findings per `plan.md` §15's blocking-finding rule; re-verify any resolved blocking
-     finding.
-  3. Once Pair Review reaches `verified`/no open blocking findings, re-evaluate Verify-Done and
+  1. `human:project-owner` decision needed: resolve PRF-001 (Codex sandbox can't launch PowerShell
+     on this machine) — a different Codex invocation mode, sandbox setting, or environment fix.
+  2. Once PRF-001 is resolved, re-dispatch the full Pair Review (Review ID `PR-001`) — none of the
+     actual review scope (spec compliance, architecture boundaries, security, tests, etc.) has
+     been assessed yet.
+  3. Resolve any findings that review produces per `plan.md` §15's blocking-finding rule;
+     re-verify any resolved blocking finding.
+  4. Once Pair Review reaches `verified`/no open blocking findings, re-evaluate Verify-Done and
      the roadmap-status update (`tasks.md` T-082).
-  4. DEV-002 (`mypy` vs. `ty`) remains open at `human:project-owner`'s discretion; not blocking.
+  5. DEV-002 (`mypy` vs. `ty`) remains open at `human:project-owner`'s discretion; not blocking.
 - Evidence Owner Statement: All quality gates, acceptance examples, and requirements verifiable
   without external review are confirmed passing. CHG-001's own `draft → ready` transition
   succeeded through its own governed engine. Two commits exist on `main` as the stable Pair Review
-  target. Pair Review is in progress, not yet complete, and is honestly reported as such — CHG-001
-  is Build-Done but not yet Verify-Done.
+  target. Pair Review was dispatched to Codex and did not complete — its sandbox couldn't execute
+  any command, so it correctly reported that rather than fabricating a review. This is honestly
+  recorded as a blocking finding (PRF-001), not glossed over. CHG-001 is Build-Done but not yet
+  Verify-Done.
 
 ## 16. Evidence History
 
