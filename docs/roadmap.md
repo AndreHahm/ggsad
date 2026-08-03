@@ -5,7 +5,7 @@
 - Project: GG-SAD Reference Implementation
 - Status: Active
 - Method Baseline: GG-SAD 1.2
-- Last Updated: 2026-08-02
+- Last Updated: 2026-08-04
 
 ## Roadmap Principles
 
@@ -48,6 +48,11 @@ Exit criteria:
 - Claude Code can start from approved instructions;
 - no production capability is claimed without evidence.
 
+**Status (2026-08-04):** Complete. `CHG-001-reference-repository-bootstrap` reached Build-Done and
+Verify-Done — all five exit criteria above are evidenced in `specs/CHG-001-reference-repository-
+bootstrap/evidence.md`. Pair Review (`agent:codex`, distinct from the implementing agent) completed
+two real passes with zero open blocking findings. See `evidence.md` §14–15 for the full gate record.
+
 ### R1 — Reference Repository and Manual Flow
 
 **Goal:** Make GG-SAD usable without a CLI or external platform dependency.
@@ -70,6 +75,18 @@ Exit criteria:
 - stand-alone operation works;
 - GSD remains optional and subordinate;
 - examples demonstrate distinct wait and fail outcomes.
+
+**Status (2026-08-04):** Partially delivered by `CHG-001-reference-repository-bootstrap`, which was
+scoped to Class M only (R-018/R-020; see `spec.md`'s Constraints and excluded-capability list).
+Delivered: a complete Class M example (`specs/examples/class-m/`, honestly `evidence.md` "Not Run"
+throughout, per the constitution's rule against asserting unexecuted checks); stand-alone operation
+verified (R-016, E-012); GSD demonstrated as optional and subordinate (R-006/R-017). The four
+built-in profile *names* (lean/standard/governed/regulated) are recognized and validated for
+identity (E-006), but `.ggsad/profiles/` has no actual profile-content files yet — full profile
+*resolution* is R4's job, not R0/R1's. Not yet delivered, remaining as future roadmap work: Class S
+and L examples; a Human–Human or mixed-participant Pair Review example (CHG-001's own Pair Review
+was Agent–Agent, `agent:claude-code`/`agent:codex`); dedicated manual wait and fail demonstration
+examples (distinct from the incidental wait/fail behavior exercised during CHG-001's own build).
 
 ### R2 — Initial Vertical CLI Slice
 
@@ -98,6 +115,15 @@ Exit criteria:
 - transition history is recorded;
 - errors identify exact files and criteria;
 - unit and acceptance tests pass.
+
+**Status (2026-08-04):** Delivered by `CHG-001-reference-repository-bootstrap`, with one deliberate
+scope narrowing: `ggsad status` from the original command list above was never part of CHG-001's
+actually-approved scope (`spec.md`'s requirements are R-001 through R-020, and `CLAUDE.md`'s
+Initial Change Constraint names exactly `init`/`new`/`validate`/`transition`) — this was a
+pre-existing gap between this roadmap entry and the approved spec, not something dropped during
+implementation. All five exit criteria above are met for the four commands actually built (150
+tests, 98.58% coverage; see `evidence.md` §5–8). `ggsad status` remains a candidate for a future
+change if/when needed.
 
 ## Next
 
