@@ -13,7 +13,7 @@
 - Plan: `plan.md`
 - State: `state.yaml`
 - Evidence: `evidence.md`
-- Review ID: PR-CHG-001-01
+- Review ID: PR-001
 
 ## Usage Rules
 
@@ -541,7 +541,7 @@
     has not occurred (§12). Not asserted as fully "Verify-Done" — §14 explicitly reports DoW
     triggered (Pair Review pending), not a false pass.
 
-- [!] **T-075 — Prepare stable Pair Review target**
+- [x] **T-075 — Prepare stable Pair Review target**
   - Requestor: agent:claude-code
   - Reviewer: agent:codex
   - Required Inputs:
@@ -554,14 +554,12 @@
     - tests;
     - `evidence.md`.
   - Constraint: Requestor does not mutate the target while review is active unless a correction cycle starts.
-  - Status: **Blocked.** No commits exist on `main` (the whole working tree is untracked) and no
-    worktree snapshot has been taken. Per this session's own operating constraints, I do not
-    create git commits unless the Requestor's principal (`human:project-owner`) explicitly asks —
-    see the Wait Register below. This is a decision for `human:project-owner`, not something I
-    resolve unilaterally.
+  - Evidence: `human:project-owner` authorized committing 2026-08-03. Two commits on `main`:
+    `b5d5995` (governance/GSD-tooling baseline) and `63e725a` (CHG-001 implementation — the
+    review target). Working tree confirmed clean after both commits (`git status --short` empty).
 
-- [!] **T-076 — Conduct Codex Pair Review**
-  - Review ID: PR-CHG-001-01
+- [-] **T-076 — Conduct Codex Pair Review**
+  - Review ID: PR-001
   - Reviewer: agent:codex
   - Scope:
     - specification compliance;
@@ -576,7 +574,8 @@
     - GSD subordination;
     - excluded-scope compliance.
   - Output: stable findings with severity, status, artifact reference, and required action.
-  - Status: **Blocked** on T-075 (no stable target yet) and on establishing how `agent:codex`
+  - Status: In progress — `human:project-owner` authorized using the newly-installed Codex CLI
+    (verified ready and authenticated) as the distinct reviewer.
     actually gets invoked as a genuinely distinct reviewer (external Codex CLI access,
     `human:project-owner` acting as reviewer, or an explicit recorded waiver). I cannot review my
     own work and call it Pair Review — the constitution is explicit that "a second pass, subagent,
@@ -645,8 +644,7 @@
 
 | Task | Category | Reason | Waiting For | Safe State | Resume Condition |
 |---|---|---|---|---|---|
-| T-075 | WAIT_DECISION | No commits exist on `main`; a stable Pair Review target (commit or worktree snapshot) hasn't been established. This agent does not create commits without being explicitly asked. | human:project-owner | Working tree intact, all quality gates passing, nothing lost | human:project-owner authorizes a commit (or names another mechanism) |
-| T-076 | WAIT_DECISION | `agent:codex` is assigned as Reviewer, but no mechanism to actually invoke a genuinely distinct reviewer has been established (external Codex CLI access, `human:project-owner` acting as reviewer, or an explicit recorded waiver) | human:project-owner | `evidence.md` complete and honest about this gap | human:project-owner decides how Pair Review is actually conducted |
+| — | — | No open waits. T-075 resolved (commits `b5d5995`/`63e725a`, 2026-08-03); T-076 in progress via Codex CLI. | — | — | — |
 
 ## 11. Completion Summary
 

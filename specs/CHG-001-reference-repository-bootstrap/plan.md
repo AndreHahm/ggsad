@@ -476,7 +476,7 @@ Large raw outputs should be stored as test reports or command logs and reference
 ## 15. Pair Review Plan
 
 - Required: Yes
-- Proposed Review ID: PR-CHG-001-01
+- Proposed Review ID: PR-001
 - Requestor: agent:claude-code
 - Reviewer: agent:codex
 - Approver: human:project-owner

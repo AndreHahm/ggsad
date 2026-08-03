@@ -163,15 +163,19 @@ working tree in its current (uncommitted) state.
 
 ### 6.5 CHG-001's Own Draft-to-Ready Transition (Dogfooding)
 
-- Command: `ggsad transition CHG-001 ready`
-- Result: Rejected (correctly)
-- Exit Code: 1
-- Report: `[missing_artifact] ... evidence.md: Required Class M artifact 'evidence.md' is
-  missing.` — the only finding. `state.yaml` confirmed byte-unchanged after the rejected
-  attempt.
-- Summary: this is not test-suite evidence; it's the real engine, run against this real change,
-  in this real repository. It correctly identified that `evidence.md` (this very file) did not
-  exist yet. It will be re-run after this file is written (Section 15).
+- Command: `ggsad transition CHG-001 ready`, run twice this session.
+- Result: **First run: rejected (correctly).** Second run, after this file was written: **succeeded.**
+- Exit Codes: 1, then 0.
+- Report (first run): `[missing_artifact] ... evidence.md: Required Class M artifact 'evidence.md'
+  is missing.` — the only finding. `state.yaml` confirmed byte-unchanged after the rejection.
+- Report (second run): `CHG-001: specify/draft -> specify/ready`. `state.yaml` `flow.status` is
+  now `ready`, with an engine-appended `draft-to-ready` history event (`action: complete`,
+  `previous_status: draft`, `new_status: ready`). Re-ran `ggsad validate .` and the full test
+  suite immediately after — both clean, except one test (`test_chg_001_state_is_schema_and_model_
+  valid`) that had hardcoded `status == "draft"` from earlier slices; fixed the assertion to
+  match the new, correct reality.
+- Summary: this is not test-suite evidence; it's the real engine, run against this real change, in
+  this real repository, twice — once correctly rejecting, once correctly succeeding.
 
 ## 7. Negative, Failure, Boundary, and Recovery Evidence
 
@@ -214,7 +218,7 @@ draft-to-ready transition.
 - Required: Yes (per `spec.md`'s Pair Review section and `.ggsad/config.yaml`'s
   `pair_review.required_for` including architecture/state-engine/transition-engine/security-
   relevant work — this change touches all of those)
-- Review ID: PR-CHG-001-01 (proposed in `spec.md`/`plan.md`, not yet opened)
+- Review ID: PR-001 (renamed from the originally proposed `PR-CHG-001-01` — see DEV-004 below)
 - Requestor: agent:claude-code
 - Reviewer: agent:codex (assigned in `spec.md`/`plan.md`/`state.yaml`, per `human:project-owner`'s
   instruction earlier in this session)
@@ -223,24 +227,23 @@ draft-to-ready transition.
   schemas, CLI behavior, path/overwrite safety, YAML security, atomic state updates, invalid-
   transition preservation, stand-alone operation, GSD authority boundaries, deferred-scope
   exclusion, tests and evidence
-- Review Target: **not yet prepared.** No commits exist on `main` — the entire working tree is
-  untracked. A stable review target (a commit or an explicitly identified worktree snapshot, per
-  `plan.md` §15) requires either committing this work or another mechanism for pinning a
-  reviewable state, and committing is outside what I do without being asked (see this session's
-  operating constraints). **This is a decision point for `human:project-owner`, not something
-  resolved in this document.**
-- Result: **Not Run**
-- Review Evidence: None
+- Review Target: commit `63e725a` on `main` ("feat(chg-001): reference repository bootstrap
+  implementation"), preceded by baseline commit `b5d5995` ("chore: bootstrap repository
+  governance and GSD tooling"). `human:project-owner` authorized committing 2026-08-03; working
+  tree confirmed clean after both commits.
+- Result: **In Progress** — dispatched to the Codex CLI (`human:project-owner` authorized use of
+  the newly-installed, authenticated Codex CLI as the distinct reviewer)
+- Review Evidence: pending; will be recorded here once Codex returns findings
 
 ### Findings
 
-None — the review has not started.
+Pending — see Review Evidence above.
 
 ### Blocking-Finding Summary
 
-- Open Blocking Findings: Not applicable (review not started)
-- Resolution Evidence: Not applicable
-- Re-verification Required: Not applicable
+- Open Blocking Findings: Pending review completion
+- Resolution Evidence: Not applicable yet
+- Re-verification Required: Not applicable yet
 - Re-verification Result: Not applicable
 
 ## 10. Approval Evidence
@@ -261,22 +264,15 @@ None — the review has not started.
 | DEV-001 | `spec.md` R-005–R-008 vs. `tasks.md` T-024 | E-006 and E-008 initially assigned to Slice 2 (T-024); moved to Slice 5 (T-050/T-052) once building them revealed both need repository-level filesystem context a per-file validator can't provide | None — R-005 through R-008 remain fully implemented; only sequencing across `tasks.md` slices changed | Resolved | `tasks.md` T-024 note, 2026-08-03; `tasks.md` is an execution aid, not `spec.md`/`plan.md`, so no separate approval was required |
 | DEV-002 | Constitution / `spec.md` baseline commands say `uv run mypy` | `pyproject.toml`'s dev dependencies only install `ty`, not `mypy`; `ty` was used for every type-checking gate instead | None observed — `ty check` passes cleanly throughout | Open | Flagged to the Requestor (`human:project-owner`) in Slice 2; not resolved by this agent, since changing the documented baseline command is outside this session's authority |
 | DEV-003 | `README.md` (not a `spec.md`/`plan.md` artifact — a pre-existing documentation bug found during T-080) | `README.md` referenced a `QUICK_START.md` file, in the repository-structure diagram and a "For the complete... bootstrap, follow" pointer, that does not exist anywhere in the repository | Broken documentation reference for anyone reading the README | Resolved | Both references removed 2026-08-03; the README's own inline Quick Start content already covers the minimal setup path, so no replacement file was authored (outside this task's scope) |
+| DEV-004 | `spec.md`/`plan.md`/`tasks.md` originally proposed Review ID `PR-CHG-001-01` | `state.schema.json`'s `review_id` pattern is numeric-only (`^PR-\d{3,}$`); `PR-CHG-001-01` doesn't match. Flagged but left unresolved while status was `pending` (no schema requirement yet); became blocking once Pair Review went `active`, since the schema then requires `review_id` present | None — purely a naming/ID convention, no semantic change | Resolved | Renamed to `PR-001` across `spec.md`, `plan.md`, `tasks.md`, `evidence.md`, and `state.yaml` 2026-08-03, once Pair Review actually started; `human:project-owner` was not asked separately since this is an ID-format correction, not a scope or requirement change |
 
 ## 12. Known Limitations
 
-- No commits exist on `main`; the entire implementation is in the working tree. A stable Pair
-  Review target has not been prepared (Section 9).
-- Pair Review (Section 9) has not occurred. Per the constitution, unresolved Pair Review blocks
-  Verify-Done for architecture/state-engine/transition-engine/security-relevant work, which this
-  change is.
+- Pair Review (Section 9) is in progress, not yet complete. Per the constitution, unresolved Pair
+  Review blocks Verify-Done for architecture/state-engine/transition-engine/security-relevant
+  work, which this change is.
 - `mypy` vs. `ty` discrepancy between the documented baseline commands and the actual installed
   tooling (DEV-002) remains open.
-- The `review_id` format mismatch flagged earlier this session (`spec.md`/`plan.md` use
-  `PR-CHG-001-01`; `state.schema.json`'s `review_id` pattern is numeric-only,
-  `^PR-\d{3,}$`) is still unresolved and will matter once Pair Review goes active — `state.yaml`
-  currently omits `review_id` rather than picking a side.
-- CHG-001's own `draft → ready` transition has not yet succeeded (Section 6.5) — this file's
-  creation is the last missing precondition; see Section 15 for the next step.
 
 ## 13. Wait and Failure Evidence
 
@@ -303,14 +299,13 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ### Definition of Wait
 
-- Triggered: **Yes** — Pair Review is required and has not been conducted; a stable review target
-  has not been prepared; the reviewer-assignment mechanics (does `human:project-owner` have Codex
-  CLI access, or another way to satisfy the distinct-reviewer requirement) are unconfirmed.
-- Criteria: `spec.md` § Flow Gates § Additional Wait Conditions — "a distinct Pair Reviewer cannot
-  be assigned before verification" is not quite this case (a reviewer *is* assigned: agent:codex)
-  but the *mechanism* to actually invoke that review is not yet established
-- Evidence: Section 9 above
-- Result: **Waiting** — see Section 15 for the exact next action
+- Triggered: **Yes** — Pair Review is required and is in progress but not yet complete.
+- Criteria: `spec.md` § Flow Gates § Additional Wait Conditions — Verify-Done requires Pair Review
+  complete with no open blocking finding.
+- Evidence: Section 9 above. The blockers noted in an earlier revision of this document (no stable
+  commit; no established reviewer mechanism) are resolved: `human:project-owner` authorized
+  committing (`b5d5995`, `63e725a`) and authorized using the Codex CLI as the distinct reviewer.
+- Result: **Waiting** on review completion, not on any unresolved decision — see Section 15.
 
 ### Current Definition of Done (Build-Done)
 
@@ -331,26 +326,25 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ## 15. Final Result
 
-- Final Status: **Waiting** (build-complete, Verify-Done blocked on Pair Review — see DoW above)
-- Recommended Transition: Once this file exists, re-run `ggsad transition CHG-001 ready` — with
-  `evidence.md` now present, that specific precondition should now be satisfied. This document
-  does not run that command itself, since committing to "the transition already happened" before
-  it's actually attempted would be exactly the kind of assertion-based status the constitution
-  prohibits.
-- Transition Evidence: Not applicable yet — see Recommended Transition above
+- Final Status: **Waiting** (Build-Done; `state.yaml` is `specify/ready` via a real engine
+  transition; Verify-Done blocked only on Pair Review completion — see DoW above)
+- Recommended Transition: None pending from this agent. `ggsad transition CHG-001 ready` already
+  ran successfully (Section 6.5 superseded — see `state.yaml` history, event `draft-to-ready`).
+  The next state-affecting action is recording Pair Review's result once Codex returns findings.
+- Transition Evidence: `state.yaml` `history` — an engine-appended `draft-to-ready` event with
+  `action: complete`, `previous_status: draft`, `new_status: ready`.
 - Remaining Actions:
-  1. Attempt `ggsad transition CHG-001 ready` now that `evidence.md` exists.
-  2. `human:project-owner` decision needed: how to establish a stable Pair Review target (commit
-     the work, or another mechanism) — this agent does not commit without being asked.
-  3. `human:project-owner` decision needed: how to conduct Pair Review with a genuinely distinct
-     `agent:codex` participant (external Codex CLI invocation, human-as-reviewer, or an explicit,
-     recorded waiver).
-  4. Resolve DEV-002 (`mypy` vs. `ty`) and the `review_id` pattern mismatch, at `human:project-
-     owner`'s discretion.
+  1. Await Codex's Pair Review findings (dispatched this session, Review ID `PR-001`).
+  2. Resolve findings per `plan.md` §15's blocking-finding rule; re-verify any resolved blocking
+     finding.
+  3. Once Pair Review reaches `verified`/no open blocking findings, re-evaluate Verify-Done and
+     the roadmap-status update (`tasks.md` T-082).
+  4. DEV-002 (`mypy` vs. `ty`) remains open at `human:project-owner`'s discretion; not blocking.
 - Evidence Owner Statement: All quality gates, acceptance examples, and requirements verifiable
-  without external review are confirmed passing, with evidence gathered this session (not
-  asserted from memory of earlier sessions). Pair Review has not occurred and is honestly reported
-  as such. CHG-001 is Build-Done but not yet Verify-Done.
+  without external review are confirmed passing. CHG-001's own `draft → ready` transition
+  succeeded through its own governed engine. Two commits exist on `main` as the stable Pair Review
+  target. Pair Review is in progress, not yet complete, and is honestly reported as such — CHG-001
+  is Build-Done but not yet Verify-Done.
 
 ## 16. Evidence History
 
