@@ -4,9 +4,9 @@
 
 - Project: GG-SAD Reference Implementation
 - Status: Active
-- Constitution Version: 0.1
+- Constitution Version: 0.2
 - Method Baseline: GG-SAD 1.2
-- Last Updated: 2026-08-02
+- Last Updated: 2026-08-03
 
 ## 1. Purpose
 
@@ -149,7 +149,7 @@ Baseline quality commands are:
 uv sync
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy
+uv run ty check
 uv run pytest
 uv build
 ```

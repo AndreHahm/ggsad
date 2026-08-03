@@ -249,7 +249,7 @@ Run the baseline quality checks:
 ```bash
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy
+uv run ty check
 uv run pytest
 uv build
 ```

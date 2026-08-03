@@ -183,7 +183,7 @@ Unless a higher-precedence artifact states otherwise:
 - use pytest for tests;
 - use Hypothesis for state and invariant testing where valuable;
 - use Ruff for formatting and linting;
-- use mypy for static type checking;
+- use `ty` for static type checking (strict mode);
 - keep modules cohesive and dependency direction explicit;
 - prefer standard-library solutions when they are adequate;
 - avoid speculative abstractions and premature extension systems.
@@ -207,7 +207,7 @@ Before claiming Build-Done or Verify-Done, run the applicable approved checks. T
 uv sync
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy src
+uv run ty check
 uv run pytest
 ```
 

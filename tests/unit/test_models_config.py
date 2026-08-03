@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ggsad.models.config import ProjectConfig
 
-_VALID: dict = {
+_VALID: dict[str, Any] = {
     "schema_version": "0.1",
     "project": {
         "id": "sample",

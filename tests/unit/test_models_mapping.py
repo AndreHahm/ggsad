@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ggsad.models.mapping import IntegrationMapping
 
-_VALID: dict = {
+_VALID: dict[str, Any] = {
     "integration": {"id": "gsd", "mode": "companion"},
     "ownership": {"governance": "ggsad"},
     "sources_of_truth": {"project_context": "docs/project-brief.md"},

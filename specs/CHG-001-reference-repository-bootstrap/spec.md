@@ -102,7 +102,7 @@ The initial repository uses:
 - JSON Schema Draft 2020-12 for portable structural validation;
 - pytest and Hypothesis for tests;
 - Ruff for formatting and linting;
-- mypy for static typing.
+- `ty` (Astral) for static typing, in strict mode.
 
 The initial architectural decisions are documented in ADR-0001 through ADR-0008. They are
 currently proposed and require human disposition before Ready-to-Build can pass unless the
@@ -431,7 +431,7 @@ The repository MUST support the approved baseline commands:
 uv sync
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy
+uv run ty check
 uv run pytest
 uv build
 uv run ggsad --help
@@ -645,7 +645,7 @@ Implementation MUST stop if an accepted ADR conflicts with this specification.
 - pytest for tests.
 - Hypothesis where property-based testing adds value.
 - Ruff for formatting and linting.
-- mypy in strict mode.
+- `ty` in strict mode (`pyproject.toml` `[tool.ty.rules] all = "error"`).
 - No unapproved runtime dependency.
 
 ### Security, Privacy, and Compliance Constraints
@@ -883,3 +883,4 @@ Fail the flow when:
 | 2026-08-02 | human:project-owner | Draft | Q-003, Q-004, Q-005 resolved via plan approval (see Open Questions) |
 | 2026-08-02 | human:project-owner | Approved | Specification approved |
 | 2026-08-03 | agent:claude-code | Ready | `ggsad transition CHG-001 ready` succeeded via the engine built in Slice 6, once `evidence.md` (Slice 7) satisfied the last R-011 precondition. See `evidence.md` §6.5 and §15. |
+| 2026-08-03 | human:project-owner | Ready | PRF-003 disposition: `ty` (Astral), configured in strict mode via `pyproject.toml` `[tool.ty.rules] all = "error"`, formally adopted in place of `mypy` — resolves the discrepancy DEV-002 flagged and Codex's Pair Review escalated into a blocking finding. `docs/constitution.md` amended to version 0.2 in the same decision (§11 baseline command); `docs/project-brief.md` and `docs/architecture.md` updated to match. See `evidence.md` §9 and §11. |

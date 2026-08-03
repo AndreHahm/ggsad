@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ggsad.models.state import ChangeState
 
-_VALID: dict = {
+_VALID: dict[str, Any] = {
     "schema_version": "0.1",
     "change": {"id": "CHG-999", "slug": "example", "title": "Example", "class": "M"},
     "flow": {"profile": "standard", "phase": "specify", "status": "draft"},

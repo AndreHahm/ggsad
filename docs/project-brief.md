@@ -189,7 +189,8 @@ state, gates, precedence, approvals, evidence requirements, and closure.
 - Initial repository hosting organization and package publication namespace.
 - Exact policy for supported Python versions after the bootstrap.
 - Initial configuration and state schema versioning policy.
-- Whether mypy remains the sole type checker or a later profile adds another checker.
+- Type checking uses `ty` (Astral) in strict mode (`pyproject.toml` `[tool.ty.rules] all = "error"`),
+  adopted 2026-08-03 in place of `mypy` — see `docs/constitution.md` §11.
 - First stable mechanism for human approval identity.
 - Timing and scope of project-memory implementation.
 - Admission criteria for MCP and IDE integrations.
