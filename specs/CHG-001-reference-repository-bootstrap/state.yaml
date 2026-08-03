@@ -150,6 +150,10 @@ history:
   event: constitution-amended-and-prf003-fix-applied
   actor: human:project-owner
   reason: "human:project-owner reviewed a ty-vs-mypy comparison this agent drafted and formally chose ty in strict mode. Added [tool.ty.environment]/[tool.ty.rules] all=\"error\" to pyproject.toml (ty has no --strict flag; this promotes all 123 of ty's rules -- all stable status -- to error, verified via `ty explain rule --output-format json`). Found and fixed 6 real strict-mode findings: ValidationIssue.__str__ missing @override (PEP 698), and 5 test fixtures with bare dict instead of dict[str, Any]. Amended docs/constitution.md (Version 0.1 -> 0.2, Last Updated 2026-08-03, section 11 baseline command) plus docs/project-brief.md, docs/architecture.md, docs/definitions/definition-of-done.md, AGENTS.md, CLAUDE.md, README.md, and this change's own spec.md (Technology Constraints, R-019, Change History) to replace every mypy reference with ty/ty check. 150 tests pass, ruff/ty(strict)/ggsad-validate/uv-build/ggsad---help all clean -- every R-019 baseline command now genuinely passes as documented. DEV-002 recorded resolved; new deviation DEV-005 recorded: the constitution's own section 19 Amendment Process names independent review as a required amendment step, which has not happened for this amendment specifically -- folded into the next Codex Pair Review re-verification dispatch (already needed for PRF-004/PRF-005) rather than a separate cycle. Per the constitution, this agent cannot mark PRF-003 verified unilaterally -- open_blocking_findings unchanged at 3 until Codex re-verifies."
+- timestamp: "2026-08-04T00:10:00Z"
+  event: pair-review-reverified-all-findings-closed
+  actor: agent:codex
+  reason: "human:project-owner asked to re-dispatch Codex to re-verify PRF-003, PRF-004, and PRF-005. Dispatched via the same direct, non-sandboxed codex exec invocation used successfully for Attempt 3, explicitly instructed to independently re-derive judgment rather than trust the Requestor's fix claims. Codex returned verified for all three: PRF-003 (ty strict-mode config confirmed sound and working -- all 123 rules stable, --error all equivalence confirmed; constitution amendment confirmed coherent and human-approved; this re-verification itself satisfies the amendment's own section 19 independent-review requirement, resolving DEV-005), PRF-004 (own adversarial probes -- drive-absolute, UNC, backslash-traversal, POSIX-traversal paths -- all correctly rejected by both schema and containment guard, packaged/repository mirrors match), PRF-005 (independently confirmed schema_version const 0.1 enforced in all three schemas with the literal rejection message checked). PRF-006 reconfirmed informational/environmental (same TLS failure in Codex's environment, not a repository defect). No new findings raised (would have started at PRF-007). No files modified. Re-evaluated gates in mandatory order: DoF not triggered, DoW no longer triggered, Build-Done fully re-affirmed, Verify-Done now satisfied per spec.md's Flow Gates (Pair Review complete, zero open blocking findings, evidence maps requirements to tests, deviations documented). Ready-to-Close (roadmap status update, tasks.md T-082) intentionally left as an open decision for human:project-owner, not proceeded on unprompted."
 pair_review:
   requestor:
     id: agent:claude-code
@@ -159,8 +163,8 @@ pair_review:
   reviewer:
     id: agent:codex
     type: agent
-  status: findings_open
-  open_blocking_findings: 3
+  status: verified
+  open_blocking_findings: 0
 schema_version: '0.1'
 wait:
   category: null

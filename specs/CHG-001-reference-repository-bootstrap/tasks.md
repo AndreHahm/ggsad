@@ -585,11 +585,12 @@
     PRF-005) and one informational finding (PRF-006) — see `evidence.md` §9. PRF-001/PRF-002 are
     now resolved (superseded, not root-caused). No files were modified during the review.
 
-- [-] **T-077 — Resolve Reviewer findings**
+- [x] **T-077 — Resolve Reviewer findings**
   - Requestor: agent:claude-code
   - Verification: Findings are accepted, rejected with rationale, resolved, or formally dispositioned.
   - Constraint: Open blocking findings prevent Verify-Done.
-  - Status: **In progress — all three fixed, pending re-verification.** PRF-004 (mapping-path
+  - Status: **Complete — all three fixed and independently re-verified by Codex (T-078).**
+    PRF-004 (mapping-path
     schema/validator accepted Windows traversal/absolute/UNC paths) and PRF-005 (schema-version
     fields accepted unsupported values) fixed directly: tightened `relativePath`/`artifactPath`
     regex and constrained `schema_version` to `const: "0.1"` in all three schemas (`.ggsad/
@@ -606,16 +607,23 @@
     `definitions/definition-of-done.md`, `AGENTS.md`, `CLAUDE.md`, `README.md`, this change's own
     `spec.md`) to replace every `mypy` reference with `ty`. 150 tests pass (up from 142),
     ruff/ty(strict)/`ggsad validate .`/`uv build`/`ggsad --help` all clean — every R-019 baseline
-    command genuinely passes as documented. Per the constitution, this agent cannot mark a blocking
-    finding `verified` unilaterally — that's T-078. New deviation DEV-005 recorded: the amendment's
-    own §19 "independent review" step is outstanding, folded into T-078's Codex dispatch.
+    command genuinely passes as documented. Per the constitution, this agent could not mark a
+    blocking finding `verified` unilaterally — that was T-078's job. New deviation DEV-005 was
+    recorded and has since been resolved by T-078 (below).
 
-- [!] **T-078 — Re-verify resolved blocking findings**
+- [x] **T-078 — Re-verify resolved blocking findings**
   - Reviewer: agent:codex
   - Evidence: finding status becomes `verified` or approved equivalent.
-  - Status: Blocked — fixes for PRF-003/PRF-004/PRF-005 are all applied and ready for re-dispatch
-    to Codex. This dispatch also serves as the constitutional amendment's own required independent
-    review (DEV-005).
+  - Status: **Complete.** Re-dispatched via the same direct, non-sandboxed `codex exec` invocation
+    used successfully for the initial review, explicitly instructed to independently re-derive
+    judgment rather than trust the Requestor's fix claims. Codex returned `verified` for PRF-003
+    (own checks: `ty`'s `--error all` equivalence, all 123 rules `stable`; constitution amendment
+    confirmed coherent and human-approved — this dispatch also resolved DEV-005, the amendment's
+    own outstanding §19 independent-review step), PRF-004 (own adversarial path probes — drive-
+    absolute, UNC, backslash-traversal, POSIX-traversal — all correctly rejected by both schema and
+    containment guard), and PRF-005 (independently confirmed `const: "0.1"` enforcement in all
+    three schemas). PRF-006 reconfirmed informational/environmental. No new findings raised. No
+    files modified during re-verification. `open_blocking_findings` is now 0.
 
 - [x] **T-079 — Evaluate final GG-SAD gates**
   - Order:
@@ -623,12 +631,14 @@
     2. DoW
     3. Verify-Done
     4. Ready-to-Close
-  - Evidence: `evidence.md` §14. DoF: not triggered. DoW: **triggered** — Pair Review conducted
-    (T-076 complete) and returned three open blocking findings (PRF-003, PRF-004, PRF-005); all
-    three now have a fix applied (T-077) pending re-verification (T-078). Current (Build-Done):
-    reconsidered, partially re-affirmed — Codex's findings surfaced gaps this agent's own evidence
-    had not caught, all now fixed. Next (Verify-Done): not satisfied, blocked solely on Codex
-    re-verification (T-078). Reported honestly as `Waiting`, not asserted as complete.
+  - Evidence: `evidence.md` §14. DoF: not triggered. DoW: **no longer triggered** — Pair Review
+    complete (T-076, T-078) with zero open blocking findings. Current (Build-Done): **fully
+    re-affirmed** — all three gaps Codex's Attempt 3 review surfaced are fixed and independently
+    re-verified. Next (Verify-Done): **satisfied** — `spec.md`'s Flow Gates Verify-Done bullets
+    (acceptance examples, Pair Review complete, no open blocking finding, deviations documented,
+    evidence traceable) are each met. Ready-to-Close: **not yet evaluated/reached** — needs the
+    roadmap-status update (T-082) and a full Ready-to-Close pass, intentionally left as an open
+    decision for `human:project-owner` rather than proceeded on unprompted.
 
 ## 9. Documentation Synchronization
 
@@ -670,15 +680,14 @@
 
 ## 10. Wait Register
 
-| Task | Category | Reason | Waiting For | Safe State | Resume Condition |
-|---|---|---|---|---|---|
-| T-078 | WAIT_EXTERNAL_SYSTEM | All three blocking findings (PRF-003, PRF-004, PRF-005) have a fix applied and are ready for re-verification, but only the distinct Reviewer (Codex) can mark a blocking finding `verified` per the constitution | agent:codex (re-dispatch) | Working tree clean after commit; 150 tests pass; all baseline commands pass | Codex Pair Review re-dispatched against the fixed commit and returns updated findings status |
+**Empty.** No task is currently waiting.
 
-T-077's prior wait (PRF-003, `human:project-owner` decision on `mypy` vs. `ty`) is resolved —
-`human:project-owner` reviewed a comparison and formally adopted `ty` in strict mode 2026-08-03.
-Removed from this register accordingly. T-076's prior wait (Codex sandbox unable to launch a
-subshell, PRF-001/PRF-002) was resolved earlier the same way — superseded by the direct,
-non-sandboxed `codex exec` invocation used in Attempt 3.
+T-078's wait (Codex re-verification of PRF-003/PRF-004/PRF-005) is resolved — Codex re-dispatched
+2026-08-04 and returned `verified` for all three, with no new findings. T-077's prior wait (PRF-003,
+`human:project-owner` decision on `mypy` vs. `ty`) resolved 2026-08-03 — `human:project-owner`
+reviewed a comparison and formally adopted `ty` in strict mode. T-076's prior wait (Codex sandbox
+unable to launch a subshell, PRF-001/PRF-002) was resolved earlier the same way — superseded by the
+direct, non-sandboxed `codex exec` invocation used in Attempt 3.
 
 ## 11. Completion Summary
 
@@ -777,14 +786,24 @@ non-sandboxed `codex exec` invocation used in Attempt 3.
   recorded: the amendment's own §19 "independent review" step is outstanding, folded into T-078.
   150 tests pass (up from 142, 98.58% coverage); ruff/ty(strict)/`ggsad validate .`/`uv build`/
   `ggsad --help` all clean — every R-019 baseline command genuinely passes as documented; all three
-  governed YAML files re-validated against the updated schemas. 39 of 43 tasks complete (T-077
-  still "in progress," not "complete," since only the distinct reviewer can close a blocking
-  finding).
-- Current Blocking Area: **T-078 (re-verify resolved blocking findings) — needs a single Codex
-  re-dispatch covering all three fixes** (and, incidentally, DEV-005's outstanding independent
-  review of the constitutional amendment). CHG-001 is not currently Build-Done-reaffirmed (see
-  `evidence.md` §14) and not Verify-Done until Codex re-verifies.
+  governed YAML files re-validated against the updated schemas.
+- Pair Review re-verified 2026-08-04 (T-078, complete): `human:project-owner` asked to re-dispatch
+  Codex. Re-dispatched via the same direct, non-sandboxed `codex exec` invocation used for the
+  initial review, explicitly instructed to independently re-derive judgment rather than trust the
+  Requestor's fix claims. Codex returned `verified` for all three findings — PRF-003 (`ty`
+  strict-mode config confirmed sound; constitution amendment confirmed coherent and human-approved,
+  resolving DEV-005), PRF-004 (own adversarial path probes all correctly rejected), PRF-005 (own
+  confirmation that `const: "0.1"` is enforced) — reconfirmed PRF-006 as informational/
+  environmental, and raised no new findings. `open_blocking_findings` is now 0. Re-evaluated all
+  four gates in mandatory order: DoF not triggered, DoW no longer triggered, Build-Done fully
+  re-affirmed, Verify-Done now satisfied per `spec.md`'s Flow Gates. 41 of 43 tasks complete (only
+  T-082 roadmap-status update and T-083 third-party-notices remain, both gated on a Ready-to-Close
+  decision — see below).
+- Current Blocking Area: **None.** CHG-001 is Build-Done and Verify-Done, with zero open blocking
+  findings (see `evidence.md` §14).
 - Assigned Requestor: agent:claude-code
 - Assigned Reviewer: agent:codex
-- Next Permitted Action: re-dispatch Codex for re-verification of the PRF-003/PRF-004/PRF-005
-  fixes (T-078). No further human decision is pending.
+- Next Permitted Action: `human:project-owner` decides whether and how far to take Ready-to-Close
+  now (T-082 roadmap-status update, full Ready-to-Close evaluation per
+  `docs/definitions/definition-of-ready.md` § Ready to Close) — this is a material scope/closure
+  decision this agent is surfacing rather than proceeding on unprompted, not a blocked task.
