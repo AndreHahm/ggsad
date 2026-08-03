@@ -9,6 +9,7 @@ actionable, per CHG-001 R-015.
 from __future__ import annotations
 
 from enum import StrEnum
+from typing import override
 
 from pydantic import BaseModel, ConfigDict
 
@@ -42,6 +43,7 @@ class ValidationIssue(BaseModel):
     field: str | None = None
     remediation: str | None = None
 
+    @override
     def __str__(self) -> str:
         location = f" ({self.field})" if self.field else ""
         hint = f" -- {self.remediation}" if self.remediation else ""

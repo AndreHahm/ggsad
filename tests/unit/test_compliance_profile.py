@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from ggsad.models.config import ProjectConfig
 from ggsad.models.validation import IssueCategory
 from ggsad.validators.compliance_profile import validate_compliance_profile
 
-_BASE: dict = {
+_BASE: dict[str, Any] = {
     "schema_version": "0.1",
     "project": {
         "id": "sample",

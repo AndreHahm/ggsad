@@ -507,7 +507,7 @@ State Manager
 - JSON Schema for portable structural validation;
 - pytest and Hypothesis for tests;
 - Ruff for formatting and linting;
-- mypy for strict type checking;
+- `ty` (Astral) for static type checking, configured in strict mode;
 - GitHub Actions as the first optional CI example.
 
 ## 12. Architectural Decisions Requiring ADRs

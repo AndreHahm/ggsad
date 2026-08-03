@@ -117,6 +117,16 @@ ignore = [
 docstring-code-format = true
 quote-style = "double"
 
+[tool.ty.environment]
+python-version = "3.13"
+
+[tool.ty.rules]
+# ty has no dedicated `--strict` flag or preset (unlike mypy). This promotes
+# every rule ty ships to `error`, which is a defensible strict-mode
+# equivalent rather than an opt-in to unstable behavior: as of ty 0.0.65, all
+# 123 built-in rules are `stable` status (none are preview/experimental).
+all = "error"
+
 [tool.pytest.ini_options]
 addopts = [
   "--strict-config",

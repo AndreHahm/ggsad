@@ -185,7 +185,7 @@ Baseline commands:
 uv sync
 uv run ruff format --check .
 uv run ruff check .
-uv run mypy src
+uv run ty check
 uv run pytest
 ```
 

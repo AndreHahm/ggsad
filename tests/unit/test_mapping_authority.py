@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ggsad.models.mapping import IntegrationMapping
 from ggsad.validators.mapping_authority import validate_mapping_authority
 
-_BASE: dict = {
+_BASE: dict[str, Any] = {
     "integration": {"id": "gsd", "mode": "companion"},
     "ownership": {"governance": "ggsad"},
     "sources_of_truth": {"project_context": "docs/project-brief.md"},
