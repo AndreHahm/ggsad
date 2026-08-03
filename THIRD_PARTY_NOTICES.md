@@ -14,6 +14,8 @@ distributed by the respective third-party projects.
 - Copyright: Copyright (c) 2026 Open GSD
 - License: MIT License
 - Usage in GG-SAD: Optional project-local execution and context-engineering companion
+- Installed Version: `1.9.1` (confirmed via `.claude/gsd-core/VERSION` and
+  `.claude/gsd-file-manifest.json`, both committed alongside this repository)
 - Installation:
 
   ```bash

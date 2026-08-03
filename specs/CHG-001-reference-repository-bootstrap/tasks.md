@@ -636,9 +636,11 @@
     re-affirmed** — all three gaps Codex's Attempt 3 review surfaced are fixed and independently
     re-verified. Next (Verify-Done): **satisfied** — `spec.md`'s Flow Gates Verify-Done bullets
     (acceptance examples, Pair Review complete, no open blocking finding, deviations documented,
-    evidence traceable) are each met. Ready-to-Close: **not yet evaluated/reached** — needs the
-    roadmap-status update (T-082) and a full Ready-to-Close pass, intentionally left as an open
-    decision for `human:project-owner` rather than proceeded on unprompted.
+    evidence traceable) are each met. Ready-to-Close: **satisfied**, per `human:project-owner`'s
+    instruction to proceed. All nine `docs/definitions/definition-of-ready.md` § Ready to Close
+    criteria evaluated explicitly in `evidence.md` §14's Ready-to-Close subsection; one honestly
+    documented mechanical limitation (`state.yaml`'s `flow.phase`/`flow.status` cannot advance past
+    `specify`/`ready` without engine work outside CHG-001's approved scope — not hand-edited).
 
 ## 9. Documentation Synchronization
 
@@ -665,18 +667,29 @@
     detail for that, not `architecture.md`. No material deviation requiring an ADR or
     architecture-document change occurred.
 
-- [ ] **T-082 — Update roadmap status**
+- [x] **T-082 — Update roadmap status**
   - Required When: CHG-001 reaches verified completion.
   - Evidence: roadmap reference to CHG-001 result.
-  - Status: Not yet required — CHG-001 is Build-Done but not Verify-Done (T-079). Revisit once
-    Pair Review completes.
+  - Status: **Complete.** `docs/roadmap.md` updated (Last Updated 2026-08-04) with an honest,
+    per-item completion status: R0 complete (all five exit criteria evidenced); R1 partially
+    delivered (Class M example only — Class S/L examples, a Human–Human/mixed Pair Review example,
+    and dedicated wait/fail examples remain future work); R2 delivered except `ggsad status`, which
+    was never part of CHG-001's actually-approved scope (`spec.md` R-001–R-020 /
+    `CLAUDE.md`'s Initial Change Constraint never named it) — a pre-existing roadmap/spec mismatch,
+    reconciled explicitly rather than silently carried forward or glossed over as "done."
 
-- [~] **T-083 — Update third-party notices if GSD files are committed**
+- [x] **T-083 — Update third-party notices if GSD files are committed**
   - File: `THIRD_PARTY_NOTICES.md`
   - Verification: installed version and applicable notices are accurate.
-  - Status: Not applicable yet — nothing is committed (see T-075), so "if GSD files are
-    committed" hasn't occurred. `THIRD_PARTY_NOTICES.md` already exists in the working tree;
-    revisit its GSD entry accuracy at commit time, whenever that decision is made.
+  - Status: **Complete.** GSD files were committed in `b5d5995`. Confirmed the installed GSD Core
+    version (`1.9.1`) against `.claude/gsd-core/VERSION` and `.claude/gsd-file-manifest.json`, and
+    recorded it explicitly in `THIRD_PARTY_NOTICES.md`'s GSD Core entry — previously the document
+    only said the version "should be recorded," without actually recording it. Package name,
+    project, copyright, and license fields were already present and are not contradicted by any
+    locally available evidence (no bundled `package.json`/`LICENSE` shipped by the installer to
+    verify against directly; unchanged from the original bootstrap entry).
+  - Original note ("nothing is committed, see T-075") is superseded — commits `b5d5995`/`63e725a`
+    landed 2026-08-03, which is what made this task applicable.
 
 ## 10. Wait Register
 
@@ -797,13 +810,23 @@ direct, non-sandboxed `codex exec` invocation used in Attempt 3.
   environmental, and raised no new findings. `open_blocking_findings` is now 0. Re-evaluated all
   four gates in mandatory order: DoF not triggered, DoW no longer triggered, Build-Done fully
   re-affirmed, Verify-Done now satisfied per `spec.md`'s Flow Gates. 41 of 43 tasks complete (only
-  T-082 roadmap-status update and T-083 third-party-notices remain, both gated on a Ready-to-Close
-  decision — see below).
-- Current Blocking Area: **None.** CHG-001 is Build-Done and Verify-Done, with zero open blocking
-  findings (see `evidence.md` §14).
+  T-082 roadmap-status update and T-083 third-party-notices remained, both gated on a
+  Ready-to-Close decision).
+- Ready-to-Close completed 2026-08-04 (T-082, T-083): per `human:project-owner`'s instruction to
+  proceed, updated `docs/roadmap.md` (R0 complete, R1 partially delivered with the remaining gap
+  named explicitly, R2 delivered except the pre-existing `ggsad status` scope mismatch, now
+  reconciled) and `THIRD_PARTY_NOTICES.md` (confirmed installed GSD Core version `1.9.1`). Evaluated
+  all nine `docs/definitions/definition-of-ready.md` § Ready to Close criteria explicitly in
+  `evidence.md` §14 — all satisfied, with one honestly documented mechanical limitation:
+  `state.yaml`'s `flow.phase`/`flow.status` cannot advance past `specify`/`ready` because CHG-001's
+  approved scope excludes a complete gate engine, and this agent will not hand-edit those
+  engine-controlled fields to simulate a transition the engine never performed — the same
+  controlled-transition principle (ADR-0005) upheld throughout this session. 43 of 43 tasks
+  complete.
+- Current Blocking Area: **None.** CHG-001 is Build-Done, Verify-Done, and Ready-to-Close.
 - Assigned Requestor: agent:claude-code
 - Assigned Reviewer: agent:codex
-- Next Permitted Action: `human:project-owner` decides whether and how far to take Ready-to-Close
-  now (T-082 roadmap-status update, full Ready-to-Close evaluation per
-  `docs/definitions/definition-of-ready.md` § Ready to Close) — this is a material scope/closure
-  decision this agent is surfacing rather than proceeding on unprompted, not a blocked task.
+- Next Permitted Action: None pending from this agent. `state.yaml`'s `flow.phase`/`flow.status`
+  intentionally remain `specify`/`ready`; a future change that adds phase-transition capability
+  beyond `specify/draft → specify/ready`, implements `ggsad status`, adds Class S/L examples, or
+  formally accepts ADR-0001–0008 is `human:project-owner`'s to initiate, on their own timeline.

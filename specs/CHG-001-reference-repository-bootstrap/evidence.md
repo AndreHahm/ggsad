@@ -455,21 +455,70 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
   engine-executed phase transition — CHG-001's implemented CLI scope only supports the
   `specify/draft → specify/ready` transition (R-010); `state.yaml`'s `flow.phase`/`flow.status`
   correctly remain `specify`/`ready`, since no `verify`-phase transition capability exists in this
-  change's approved scope. Reaching Ready-to-Close additionally requires roadmap/status updates
-  (`docs/definitions/definition-of-ready.md` § Ready to Close; `tasks.md` T-082), which are a
-  separate, not-yet-taken action — see Section 15.
+  change's approved scope.
+
+### Ready-to-Close
+
+Evaluated against `docs/definitions/definition-of-ready.md` § Ready to Close, per
+`human:project-owner`'s instruction to proceed with Ready-to-Close now that Verify-Done is
+satisfied:
+
+- All required phases are complete: **Satisfied in substance, with a documented mechanical
+  limitation.** Specify (spec.md approved), plan (plan.md approved), build (implementation
+  shipped, Slices 1–7), and verify (evidence.md + two Pair Review passes) all genuinely happened
+  for CHG-001. However, `state.yaml`'s `flow.phase` field itself cannot reflect this: CHG-001's own
+  approved scope explicitly excludes "a complete gate engine" (`CLAUDE.md` Initial Change
+  Constraint), so `engine/transitions.py` only implements the single `specify/draft →
+  specify/ready` arc (R-010) — even though `state.schema.json` structurally supports the full
+  `intake…closed` phase enum and a `done` status. Hand-editing `flow.phase`/`flow.status` to
+  `closed`/`done` without a corresponding engine-enforced transition would violate the same
+  controlled-transition principle (ADR-0005) this session has upheld throughout — unlike
+  `pair_review.*`, which is external-process bookkeeping with no CLI-managed lifecycle,
+  `flow.phase`/`flow.status` are specifically engine-controlled fields. This agent did not and will
+  not hand-edit them. `state.yaml` correctly remains `specify`/`ready`.
+- No DoF or DoW condition is active: **Satisfied** — see above.
+- Requirement and acceptance-example coverage is evidenced: **Satisfied** — Sections 3–4.
+- Required Pair Review cycles are complete: **Satisfied** — Section 9, Attempts 3 and 4, zero open
+  blocking findings.
+- Blocking findings are resolved or formally dispositioned: **Satisfied** — Section 9.
+- Specification, implementation, tests, and documentation are consistent: **Satisfied** — the
+  `mypy`→`ty` change alone touched 8 governing documents specifically to restore this consistency;
+  `ggsad validate .`, the full test suite, and both quality-gate tools confirm no drift.
+- Deviations and limitations are accepted where required: **Satisfied** — Section 11 (DEV-001
+  through DEV-005, all Resolved) and Section 12 (Known Limitations, including the phase-field
+  limitation above and CHG-001's deliberate Class-M-only scope).
+- Roadmap, architecture, ADR, and status updates are complete: **Satisfied.** `docs/roadmap.md`
+  updated with an honest completion status for R0 (complete), R1 (partially delivered — Class M
+  example only; Class S/L examples, a Human–Human/mixed Pair Review example, and dedicated
+  wait/fail examples remain future work), and R2 (delivered except `ggsad status`, which was never
+  in CHG-001's actually-approved scope per `spec.md`/`CLAUDE.md` — a pre-existing roadmap/spec
+  mismatch, now reconciled rather than silently carried forward). `docs/architecture.md` already
+  current (updated for the `ty` change). ADR-0001 through ADR-0008 remain `Proposed` /
+  non-blocking-drafts-for-CHG-001 by design — formal ADR acceptance was never required for
+  CHG-001's own Verify-Done or Ready-to-Close and remains separate future governance work.
+  `THIRD_PARTY_NOTICES.md` updated with the confirmed installed GSD Core version (`1.9.1`, verified
+  against `.claude/gsd-core/VERSION` and `.claude/gsd-file-manifest.json`) — `tasks.md` T-083.
+- Final state and history can be recorded atomically: **Satisfied** — `state.yaml` continues to
+  validate against `state.schema.json` after every edit this session; the engine's atomic
+  replace-after-revalidate mechanism (`engine/state_writer.py`) remains available and untouched.
+
+**Result: Ready-to-Close is satisfied**, with one honestly documented limitation: `state.yaml`'s
+`flow.phase`/`flow.status` remain `specify`/`ready` because no engine-executed transition to a
+later phase exists in CHG-001's approved scope, not because closure conditions aren't met. Actually
+recording CHG-001 as formally `closed` in `state.yaml` is not possible through this repository's
+current tooling and is not attempted here.
 
 ## 15. Final Result
 
-- Final Status: **Build-Done and Verify-Done, both satisfied** (`state.yaml` is `specify/ready` via
-  a real engine transition; Pair Review complete with zero open blocking findings — see DoW/DoD
-  above). Not yet Ready-to-Close — see Remaining Actions.
+- Final Status: **Build-Done, Verify-Done, and Ready-to-Close, all satisfied** (`state.yaml` is
+  `specify/ready` via a real engine transition; Pair Review complete with zero open blocking
+  findings; roadmap/architecture/ADR/status updates complete — see DoW/DoD/Ready-to-Close above).
 - Recommended Transition: None pending from this agent via the `ggsad` CLI — `ggsad transition
   CHG-001 ready` already ran successfully (Section 6.5 superseded — see `state.yaml` history, event
   `draft-to-ready`), and CHG-001's implemented scope has no further CLI-executed phase transition
-  (`verify`/`release`/`closed` are not in R-010's supported set). The next actions are
-  documentation-level (roadmap status, Ready-to-Close), not engine transitions — see below, and see
-  `human:project-owner` for direction on whether/how far to take closure now.
+  (`verify`/`release`/`closed` are not in R-010's supported set). `state.yaml`'s `flow.phase`/
+  `flow.status` intentionally remain `specify`/`ready` — see the Ready-to-Close subsection above for
+  why this agent will not hand-edit those specific engine-controlled fields.
 - Transition Evidence: `state.yaml` `history` — an engine-appended `draft-to-ready` event with
   `action: complete`, `previous_status: draft`, `new_status: ready`.
 - Remaining Actions:
@@ -484,22 +533,29 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
   4. **Done:** Pair Review re-dispatched (Review ID `PR-001`, Attempt 4) and returned `verified` for
      all three findings, no new findings. This also satisfied DEV-005 (the constitutional
      amendment's own outstanding independent-review step).
-  5. **Open:** `tasks.md` T-082 (roadmap status update) and full Ready-to-Close evaluation
-     (`docs/definitions/definition-of-ready.md` § Ready to Close — roadmap/architecture/ADR/status
-     updates) have not been done. This is a material scope decision (how far to take CHG-001's
-     closure right now) that this agent is surfacing rather than proceeding on unprompted.
-  6. PRF-006 (`uv build` TLS issue in Codex's environment) remains informational only, reconfirmed
+  5. **Done:** `tasks.md` T-082 (roadmap status update) — `docs/roadmap.md` now honestly records
+     R0/R1/R2's actual completion status, including the pre-existing `ggsad status` scope gap and
+     R1's remaining Class S/L example work, rather than a blanket "done."
+  6. **Done:** `tasks.md` T-083 (third-party notices) — `THIRD_PARTY_NOTICES.md` now records the
+     confirmed installed GSD Core version (`1.9.1`).
+  7. **Done:** Full Ready-to-Close evaluation against `docs/definitions/definition-of-ready.md` —
+     satisfied, with the `flow.phase`/`flow.status` limitation explicitly documented above rather
+     than worked around.
+  8. PRF-006 (`uv build` TLS issue in Codex's environment) remains informational only, reconfirmed
      twice as environmental — not blocking anything.
-- Evidence Owner Statement: Pair Review has now genuinely run twice: Attempt 3 (initial review, via
-  a direct non-sandboxed `codex exec` invocation after three sandboxed attempts failed for
-  environment reasons) found three real blocking findings about CHG-001 itself (PRF-003, PRF-004,
-  PRF-005) that this agent's own Sections 3–7 evidence had not caught, plus one informational
-  finding (PRF-006). Attempt 4 (re-verification, same invocation method) independently confirmed
-  all three fixes are sound and raised no new findings. Per the constitution, this agent did not and
-  could not declare any finding `verified` itself — every verdict recorded in Section 9 is Codex's
-  own, reached by re-deriving its own judgment rather than trusting this agent's fix claims.
-  CHG-001 is now Build-Done and Verify-Done. Whether and how to proceed toward Ready-to-Close is a
-  decision for `human:project-owner`.
+  9. Nothing further is pending from this agent. Any decision to pursue a future change that adds
+     phase-transition capability beyond `specify/draft → specify/ready`, `ggsad status`, Class S/L
+     examples, or formal ADR acceptance is `human:project-owner`'s to make, on their own timeline.
+- Evidence Owner Statement: Pair Review genuinely ran twice: Attempt 3 (initial review, via a direct
+  non-sandboxed `codex exec` invocation after three sandboxed attempts failed for environment
+  reasons) found three real blocking findings about CHG-001 itself (PRF-003, PRF-004, PRF-005) that
+  this agent's own Sections 3–7 evidence had not caught, plus one informational finding (PRF-006).
+  Attempt 4 (re-verification, same invocation method) independently confirmed all three fixes are
+  sound and raised no new findings. Per the constitution, this agent did not and could not declare
+  any finding `verified` itself — every verdict recorded in Section 9 is Codex's own. CHG-001 is now
+  Build-Done, Verify-Done, and Ready-to-Close. The one honestly documented gap — `state.yaml`'s
+  phase/status fields cannot mechanically advance past `specify/ready` without a future change's
+  engine work — is a scope boundary, not a quality gap, and this agent has not worked around it.
 
 ## 16. Evidence History
 
@@ -510,3 +566,4 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 | 2026-08-03 | agent:claude-code | 3 | Fixed PRF-004 and PRF-005: tightened `relativePath`/`artifactPath` regex and constrained `schema_version` to `const: "0.1"` across all three schemas (`.ggsad/schemas/` and packaged `src/ggsad/resources/schemas/`); added an explicit path-containment check (new `PATH_SAFETY` issue category) in `validate_repository.py` as defense in depth. Added 5 regression tests. 150 tests pass (up from 142), ruff/ty/`ggsad validate .` all clean; all three governed YAML files re-validated against updated schemas; `uv build` re-confirmed working locally (PRF-006 independently confirmed environmental to Codex's sandbox). PRF-003 intentionally left unfixed pending `human:project-owner`'s disposition decision. Neither fix is marked `verified` — that requires the distinct reviewer. |
 | 2026-08-03 | agent:claude-code | 4 | Resolved PRF-003: `human:project-owner` reviewed a `ty` vs. `mypy` comparison and formally adopted `ty` in strict mode. Added `[tool.ty.environment]`/`[tool.ty.rules] all = "error"` to `pyproject.toml`; found and fixed 6 real strict-mode findings (`@override` on `ValidationIssue.__str__`, 5 test fixtures with unparameterized `dict`). Amended `docs/constitution.md` (Version 0.1→0.2, Last Updated 2026-08-03) and 7 other governing documents (`project-brief.md`, `architecture.md`, `definitions/definition-of-done.md`, `AGENTS.md`, `CLAUDE.md`, `README.md`, `spec.md`) to replace every `mypy` reference with `ty`/`ty check`. Recorded DEV-002 as resolved and a new deviation DEV-005: the amendment's own §19 Amendment Process "independent review" step is outstanding, folded into the next Codex re-verification dispatch rather than a separate cycle. 150 tests pass, ruff/ty(strict)/`ggsad validate .`/`uv build`/`ggsad --help` all clean. All three blocking findings (PRF-003/004/005) now have a fix applied; none marked `verified` — that requires the distinct reviewer. |
 | 2026-08-03 | agent:claude-code | 5 | Recorded Pair Review Attempt 4 (re-verification): dispatched Codex again via the same direct, non-sandboxed `codex exec` invocation against the fixed commit, explicitly asking it to independently re-derive judgment rather than trust the Requestor's fix claims. Codex returned `verified` for PRF-003, PRF-004, and PRF-005 (each backed by its own independent checks: adversarial path probes for PRF-004, schema rejection tests for PRF-005, and confirmation that the `ty` strict-mode config and constitution amendment are sound for PRF-003), reconfirmed PRF-006 as environmental/non-blocking, and raised no new findings. This also satisfied DEV-005 (the amendment's own outstanding independent-review step), now resolved. Open Blocking Findings is now 0. Re-evaluated all four gates in mandatory order: DoF not triggered, DoW no longer triggered, Build-Done fully re-affirmed, Verify-Done now satisfied per `spec.md`'s Flow Gates. Ready-to-Close (roadmap status update, `tasks.md` T-082) intentionally left as an open, surfaced decision rather than proceeded on unprompted. No files were modified during the re-verification. |
+| 2026-08-04 | agent:claude-code | 6 | Completed Ready-to-Close per `human:project-owner`'s instruction. `tasks.md` T-082 (roadmap status): updated `docs/roadmap.md` with an honest, non-blanket completion status for R0 (complete), R1 (partially delivered — Class M example only; documented what remains), and R2 (delivered except `ggsad status`, a pre-existing roadmap/spec mismatch now reconciled rather than carried forward silently). `tasks.md` T-083 (third-party notices): recorded the confirmed installed GSD Core version (`1.9.1`, verified against `.claude/gsd-core/VERSION` and the file manifest) in `THIRD_PARTY_NOTICES.md`. Evaluated all nine `docs/definitions/definition-of-ready.md` § Ready to Close criteria explicitly; all satisfied, with one honestly documented limitation: `state.yaml`'s `flow.phase`/`flow.status` cannot mechanically advance past `specify`/`ready` because CHG-001's approved scope excludes a complete gate engine, and this agent will not hand-edit those specific engine-controlled fields to simulate a transition that didn't happen through the engine — doing so would violate the same controlled-transition principle (ADR-0005) upheld throughout this session. Result: CHG-001 is Build-Done, Verify-Done, and Ready-to-Close. |
