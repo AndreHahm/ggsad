@@ -8,12 +8,15 @@ from ggsad.application.create_change import build_change_manifest
 from ggsad.application.initialize_project import initialize_project
 from ggsad.application.manifest_writer import write_manifest
 from ggsad.application.validate_repository import (
+    _validate_declared_mappings,
     discover_change_directories,
     validate_change,
     validate_project_config,
     validate_repository,
 )
+from ggsad.models.config import IntegrationDeclaration, ProjectConfig
 from ggsad.models.validation import IssueCategory
+from ggsad.validators.yaml_loader import dump_yaml_bytes, load_yaml_file
 
 
 def _init(tmp_path: Path) -> Path:
@@ -103,6 +106,91 @@ def test_declared_mapping_with_schema_violation_skips_authority_check(tmp_path: 
     mapping_path = target / ".ggsad" / "mappings" / "gsd.yaml"
     mapping_path.parent.mkdir(parents=True)
     mapping_path.write_text("integration:\n  id: gsd\n", encoding="utf-8")  # missing required keys
+
+    issues = validate_project_config(target)
+
+    assert issues
+    assert all(issue.category is IssueCategory.SCHEMA_VIOLATION for issue in issues)
+
+
+def _declare_mapping(target: Path, mapping: str) -> None:
+    """Declare one `gsd` integration with an arbitrary (possibly malicious)
+    mapping path, via the YAML round-trip API rather than string
+    substitution -- the path values under test contain backslashes that
+    Python `repr()`/naive string formatting would encode incorrectly for
+    YAML's single-quote (no-escaping) scalar style."""
+    config_path = target / ".ggsad" / "config.yaml"
+    data = load_yaml_file(config_path)
+    data["project"]["operating_mode"] = "combination"
+    data["integrations"] = [{"id": "gsd", "mode": "companion", "mapping": mapping}]
+    config_path.write_bytes(dump_yaml_bytes(data))
+
+
+def test_prf004_schema_rejects_windows_drive_absolute_mapping_path(tmp_path: Path) -> None:
+    """PRF-004: a drive-absolute path must fail schema validation, not be
+    silently accepted and later resolved outside the repository."""
+    target = _init(tmp_path)
+    _declare_mapping(target, "C:\\outside.yaml")
+
+    issues = validate_project_config(target)
+
+    assert issues
+    assert all(issue.category is IssueCategory.SCHEMA_VIOLATION for issue in issues)
+
+
+def test_prf004_schema_rejects_unc_mapping_path(tmp_path: Path) -> None:
+    target = _init(tmp_path)
+    _declare_mapping(target, "\\\\server\\share\\mapping.yaml")
+
+    issues = validate_project_config(target)
+
+    assert issues
+    assert all(issue.category is IssueCategory.SCHEMA_VIOLATION for issue in issues)
+
+
+def test_prf004_schema_rejects_backslash_traversal_mapping_path(tmp_path: Path) -> None:
+    target = _init(tmp_path)
+    _declare_mapping(target, "..\\outside.yaml")
+
+    issues = validate_project_config(target)
+
+    assert issues
+    assert all(issue.category is IssueCategory.SCHEMA_VIOLATION for issue in issues)
+
+
+def test_prf004_declared_mapping_escaping_target_is_rejected_as_path_safety(
+    tmp_path: Path,
+) -> None:
+    """Defense in depth (PRF-004): `_validate_declared_mappings` verifies path
+    containment explicitly rather than trusting the schema pattern alone --
+    `Path`'s `/` operator silently discards the left-hand side if the
+    right-hand side turns out to be absolute. Constructed directly against an
+    in-memory `ProjectConfig`, bypassing the schema layer, to prove the
+    code-level guard rejects an escaping path independently."""
+    target = _init(tmp_path)
+    data = load_yaml_file(target / ".ggsad" / "config.yaml")
+    config = ProjectConfig.model_validate(data)
+    escaping_config = config.model_copy(
+        update={
+            "integrations": [
+                IntegrationDeclaration(id="gsd", mode="companion", mapping="../../outside.yaml")
+            ]
+        }
+    )
+
+    issues = _validate_declared_mappings(target, escaping_config)
+
+    assert len(issues) == 1
+    assert issues[0].category is IssueCategory.PATH_SAFETY
+
+
+def test_prf005_schema_rejects_unsupported_config_schema_version(tmp_path: Path) -> None:
+    """PRF-005: only schema_version '0.1' is currently supported."""
+    target = _init(tmp_path)
+    config_path = target / ".ggsad" / "config.yaml"
+    data = load_yaml_file(config_path)
+    data["schema_version"] = "99.9"
+    config_path.write_bytes(dump_yaml_bytes(data))
 
     issues = validate_project_config(target)
 

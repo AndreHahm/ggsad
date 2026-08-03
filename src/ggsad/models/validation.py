@@ -23,6 +23,7 @@ class IssueCategory(StrEnum):
     UNRESOLVED_PLACEHOLDER = "unresolved_placeholder"
     UNKNOWN_PROFILE = "unknown_profile"
     UNSUPPORTED_TRANSITION = "unsupported_transition"
+    PATH_SAFETY = "path_safety"
 
 
 class ValidationIssue(BaseModel):

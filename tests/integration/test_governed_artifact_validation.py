@@ -77,6 +77,38 @@ def test_e005_invalid_project_yaml_is_rejected_with_actionable_location() -> Non
     assert excinfo.value.line is not None
 
 
+def test_prf005_config_schema_rejects_unsupported_schema_version() -> None:
+    """PRF-005: only schema_version '0.1' is currently supported."""
+    schema = load_schema(REPO_ROOT / ".ggsad" / "schemas" / "config.schema.json")
+    data = load_yaml_file(REPO_ROOT / ".ggsad" / "config.yaml")
+    mutated = {**data, "schema_version": "99.9"}
+
+    issues = validate_against_schema(data=mutated, schema=schema, file_label="config.yaml")
+
+    assert len(issues) == 1
+
+
+def test_prf005_mappings_schema_rejects_unsupported_schema_version() -> None:
+    schema = load_schema(REPO_ROOT / ".ggsad" / "schemas" / "mappings.schema.json")
+    data = load_yaml_file(REPO_ROOT / ".ggsad" / "mappings" / "gsd.yaml")
+    mutated = {**data, "schema_version": "99.9"}
+
+    issues = validate_against_schema(data=mutated, schema=schema, file_label="gsd.yaml")
+
+    assert len(issues) == 1
+
+
+def test_prf005_state_schema_rejects_unsupported_schema_version() -> None:
+    path = REPO_ROOT / "specs" / "CHG-001-reference-repository-bootstrap" / "state.yaml"
+    schema = load_schema(REPO_ROOT / ".ggsad" / "schemas" / "state.schema.json")
+    data = load_yaml_file(path)
+    mutated = {**data, "schema_version": "99.9"}
+
+    issues = validate_against_schema(data=mutated, schema=schema, file_label="state.yaml")
+
+    assert len(issues) == 1
+
+
 def test_e007_mapping_granting_approval_authority_is_rejected() -> None:
     """E-007: a mapping that sets `may_approve: true` fails validation with an
     explanation that the companion may not approve GG-SAD work."""

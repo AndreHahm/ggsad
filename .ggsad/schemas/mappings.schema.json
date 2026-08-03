@@ -16,7 +16,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+$"
+      "const": "0.1"
     },
     "integration": {
       "$ref": "#/$defs/integration"
@@ -52,7 +52,7 @@
     "relativePath": {
       "type": "string",
       "minLength": 1,
-      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+      "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+"
     },
     "integration": {
       "type": "object",

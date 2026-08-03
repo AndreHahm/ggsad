@@ -19,7 +19,7 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "pattern": "^\\d+\\.\\d+$",
+      "const": "0.1",
       "description": "Version of the GG-SAD state schema."
     },
     "change": {
@@ -180,7 +180,7 @@
         "string",
         "null"
       ],
-      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+      "pattern": "^(?!/)(?!\\\\)(?![A-Za-z]:)(?!.*(?:^|[/\\\\])\\.\\.(?:[/\\\\]|$)).+"
     },
     "artifacts": {
       "type": "object",
