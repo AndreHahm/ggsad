@@ -227,47 +227,91 @@ draft-to-ready transition.
   schemas, CLI behavior, path/overwrite safety, YAML security, atomic state updates, invalid-
   transition preservation, stand-alone operation, GSD authority boundaries, deferred-scope
   exclusion, tests and evidence
-- Review Target: the tip of `main` at the time Codex is dispatched (see `git log --oneline` for
-  the exact commit; this file's own content is part of that commit, so it deliberately doesn't
-  hardcode its own future hash). The implementation itself (`src/ggsad/`, `tests/`) landed in
-  commit `63e725a` ("feat(chg-001): reference repository bootstrap implementation"), preceded by
-  `b5d5995` ("chore: bootstrap repository governance and GSD tooling"); later commits on top of
-  it only update governance-artifact bookkeeping to record the commit and review dispatch, so
-  reviewing the tip is equivalent to reviewing `63e725a`'s code against current governance state.
+- Review Target: commit `218a694` on `main` (tip at dispatch time for the successful Attempt 3;
+  working tree confirmed clean except a pre-existing, unrelated local modification to
+  `.claude/settings.json` — Codex CLI plugin enablement toggle, not a repository/governed artifact
+  — which Codex explicitly confirmed it did not touch). The implementation itself (`src/ggsad/`,
+  `tests/`) landed in commit `63e725a` ("feat(chg-001): reference repository bootstrap
+  implementation"), preceded by `b5d5995` ("chore: bootstrap repository governance and GSD
+  tooling"); later commits on top of it only update governance-artifact bookkeeping, so reviewing
+  the tip is equivalent to reviewing `63e725a`'s code against current governance state.
   `human:project-owner` authorized committing 2026-08-03; working tree confirmed clean throughout.
-- Result: **Attempted twice, neither completed.**
-  - Attempt 1: task `task-msd06eah-ndu6va` (31s). Codex's sandbox could not launch PowerShell
-    ("Windows error 1920"). Recorded as PRF-001.
+- Result: **Attempted three times; Attempt 3 completed a real read-only review.**
+  - Attempt 1: task `task-msd06eah-ndu6va` (31s), via the Codex CLI plugin's sandboxed job runner.
+    Codex's sandbox could not launch PowerShell ("Windows error 1920"). Recorded as PRF-001.
   - Attempt 2: after `human:project-owner` reinstalled the Codex plugin at user scope (session
     runtime mode changed from "direct" to "shared") and explicitly asked to retry — task
-    `task-msd1x0jk-jhb3qn` (22s). Same root cause, more specific this time: the progress log shows
-    it did attempt `git status` via `pwsh.exe`, which failed with `CreateProcessAsUserW failed:
-    1920` — a Windows process-creation/token-permission failure when Codex's own sandbox tries to
-    spawn a child process. Recorded as PRF-002.
-  - Both times, Codex correctly declined to fabricate a review it hadn't actually performed and
-    returned a single blocking finding describing its own environment failure, with every
-    review-scope area explicitly marked "not assessed"/"unreviewed." This is honest behavior from
-    the reviewer, not a review result about CHG-001's code.
-- Review Evidence: `task-msd06eah-ndu6va`, `task-msd1x0jk-jhb3qn` (Codex CLI job IDs); full output
-  of both reproduced in this session's transcript
+    `task-msd1x0jk-jhb3qn` (22s), same sandboxed job runner. Same root cause, more specific this
+    time: the progress log shows it did attempt `git status` via `pwsh.exe`, which failed with
+    `CreateProcessAsUserW failed: 1920` — a Windows process-creation/token-permission failure when
+    Codex's own sandbox tries to spawn a child process. Recorded as PRF-002.
+  - Attempt 2.5: after `human:project-owner` granted the Codex sandbox access to
+    `C:\Users\Default` and asked to retry once more — task `task-msd2r7n6-58ccvp`, dispatched via
+    the same sandboxed job runner. This attempt did not fail cleanly; it hung with zero progress
+    (job log showed only two startup lines, `updatedAt` never advanced) for 36+ minutes before
+    `human:project-owner`'s instructed wait-then-cancel plan was executed. Cancellation found the
+    underlying OS process already dead (`taskkill` reported PID not found) despite the job
+    tracker's own status JSON remaining stale at `"running"`/`"starting"` — a bookkeeping bug in
+    the companion tool, not a new finding about CHG-001. No review-scope work occurred in this
+    attempt; not separately numbered as a finding since it reproduces the same underlying
+    sandbox-compatibility class as PRF-001/PRF-002, just with a different failure shape (hang vs.
+    clean error).
+  - Attempt 3: per `human:project-owner`'s explicit fallback instruction ("try to run Codex
+    directly in the terminal, without sandbox"), the `codex` CLI binary was invoked directly —
+    bypassing the plugin's sandboxed job runner entirely — via
+    `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check -o <last-message-file> -`
+    with the same review brief piped over stdin. This completed successfully: Codex read the
+    governing artifacts, ran the actual quality-gate commands itself, and returned a genuine
+    findings report (below) rather than an environment-failure report. Total token usage: 142,448.
+    No files were modified during the review (Codex explicitly confirmed this in its own output,
+    including noting it left the pre-existing `.claude/settings.json` change untouched).
+  - Attempts 1, 2, and 2.5 correctly declined to fabricate a review that hadn't actually happened.
+    Attempt 3 is the first review that actually examined CHG-001's code, tests, and artifacts.
+- Review Evidence: `task-msd06eah-ndu6va`, `task-msd1x0jk-jhb3qn`, `task-msd2r7n6-58ccvp` (Codex
+  CLI plugin job IDs, Attempts 1/2/2.5); direct `codex exec` invocation (Attempt 3, no job ID —
+  ungoverned by the plugin's job tracker), full stdout and last-message output captured to session
+  scratchpad files and reproduced in this session's transcript
 
 ### Findings
 
 | ID | Category | Severity | Artifact / Reference | Summary | Status | Disposition |
 |---|---|---|---|---|---|---|
-| PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 1: Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | open | Superseded in diagnostic specificity by PRF-002 (same root cause); `human:project-owner` decision needed on how to get Codex a working read-only command environment on this machine |
-| PRF-002 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 2, after a user-scope plugin reinstall: same failure, more specific — `CreateProcessAsUserW failed: 1920` when Codex's sandbox tries to spawn `pwsh.exe` to run `git status`. A Windows process-creation/token-permission issue in Codex's own sandboxing, reproducible across two independent attempts and two plugin installs | open | `human:project-owner` decision needed: this looks like a genuine Codex-CLI-on-Windows sandbox compatibility issue, not a transient fluke — may need Codex's own sandbox/elevation configuration changed, or a non-sandboxed invocation mode, before a real review can run |
-
-No findings about CHG-001's actual code, tests, or governance artifacts exist yet — neither
-attempt reached the point of examining them.
+| PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 1: Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | resolved | Worked around by bypassing the plugin's sandboxed job runner entirely (Attempt 3, direct `codex exec --dangerously-bypass-approvals-and-sandbox`); the underlying Codex-CLI-on-Windows sandbox incompatibility itself was never root-caused, but the review no longer depends on it |
+| PRF-002 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 2, after a user-scope plugin reinstall: same failure, more specific — `CreateProcessAsUserW failed: 1920` when Codex's sandbox tries to spawn `pwsh.exe` to run `git status`. A Windows process-creation/token-permission issue in Codex's own sandboxing, reproducible across two independent attempts and two plugin installs | resolved | Same disposition as PRF-001 — superseded by the direct, non-sandboxed invocation used in Attempt 3 |
+| PRF-003 | Quality gate / specification compliance | blocking | `pyproject.toml:39-49`; `spec.md:426-441`; `evidence.md` §5 | Codex found that `uv run mypy` fails (`mypy: error: Missing target module, package, files, or command`) in this environment, while this evidence record has been substituting `ty check` throughout (DEV-002, previously flagged and left open at `human:project-owner`'s discretion, non-blocking). Codex's independent judgment is that substituting `ty` does not satisfy R-019 / the constitution's literal baseline command, and treats this as blocking | open | Requestor disposition needed: either (a) get a real, passing `uv run mypy` invocation configured and re-run it, or (b) get `human:project-owner` to formally approve `ty` as the accepted substitute for `mypy` in `spec.md`/constitution (a documented-requirement change, which per `CLAUDE.md`'s Human Approval Boundaries needs explicit human approval since it weakens/reinterprets a stated gate) |
+| PRF-004 | Filesystem safety / schema validation | blocking | `.ggsad/schemas/config.schema.json:62-65`; `src/ggsad/application/validate_repository.py:98-100` | The relative-path schema accepts Windows traversal and absolute paths (`..\outside.yaml`, `C:\outside.yaml`, UNC paths), and validation then resolves/opens the referenced mapping outside the repository | open | Requestor to fix: reject drive-absolute, UNC, backslash-traversal, and any resolved-outside-target path in both the schema and the validator; apply to the packaged copy in `src/ggsad/resources/schemas/` too; add Windows-focused regression tests. Within approved CHG-001 scope (path/overwrite safety is explicit review scope in `plan.md` §15) — no human approval needed to fix |
+| PRF-005 | Schema-version compatibility | blocking | `.ggsad/schemas/config.schema.json:18-20`; `.ggsad/schemas/mappings.schema.json:17-19`; `.ggsad/schemas/state.schema.json:20-22` | All three validators accept arbitrary syntactically valid version strings (e.g. `99.9`) instead of only the currently-supported `0.1` | open | Requestor to fix: constrain the `schema_version`/`version` fields to the supported value(s) in all three schemas (both `.ggsad/` and the packaged copies), reject anything else with a clear validation error; add regression tests. Within approved CHG-001 scope — no human approval needed to fix |
+| PRF-006 | Verification environment | informational | `uv build` in the Attempt-3 review environment | `uv build` could not be reproduced in Codex's environment: fetching `hatchling` failed on a local TLS `UnknownIssuer` certificate error. Codex assessed this as environmental, not a source defect | open | No code action required; re-run and record `uv build` in an environment with a trusted package-index certificate before Verify-Done closure, for completeness |
 
 ### Blocking-Finding Summary
 
-- Open Blocking Findings: 2 (PRF-001, PRF-002 — both review-environment failures, not code findings)
-- Resolution Evidence: None yet; the same root cause has now reproduced across two independent
-  attempts and two plugin installs (project-scope, then user-scope)
-- Re-verification Required: Yes — the full review must be re-run once PRF-001/PRF-002 are resolved
+- Open Blocking Findings: 3 (PRF-003, PRF-004, PRF-005 — all genuine findings about CHG-001 itself,
+  not review-environment failures)
+- Resolved Findings: 2 (PRF-001, PRF-002 — review-environment findings, superseded by Attempt 3's
+  successful non-sandboxed invocation)
+- Resolution Evidence: None yet for PRF-003/004/005 — findings recorded, not yet disposed of
+- Re-verification Required: Yes — per `plan.md` §15's blocking-finding rule, the Requestor resolves
+  each open blocking finding and the distinct Reviewer (Codex) re-verifies before Verify-Done
 - Re-verification Result: Not applicable yet
+
+### Areas Codex Reviewed With No Findings
+
+Per Codex's own Attempt 3 output, verbatim: "No findings in these reviewed areas: safe YAML
+loader usage, atomic write sequence (same-directory temp file, file fsync, revalidation, replace,
+cleanup), transition history fields, GSD authority mapping, forbidden integration imports,
+deferred-scope exclusion, packaged/top-level schema and GSD-mapping consistency, or the recorded
+CHG-001 `draft → ready` state transition. `ggsad validate .` passes; the state history contains
+the expected engine-shaped `draft-to-ready` event."
+
+Checks Codex executed itself, independently of this evidence record's own claims:
+
+- `uv run ruff format --check .` — pass
+- `uv run ruff check .` — pass
+- `uv run mypy` — fail (PRF-003)
+- `uv run pytest` — pass, 142 passed, 98.56% coverage (matches this evidence record's own claim)
+- `uv build` — unavailable in Codex's environment, TLS certificate issue (PRF-006)
+- `uv run ggsad --help` — pass
+- Schema probes confirming PRF-004 and PRF-005
 
 ## 10. Approval Evidence
 
@@ -285,17 +329,22 @@ attempt reached the point of examining them.
 | ID | Specification or Plan Reference | Deviation | Impact | Status | Approval / Decision |
 |---|---|---|---|---|---|
 | DEV-001 | `spec.md` R-005–R-008 vs. `tasks.md` T-024 | E-006 and E-008 initially assigned to Slice 2 (T-024); moved to Slice 5 (T-050/T-052) once building them revealed both need repository-level filesystem context a per-file validator can't provide | None — R-005 through R-008 remain fully implemented; only sequencing across `tasks.md` slices changed | Resolved | `tasks.md` T-024 note, 2026-08-03; `tasks.md` is an execution aid, not `spec.md`/`plan.md`, so no separate approval was required |
-| DEV-002 | Constitution / `spec.md` baseline commands say `uv run mypy` | `pyproject.toml`'s dev dependencies only install `ty`, not `mypy`; `ty` was used for every type-checking gate instead | None observed — `ty check` passes cleanly throughout | Open | Flagged to the Requestor (`human:project-owner`) in Slice 2; not resolved by this agent, since changing the documented baseline command is outside this session's authority |
+| DEV-002 | Constitution / `spec.md` baseline commands say `uv run mypy` | `pyproject.toml`'s dev dependencies only install `ty`, not `mypy`; `ty` was used for every type-checking gate instead | Escalated by the distinct Pair Reviewer (Codex, Attempt 3) into blocking finding PRF-003: `uv run mypy` was independently confirmed to fail outright, not merely "not installed by choice" | Open | Originally flagged to the Requestor (`human:project-owner`) in Slice 2 as non-blocking/discretionary; no longer purely discretionary now that Pair Review has made it a blocking finding (PRF-003) — see Section 9 for the two-path disposition options |
 | DEV-003 | `README.md` (not a `spec.md`/`plan.md` artifact — a pre-existing documentation bug found during T-080) | `README.md` referenced a `QUICK_START.md` file, in the repository-structure diagram and a "For the complete... bootstrap, follow" pointer, that does not exist anywhere in the repository | Broken documentation reference for anyone reading the README | Resolved | Both references removed 2026-08-03; the README's own inline Quick Start content already covers the minimal setup path, so no replacement file was authored (outside this task's scope) |
 | DEV-004 | `spec.md`/`plan.md`/`tasks.md` originally proposed Review ID `PR-CHG-001-01` | `state.schema.json`'s `review_id` pattern is numeric-only (`^PR-\d{3,}$`); `PR-CHG-001-01` doesn't match. Flagged but left unresolved while status was `pending` (no schema requirement yet); became blocking once Pair Review went `active`, since the schema then requires `review_id` present | None — purely a naming/ID convention, no semantic change | Resolved | Renamed to `PR-001` across `spec.md`, `plan.md`, `tasks.md`, `evidence.md`, and `state.yaml` 2026-08-03, once Pair Review actually started; `human:project-owner` was not asked separately since this is an ID-format correction, not a scope or requirement change |
 
 ## 12. Known Limitations
 
-- Pair Review (Section 9) is in progress, not yet complete. Per the constitution, unresolved Pair
-  Review blocks Verify-Done for architecture/state-engine/transition-engine/security-relevant
-  work, which this change is.
+- Pair Review (Section 9) has completed one real pass (Attempt 3) and returned three open blocking
+  findings (PRF-003, PRF-004, PRF-005). Per the constitution, unresolved blocking findings block
+  Verify-Done for architecture/state-engine/transition-engine/security-relevant work, which this
+  change is.
 - `mypy` vs. `ty` discrepancy between the documented baseline commands and the actual installed
-  tooling (DEV-002) remains open.
+  tooling (DEV-002) is no longer merely discretionary — Codex's independent review made it blocking
+  finding PRF-003.
+- A real, previously-unknown path-traversal gap (PRF-004) and schema-version over-permissiveness
+  gap (PRF-005) were found by the distinct reviewer that this agent's own implementation and test
+  suite had not caught.
 
 ## 13. Wait and Failure Evidence
 
@@ -322,26 +371,35 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ### Definition of Wait
 
-- Triggered: **Yes** — Pair Review is required, was attempted, and did not complete: Codex's own
-  sandbox could not execute any read-only command (PRF-001), so it has not actually examined the
-  code yet.
+- Triggered: **Yes** — Pair Review is required, has now completed one real pass (Attempt 3), and
+  returned three open blocking findings (PRF-003, PRF-004, PRF-005).
 - Criteria: `spec.md` § Flow Gates § Additional Wait Conditions — Verify-Done requires Pair Review
-  complete with no open blocking finding; PRF-001 is currently the one open blocking finding, and
-  it blocks the review itself, not just its outcome.
+  complete with no open blocking finding.
 - Evidence: Section 9 above. The earlier blockers (no stable commit; no established reviewer
-  mechanism) are resolved — `human:project-owner` authorized committing (`b5d5995`, `63e725a`) and
-  authorized using the Codex CLI. A new, different blocker (PRF-001) replaced them on dispatch.
-- Result: **Waiting** on `human:project-owner` to resolve Codex's sandbox/PowerShell issue, then
-  on a successful re-run of the review — see Section 15.
+  mechanism; Codex sandbox unable to execute commands, PRF-001/PRF-002) are all resolved. The
+  current blocker is genuine review output about CHG-001 itself, not tooling.
+- Result: **Waiting** on Requestor disposition of PRF-003/PRF-004/PRF-005 (fix, then
+  re-verification by the distinct reviewer) — see Section 15.
 
 ### Current Definition of Done (Build-Done)
 
-- Satisfied: Yes
+- Satisfied: **Reconsidered — see below.** Previously recorded as Yes based on this agent's own
+  Sections 3–7 evidence. Codex's Attempt 3 review surfaced two gaps this agent's own evidence did
+  not catch: `spec.md`'s explicit Technology Constraint "mypy in strict mode" was never actually
+  satisfied (only `ty` ran, and `uv run mypy` fails outright — PRF-003), and `spec.md`'s explicit
+  Security Constraint "Prevent path traversal" / "Do not follow unsafe generated paths outside the
+  repository" has a real gap in the mapping-path validation path (PRF-004). `spec.md`'s
+  Compatibility Constraint "Schema versions must be explicit" is also not fully enforced
+  (PRF-005 — versions are explicit but not validated against a supported set).
 - Criteria: `spec.md` § Flow Gates § Additional Done Conditions — all Must requirements R-001
   through R-020 implemented, all applicable acceptance examples covered, no deferred capability
   introduced, all baseline quality commands pass, generated/failed operations preserve user files
-- Evidence: Sections 3–7 above
-- Result: Build-Done is satisfied
+- Evidence: Sections 3–7 above (this agent's own claims); Section 9 (Codex's independent findings
+  contradicting the "all baseline quality commands pass" and implicit path-safety/schema-version
+  completeness claims)
+- Result: **Not fully satisfied as previously claimed.** Requestor must fix PRF-003/004/005 (or, for
+  PRF-003 specifically, obtain `human:project-owner` approval to formally accept `ty` in place of
+  `mypy`) and re-verify before Build-Done can be re-affirmed.
 
 ### Next Definition of Ready (for `verify`/`release` phases)
 
@@ -353,34 +411,41 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ## 15. Final Result
 
-- Final Status: **Waiting** (Build-Done; `state.yaml` is `specify/ready` via a real engine
-  transition; Verify-Done blocked only on Pair Review completion — see DoW above)
+- Final Status: **Waiting** (`state.yaml` is `specify/ready` via a real engine transition;
+  Build-Done reconsidered and not fully re-affirmed pending finding resolution; Verify-Done blocked
+  on three open Pair Review blocking findings — see DoW/DoD above)
 - Recommended Transition: None pending from this agent. `ggsad transition CHG-001 ready` already
   ran successfully (Section 6.5 superseded — see `state.yaml` history, event `draft-to-ready`).
-  The next state-affecting action is recording Pair Review's result once Codex returns findings.
+  The next state-affecting action is Requestor disposition of PRF-003/PRF-004/PRF-005.
 - Transition Evidence: `state.yaml` `history` — an engine-appended `draft-to-ready` event with
   `action: complete`, `previous_status: draft`, `new_status: ready`.
 - Remaining Actions:
-  1. `human:project-owner` decision needed: resolve PRF-001 (Codex sandbox can't launch PowerShell
-     on this machine) — a different Codex invocation mode, sandbox setting, or environment fix.
-  2. Once PRF-001 is resolved, re-dispatch the full Pair Review (Review ID `PR-001`) — none of the
-     actual review scope (spec compliance, architecture boundaries, security, tests, etc.) has
-     been assessed yet.
-  3. Resolve any findings that review produces per `plan.md` §15's blocking-finding rule;
-     re-verify any resolved blocking finding.
-  4. Once Pair Review reaches `verified`/no open blocking findings, re-evaluate Verify-Done and
-     the roadmap-status update (`tasks.md` T-082).
-  5. DEV-002 (`mypy` vs. `ty`) remains open at `human:project-owner`'s discretion; not blocking.
-- Evidence Owner Statement: All quality gates, acceptance examples, and requirements verifiable
-  without external review are confirmed passing. CHG-001's own `draft → ready` transition
-  succeeded through its own governed engine. Two commits exist on `main` as the stable Pair Review
-  target. Pair Review was dispatched to Codex and did not complete — its sandbox couldn't execute
-  any command, so it correctly reported that rather than fabricating a review. This is honestly
-  recorded as a blocking finding (PRF-001), not glossed over. CHG-001 is Build-Done but not yet
-  Verify-Done.
+  1. Resolve PRF-004 (path-traversal/schema gap) and PRF-005 (schema-version enforcement gap) —
+     both are code/schema defects within CHG-001's own approved scope; Requestor may fix directly
+     per `plan.md` §15's blocking-finding rule, no additional human approval needed for the fix
+     itself.
+  2. Resolve PRF-003 (`mypy` gate failure): either get a real, passing `uv run mypy` working, or
+     obtain `human:project-owner`'s explicit approval to formally accept `ty` as the documented
+     substitute in `spec.md` (a requirement-text change, which needs human approval per
+     `CLAUDE.md`'s Human Approval Boundaries).
+  3. Re-dispatch Pair Review (Review ID `PR-001`) for re-verification of the fixes, per `plan.md`
+     §15.
+  4. Once Pair Review reaches no open blocking findings, re-evaluate Build-Done and Verify-Done,
+     then the roadmap-status update (`tasks.md` T-082).
+  5. PRF-006 (`uv build` TLS issue in Codex's environment) is informational only — re-run and
+     record in a trusted-certificate environment before closure, not blocking.
+- Evidence Owner Statement: Pair Review has now genuinely run once (Attempt 3, via a direct
+  non-sandboxed `codex exec` invocation after three sandboxed attempts failed for environment
+  reasons — PRF-001/PRF-002 now resolved). It returned three real, open blocking findings about
+  CHG-001 itself (PRF-003, PRF-004, PRF-005) that this agent's own Sections 3–7 evidence had not
+  caught, plus one informational finding (PRF-006). This evidence record is being updated to
+  reflect that honestly rather than treating Build-Done as still fully satisfied. CHG-001 is not
+  yet Build-Done-reaffirmed and not yet Verify-Done; the distinct reviewer's findings must be
+  resolved and re-verified first.
 
 ## 16. Evidence History
 
 | Date | Actor | Revision | Summary |
 |---|---|---|---|
 | 2026-08-03 | agent:claude-code | 1 | Initial evidence record: Slices 1–6 quality gates, requirement/example coverage, stand-alone and GSD-authority re-verification, excluded-capability audit, and honest Pair Review status |
+| 2026-08-03 | agent:claude-code | 2 | Recorded Pair Review Attempt 3: direct, non-sandboxed `codex exec` invocation succeeded after three sandboxed attempts failed (PRF-001, PRF-002, and an unnumbered 36+-minute hang). Codex returned three open blocking findings (PRF-003 mypy gate failure, PRF-004 path-traversal/schema gap, PRF-005 schema-version enforcement gap) and one informational finding (PRF-006 `uv build` TLS issue). Reconsidered Build-Done given these findings; Verify-Done remains blocked. No files were modified during the review. |

@@ -134,6 +134,14 @@ history:
   event: pair-review-retry-blocked-by-same-tooling-issue
   actor: agent:codex
   reason: "human:project-owner reinstalled the Codex plugin at user scope (runtime mode changed direct -> shared) and asked to retry. Job task-msd1x0jk-jhb3qn dispatched (fresh thread, not resumed), completed in 22s: same root cause, more specific -- CreateProcessAsUserW failed: 1920 spawning pwsh.exe to run git status. Recorded as PRF-002 (evidence.md Section 9). Reproducing across two independent attempts and two plugin installs suggests a genuine Codex-CLI-on-Windows sandbox compatibility issue, not a transient fluke."
+- timestamp: "2026-08-03T22:20:00Z"
+  event: pair-review-retry-hung-then-cancelled
+  actor: agent:codex
+  reason: "human:project-owner granted the Codex sandbox access to C:\\Users\\Default and asked to retry once more. Job task-msd2r7n6-58ccvp dispatched (fresh thread) via the same sandboxed job runner; unlike the first two attempts it did not fail cleanly -- it hung with zero progress for 36+ minutes (job log stuck after two startup lines, updatedAt never advancing). Per human:project-owner's instructed wait-then-cancel plan, confirmed the hang, then cancelled: the underlying OS process was already dead (taskkill reported PID not found) though the job tracker's own status JSON stayed stale at running/starting -- a bookkeeping bug in the companion tool, not a new finding about CHG-001. Not separately numbered as a PRF finding; same underlying sandbox-compatibility class as PRF-001/PRF-002."
+- timestamp: "2026-08-03T22:35:00Z"
+  event: pair-review-completed-via-direct-invocation
+  actor: agent:codex
+  reason: "Per human:project-owner's explicit fallback instruction, invoked the codex CLI binary directly (codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check), bypassing the plugin's sandboxed job runner entirely. This succeeded: Codex read the governing artifacts, independently ran the quality-gate commands, and returned a genuine findings report against commit 218a694. Result: three open blocking findings -- PRF-003 (uv run mypy fails; ty was substituted throughout, escalating previously-open DEV-002), PRF-004 (mapping-path schema/validator accepts Windows traversal, absolute, and UNC paths, resolving outside the repository), PRF-005 (config/mapping/state schemas accept unsupported schema_version values instead of only 0.1) -- plus one informational finding PRF-006 (uv build TLS failure in Codex's environment, assessed as environmental). PRF-001 and PRF-002 are now resolved (superseded by this successful non-sandboxed invocation). No files were modified during the review. Full findings recorded in evidence.md Section 9; Build-Done reconsidered in evidence.md Section 14 pending fix and re-verification."
 pair_review:
   requestor:
     id: agent:claude-code
@@ -143,7 +151,8 @@ pair_review:
   reviewer:
     id: agent:codex
     type: agent
-  status: active
+  status: findings_open
+  open_blocking_findings: 3
 schema_version: '0.1'
 wait:
   category: null
