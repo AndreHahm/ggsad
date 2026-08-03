@@ -826,7 +826,7 @@ Fail the flow when:
 - Activation Basis: architecture, state-transition behavior, schemas, and project policy
 - Requestor: agent:claude-code
 - Reviewer: agent:codex
-- Proposed Review ID: PR-CHG-001-01
+- Proposed Review ID: PR-001
 - Review Scope:
   - repository structure;
   - `pyproject.toml`;
