@@ -96,7 +96,22 @@ def _validate_declared_mappings(target: Path, config: ProjectConfig) -> list[Val
     mapping_schema_path = target / ".ggsad" / "schemas" / "mappings.schema.json"
 
     for integration in config.integrations:
-        mapping_path = target / integration.mapping
+        # `config.schema.json`'s relativePath pattern already forbids absolute,
+        # UNC, and traversal paths, but containment is verified explicitly here
+        # as defense in depth rather than relying on the regex alone -- Path's
+        # `/` operator silently discards `target` if the right-hand side turns
+        # out to be an absolute path (e.g. `C:\outside.yaml` on Windows).
+        mapping_path = (target / integration.mapping).resolve()
+        if not mapping_path.is_relative_to(target):
+            issues.append(
+                ValidationIssue(
+                    category=IssueCategory.PATH_SAFETY,
+                    file=integration.mapping,
+                    reason=f"Mapping path resolves outside the repository: {mapping_path}",
+                    remediation="Use a path within the repository for 'integrations[].mapping'.",
+                )
+            )
+            continue
         data, mapping_issues = _load_and_schema_validate(mapping_path, mapping_schema_path)
         issues += mapping_issues
         if data is None or mapping_issues:

@@ -589,18 +589,25 @@
   - Requestor: agent:claude-code
   - Verification: Findings are accepted, rejected with rationale, resolved, or formally dispositioned.
   - Constraint: Open blocking findings prevent Verify-Done.
-  - Status: **In progress.** Three open blocking findings from T-076: PRF-004 (mapping-path
-    schema/validator accepts Windows traversal/absolute/UNC paths) and PRF-005 (schema-version
-    fields accept unsupported values) are code/schema defects within CHG-001's approved scope —
-    Requestor may fix directly, no additional approval needed. PRF-003 (`uv run mypy` fails; `ty`
-    substituted throughout, escalating previously-open DEV-002) needs either a working `mypy`
+  - Status: **In progress — two of three fixed, pending re-verification.** PRF-004 (mapping-path
+    schema/validator accepted Windows traversal/absolute/UNC paths) and PRF-005 (schema-version
+    fields accepted unsupported values) fixed directly: tightened `relativePath`/`artifactPath`
+    regex and constrained `schema_version` to `const: "0.1"` in all three schemas (`.ggsad/
+    schemas/` and packaged `src/ggsad/resources/schemas/`); added an explicit `is_relative_to`
+    containment check (new `PATH_SAFETY` issue category) in `validate_repository.py` as defense in
+    depth. Added 5 regression tests. 150 tests pass (up from 142), ruff/ty/`ggsad validate .` all
+    clean; `uv build` re-confirmed locally, independently corroborating PRF-006 as environmental to
+    Codex's own sandbox. Per the constitution, this agent cannot mark a blocking finding `verified`
+    unilaterally — that's T-078. PRF-003 (`uv run mypy` fails; `ty` substituted throughout,
+    escalating previously-open DEV-002) intentionally left unfixed: needs either a working `mypy`
     invocation or `human:project-owner`'s explicit approval to formally accept `ty` as the
     documented substitute in `spec.md` — see Wait Register.
 
 - [!] **T-078 — Re-verify resolved blocking findings**
   - Reviewer: agent:codex
   - Evidence: finding status becomes `verified` or approved equivalent.
-  - Status: Blocked on T-077.
+  - Status: Blocked — fixes for PRF-004/PRF-005 are applied and ready for re-dispatch to Codex;
+    PRF-003 has no fix yet (blocked on `human:project-owner`, see Wait Register).
 
 - [x] **T-079 — Evaluate final GG-SAD gates**
   - Order:
@@ -609,10 +616,12 @@
     3. Verify-Done
     4. Ready-to-Close
   - Evidence: `evidence.md` §14. DoF: not triggered. DoW: **triggered** — Pair Review conducted
-    (T-076 complete) and returned three open blocking findings (PRF-003, PRF-004, PRF-005). Current
-    (Build-Done): reconsidered, not fully re-affirmed — Codex's findings surfaced gaps this agent's
-    own evidence had not caught. Next (Verify-Done): not satisfied, blocked on finding resolution
-    and re-verification (T-077/T-078). Reported honestly as `Waiting`, not asserted as complete.
+    (T-076 complete) and returned three open blocking findings (PRF-003, PRF-004, PRF-005); two now
+    have a fix applied (T-077) pending re-verification (T-078). Current (Build-Done): reconsidered,
+    partially re-affirmed — Codex's findings surfaced gaps this agent's own evidence had not
+    caught, two of which are now fixed. Next (Verify-Done): not satisfied, blocked on PRF-003
+    disposition and Codex re-verification of PRF-004/PRF-005. Reported honestly as `Waiting`, not
+    asserted as complete.
 
 ## 9. Documentation Synchronization
 
@@ -739,13 +748,26 @@ this register accordingly.
   (`uv build` TLS issue in Codex's own environment). No findings in safe YAML loading, atomic
   write sequencing, transition-history correctness, GSD-authority mapping, forbidden imports,
   deferred-scope exclusion, or the recorded `draft → ready` transition. 39 of 43 tasks complete.
-- Current Blocking Area: **T-077 (resolve Reviewer findings) — two of three findings (PRF-004,
-  PRF-005) are Requestor-fixable directly within approved scope; the third (PRF-003) needs a
-  working `mypy` invocation or `human:project-owner`'s approval of the `ty` substitute.** CHG-001
-  is not currently Build-Done-reaffirmed (see `evidence.md` §14) and not Verify-Done until T-077/
-  T-078 complete and Codex re-verifies.
+- Findings fix applied 2026-08-03 (T-077, in progress): PRF-004 and PRF-005 fixed directly.
+  Tightened `relativePath`/`artifactPath` regex to reject drive-absolute, UNC, and
+  backslash-traversal paths, and constrained `schema_version` to `const: "0.1"`, across all three
+  schemas (`.ggsad/schemas/` and packaged `src/ggsad/resources/schemas/`). Added an explicit
+  `is_relative_to(target)` containment check (new `PATH_SAFETY` issue category) in
+  `_validate_declared_mappings` as defense in depth, since `Path`'s `/` operator silently discards
+  the left operand for an absolute right-hand side — the same defense-in-depth pattern
+  `create_change.py`'s `resolve_change_directory` already used. Added 5 regression tests
+  (`test_prf004_*` × 4, `test_prf005_*` × 1 in `test_validate_repository.py`, plus 3 more
+  `test_prf005_*` in `test_governed_artifact_validation.py`). 150 tests pass (up from 142, 98.57%
+  coverage); ruff/ty/`ggsad validate .` all clean; all three governed YAML files re-validated
+  against the updated schemas; `uv build` re-confirmed working locally. PRF-003 intentionally left
+  unfixed. 39 of 43 tasks complete (T-077 still "in progress," not "complete," since only the
+  distinct reviewer can close a blocking finding).
+- Current Blocking Area: **T-078 (re-verify resolved blocking findings) — needs Codex re-dispatch
+  for PRF-004/PRF-005; T-077 also needs a `human:project-owner` decision on PRF-003's disposition
+  path before that one can even be fixed.** CHG-001 is not currently Build-Done-reaffirmed (see
+  `evidence.md` §14) and not Verify-Done until both are resolved.
 - Assigned Requestor: agent:claude-code
 - Assigned Reviewer: agent:codex
-- Next Permitted Action: Requestor fixes PRF-004 and PRF-005; `human:project-owner` decides the
-  PRF-003 disposition path (working `mypy`, or approve `ty` substitution in `spec.md`). Then
-  re-dispatch Codex for re-verification (T-078).
+- Next Permitted Action: `human:project-owner` decides the PRF-003 disposition path (working
+  `mypy`, or approve `ty` substitution in `spec.md`); separately, re-dispatch Codex for
+  re-verification of the PRF-004/PRF-005 fixes (T-078).
