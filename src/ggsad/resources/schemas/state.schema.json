@@ -1,0 +1,678 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/ggsad/schemas/state.schema.json",
+  "title": "GG-SAD Change State",
+  "description": "Schema for specs/<change-id>/state.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "change",
+    "flow",
+    "goal",
+    "artifacts",
+    "pair_review",
+    "wait",
+    "failure",
+    "history"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$",
+      "description": "Version of the GG-SAD state schema."
+    },
+    "change": {
+      "$ref": "#/$defs/change"
+    },
+    "flow": {
+      "$ref": "#/$defs/flow"
+    },
+    "goal": {
+      "$ref": "#/$defs/goal"
+    },
+    "artifacts": {
+      "$ref": "#/$defs/artifacts"
+    },
+    "gates": {
+      "$ref": "#/$defs/gates"
+    },
+    "pair_review": {
+      "$ref": "#/$defs/pairReview"
+    },
+    "wait": {
+      "$ref": "#/$defs/wait"
+    },
+    "failure": {
+      "$ref": "#/$defs/failure"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/historyEvent"
+      },
+      "minItems": 1
+    },
+    "extensions": {
+      "type": "object",
+      "description": "Optional implementation-specific extension namespace.",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "participantId": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[A-Za-z0-9_.-]+:[A-Za-z0-9_.@/-]+$"
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "slug",
+        "title",
+        "class"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^CHG-\\d{3,}$"
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "class": {
+          "type": "string",
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ]
+        }
+      }
+    },
+    "flow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "profile",
+        "phase",
+        "status"
+      ],
+      "properties": {
+        "profile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "phase": {
+          "type": "string",
+          "enum": [
+            "intake",
+            "explore",
+            "decide",
+            "specify",
+            "plan",
+            "design",
+            "build",
+            "verify",
+            "release",
+            "closed"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "ready",
+            "active",
+            "waiting",
+            "done",
+            "failed",
+            "cancelled",
+            "superseded"
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/participantId"
+        }
+      }
+    },
+    "goal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "summary"
+      ],
+      "properties": {
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "success_signals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "non_goals": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "artifactPath": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "spec",
+        "plan",
+        "tasks",
+        "evidence"
+      ],
+      "properties": {
+        "spec": {
+          "$ref": "#/$defs/artifactPath"
+        },
+        "plan": {
+          "$ref": "#/$defs/artifactPath"
+        },
+        "tasks": {
+          "$ref": "#/$defs/artifactPath"
+        },
+        "evidence": {
+          "$ref": "#/$defs/artifactPath"
+        },
+        "review": {
+          "$ref": "#/$defs/artifactPath"
+        }
+      }
+    },
+    "criterionResult": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "pass",
+        "fail",
+        "wait",
+        "not_applicable",
+        "not_evaluated"
+      ]
+    },
+    "gateState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "definition",
+        "result"
+      ],
+      "properties": {
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "result": {
+          "$ref": "#/$defs/criterionResult"
+        },
+        "evaluated_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "evaluated_by": {
+          "$ref": "#/$defs/participantId"
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "gates": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "current",
+        "next"
+      ],
+      "properties": {
+        "current": {
+          "$ref": "#/$defs/gateState"
+        },
+        "next": {
+          "$ref": "#/$defs/gateState"
+        }
+      }
+    },
+    "pairReviewParticipant": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "#/$defs/participantId"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "human",
+            "agent",
+            "external-review-service"
+          ]
+        }
+      }
+    },
+    "pairReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "status",
+        "requestor",
+        "reviewer"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "not_required",
+            "pending",
+            "active",
+            "findings_open",
+            "resolved",
+            "verified"
+          ]
+        },
+        "requestor": {
+          "$ref": "#/$defs/pairReviewParticipant"
+        },
+        "reviewer": {
+          "$ref": "#/$defs/pairReviewParticipant"
+        },
+        "review_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^PR-\\d{3,}$"
+        },
+        "scope": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "open_blocking_findings": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "required": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "not_required",
+                  "pending",
+                  "active",
+                  "findings_open",
+                  "resolved",
+                  "verified"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "active",
+                  "findings_open",
+                  "resolved",
+                  "verified"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "review_id"
+            ],
+            "properties": {
+              "requestor": {
+                "type": "object"
+              },
+              "reviewer": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "wait": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "category",
+        "owner",
+        "resume_condition",
+        "safe_state",
+        "resume_phase",
+        "next_action"
+      ],
+      "properties": {
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "WAIT_USER_INPUT",
+            "WAIT_DECISION",
+            "WAIT_DEPENDENCY",
+            "WAIT_PROCESS",
+            "WAIT_APPROVAL",
+            "WAIT_REVIEW",
+            "WAIT_EXTERNAL_SYSTEM",
+            "WAIT_BUDGET_WINDOW",
+            "WAIT_RATE_LIMIT"
+          ]
+        },
+        "owner": {
+          "$ref": "#/$defs/participantId"
+        },
+        "resume_condition": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "safe_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "resume_phase": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "intake",
+            "explore",
+            "decide",
+            "specify",
+            "plan",
+            "design",
+            "build",
+            "verify",
+            "release",
+            "closed"
+          ]
+        },
+        "next_action": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "created_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "category"
+      ],
+      "properties": {
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^FAILED_[A-Z0-9_]+$"
+        },
+        "required_response": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "safe_state": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "historyEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "timestamp",
+        "event",
+        "actor"
+      ],
+      "properties": {
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "event": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "enum": [
+            "start",
+            "complete",
+            "wait",
+            "resume",
+            "fail",
+            "cancel",
+            "supersede",
+            "reopen"
+          ]
+        },
+        "previous_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "previous_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "new_phase": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "new_status": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "status": {
+                "const": "waiting"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "wait": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "category": {
+                "type": "string"
+              },
+              "resume_condition": {
+                "type": "string",
+                "minLength": 1
+              },
+              "safe_state": {
+                "type": "string",
+                "minLength": 1
+              },
+              "resume_phase": {
+                "type": "string"
+              },
+              "next_action": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "status": {
+                "const": "failed"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "failure": {
+            "properties": {
+              "reason": {
+                "type": "string",
+                "minLength": 1
+              },
+              "category": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

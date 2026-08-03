@@ -1,0 +1,327 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/ggsad/schemas/mappings.schema.json",
+  "title": "GG-SAD Integration Mapping Contract",
+  "description": "Schema for .ggsad/mappings/*.yaml files such as gsd.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "integration",
+    "ownership",
+    "sources_of_truth",
+    "permissions",
+    "mappings",
+    "failure"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "integration": {
+      "$ref": "#/$defs/integration"
+    },
+    "ownership": {
+      "$ref": "#/$defs/ownership"
+    },
+    "sources_of_truth": {
+      "$ref": "#/$defs/sourcesOfTruth"
+    },
+    "permissions": {
+      "$ref": "#/$defs/permissions"
+    },
+    "mappings": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/mappingEntry"
+      },
+      "minItems": 1
+    },
+    "state_synchronization": {
+      "$ref": "#/$defs/stateSynchronization"
+    },
+    "failure": {
+      "$ref": "#/$defs/failure"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mode"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "companion",
+            "adapter",
+            "stand-alone"
+          ]
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "ownerValue": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$"
+    },
+    "ownership": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/ownerValue"
+      },
+      "properties": {
+        "governance": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "specification": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "architecture": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "state": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "gates": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "evidence": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "closure": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "execution_planning": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "context_engineering": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "review": {
+          "$ref": "#/$defs/ownerValue"
+        },
+        "automation": {
+          "$ref": "#/$defs/ownerValue"
+        }
+      }
+    },
+    "sourcesOfTruth": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "$ref": "#/$defs/relativePath"
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "may_modify_approved_specification",
+        "may_modify_accepted_adr",
+        "may_transition_ggsad_state_directly",
+        "may_approve",
+        "may_close_ggsad_change"
+      ],
+      "properties": {
+        "may_modify_approved_specification": {
+          "type": "boolean"
+        },
+        "may_modify_accepted_adr": {
+          "type": "boolean"
+        },
+        "may_transition_ggsad_state_directly": {
+          "type": "boolean"
+        },
+        "may_approve": {
+          "type": "boolean"
+        },
+        "may_close_ggsad_change": {
+          "type": "boolean"
+        },
+        "may_write_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "uniqueItems": true
+        },
+        "may_read_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "uniqueItems": true
+        },
+        "deny_paths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/relativePath"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "mappingEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "external_artifact",
+        "ggsad_role",
+        "authoritative"
+      ],
+      "properties": {
+        "external_artifact": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "external_command": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ggsad_role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ggsad_phase": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "intake",
+            "explore",
+            "decide",
+            "specify",
+            "plan",
+            "design",
+            "build",
+            "verify",
+            "release",
+            "closed"
+          ]
+        },
+        "ggsad_artifact": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "authoritative": {
+          "type": "boolean"
+        },
+        "synchronization": {
+          "type": "string",
+          "enum": [
+            "none",
+            "reference-only",
+            "manual",
+            "one-way-to-integration",
+            "one-way-to-ggsad",
+            "bidirectional"
+          ],
+          "default": "none"
+        },
+        "notes": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "stateSynchronization": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "none",
+            "one-way-to-integration",
+            "one-way-to-ggsad",
+            "bidirectional"
+          ]
+        },
+        "conflict_resolution": {
+          "type": "string",
+          "enum": [
+            "ggsad-precedence",
+            "integration-precedence",
+            "manual-decision",
+            "wait",
+            "fail"
+          ]
+        }
+      }
+    },
+    "failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "on_mapping_conflict",
+        "on_sync_error",
+        "uninstall_preserves_ggsad_artifacts"
+      ],
+      "properties": {
+        "on_mapping_conflict": {
+          "type": "string",
+          "enum": [
+            "wait",
+            "fail"
+          ]
+        },
+        "on_sync_error": {
+          "type": "string",
+          "enum": [
+            "wait",
+            "fail"
+          ]
+        },
+        "uninstall_preserves_ggsad_artifacts": {
+          "type": "boolean",
+          "const": true
+        },
+        "recovery_instructions": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+integration:
+  id: gsd
+  mode: companion
+
+ownership:
+  governance: ggsad
+  specification: ggsad
+  architecture: ggsad
+  state: ggsad
+  gates: ggsad
+  evidence: ggsad
+  closure: ggsad
+  execution_planning: gsd
+  context_engineering: gsd
+
+sources_of_truth:
+  project_context: docs/project-brief.md
+  architecture: docs/architecture.md
+  decisions: docs/adr/
+  roadmap: docs/roadmap.md
+  active_change: specs/{change_id}/spec.md
+  active_change_state: specs/{change_id}/state.yaml
+  execution_context: .planning/
+
+permissions:
+  may_modify_approved_specification: false
+  may_modify_accepted_adr: false
+  may_transition_ggsad_state_directly: false
+  may_approve: false
+  may_close_ggsad_change: false
+
+mappings:
+  - external_artifact: .planning/PROJECT.md
+    ggsad_role: derived-project-summary
+    authoritative: false
+  - external_artifact: .planning/REQUIREMENTS.md
+    ggsad_role: derived-execution-requirements
+    authoritative: false
+  - external_artifact: .planning/ROADMAP.md
+    ggsad_role: execution-roadmap
+    authoritative: false
+  - external_artifact: .planning/STATE.md
+    ggsad_role: execution-state
+    authoritative: false
+  - external_artifact: .planning/phases/
+    ggsad_role: execution-plans-and-results
+    authoritative: false
+
+failure:
+  on_mapping_conflict: wait
+  on_sync_error: wait
+  uninstall_preserves_ggsad_artifacts: true
