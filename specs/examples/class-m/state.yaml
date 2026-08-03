@@ -1,0 +1,50 @@
+schema_version: "0.1"
+
+change:
+  id: CHG-000
+  slug: example-quiet-validate-flag
+  title: "Example: Add a --quiet Flag to ggsad validate"
+  class: M
+
+flow:
+  profile: standard
+  phase: specify
+  status: draft
+
+goal:
+  summary: >-
+    Illustrative Class M example (not an active project change): add a --quiet
+    flag to ggsad validate that suppresses per-issue output and prints only the
+    final pass/fail summary line, for use in scripts that only care about the
+    exit code.
+
+artifacts:
+  spec: spec.md
+  plan: plan.md
+  tasks: tasks.md
+  evidence: evidence.md
+
+pair_review:
+  required: false
+  status: not_required
+  requestor: null
+  reviewer: null
+
+wait:
+  reason: null
+  category: null
+  owner: null
+  resume_condition: null
+  safe_state: null
+  resume_phase: null
+  next_action: null
+
+failure:
+  reason: null
+  category: null
+
+history:
+  - timestamp: "2026-08-03T00:00:00Z"
+    event: change-created
+    actor: example
+    reason: "Illustrative fixture for R-018/E-013 -- not an active governed change."
