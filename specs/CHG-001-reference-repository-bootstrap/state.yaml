@@ -126,6 +126,10 @@ history:
   event: committed-and-review-dispatched
   actor: human:project-owner
   reason: "human:project-owner authorized committing the work and using the newly-installed, authenticated Codex CLI for Pair Review. Two commits on main: b5d5995 (governance/GSD-tooling baseline) and 63e725a (CHG-001 implementation -- the review target). Resolved DEV-004: review_id PR-CHG-001-01 didn't match state.schema.json's numeric-only pattern; renamed to PR-001 across spec.md/plan.md/tasks.md/evidence.md/state.yaml now that review is actually starting."
+- timestamp: "2026-08-03T21:05:00Z"
+  event: pair-review-attempt-blocked-by-tooling
+  actor: agent:codex
+  reason: "Codex CLI job task-msd06eah-ndu6va dispatched for PR-001, completed in 31s without reviewing anything: Codex's own sandbox could not launch PowerShell (Windows error 1920), blocking every read-only command it needed. It correctly declined to fabricate a review and reported one blocking finding (PRF-001, evidence.md Section 9) describing its own environment failure, with every review-scope area explicitly marked not assessed. Not a code finding -- the review has not actually happened yet. Needs human:project-owner's decision on how to get Codex a working command environment."
 pair_review:
   requestor:
     id: agent:claude-code
