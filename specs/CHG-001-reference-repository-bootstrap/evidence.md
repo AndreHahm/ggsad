@@ -235,30 +235,38 @@ draft-to-ready transition.
   it only update governance-artifact bookkeeping to record the commit and review dispatch, so
   reviewing the tip is equivalent to reviewing `63e725a`'s code against current governance state.
   `human:project-owner` authorized committing 2026-08-03; working tree confirmed clean throughout.
-- Result: **Attempted, did not complete.** Dispatched to the Codex CLI (task `task-msd06eah-ndu6va`,
-  completed in 31s). Codex's own sandbox could not launch PowerShell ("Windows error 1920"),
-  which blocked every read-only command it needed (reading governing docs, the implementation,
-  tests, git history, running the coverage tool) — it could not access the repository at all.
-  Codex correctly declined to fabricate a review it hadn't actually performed and returned a
-  single blocking finding describing its own environment failure, with every review-scope area
-  explicitly marked "not assessed." This is honest behavior from the reviewer, not a review
-  result about CHG-001's code — recorded here as PRF-001 accordingly.
-- Review Evidence: `task-msd06eah-ndu6va` (Codex CLI job ID); full output reproduced below
+- Result: **Attempted twice, neither completed.**
+  - Attempt 1: task `task-msd06eah-ndu6va` (31s). Codex's sandbox could not launch PowerShell
+    ("Windows error 1920"). Recorded as PRF-001.
+  - Attempt 2: after `human:project-owner` reinstalled the Codex plugin at user scope (session
+    runtime mode changed from "direct" to "shared") and explicitly asked to retry — task
+    `task-msd1x0jk-jhb3qn` (22s). Same root cause, more specific this time: the progress log shows
+    it did attempt `git status` via `pwsh.exe`, which failed with `CreateProcessAsUserW failed:
+    1920` — a Windows process-creation/token-permission failure when Codex's own sandbox tries to
+    spawn a child process. Recorded as PRF-002.
+  - Both times, Codex correctly declined to fabricate a review it hadn't actually performed and
+    returned a single blocking finding describing its own environment failure, with every
+    review-scope area explicitly marked "not assessed"/"unreviewed." This is honest behavior from
+    the reviewer, not a review result about CHG-001's code.
+- Review Evidence: `task-msd06eah-ndu6va`, `task-msd1x0jk-jhb3qn` (Codex CLI job IDs); full output
+  of both reproduced in this session's transcript
 
 ### Findings
 
 | ID | Category | Severity | Artifact / Reference | Summary | Status | Disposition |
 |---|---|---|---|---|---|---|
-| PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | open | `human:project-owner` decision needed on how to re-run Codex with working read-only command execution (different sandbox mode, different invocation, etc.) |
+| PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 1: Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | open | Superseded in diagnostic specificity by PRF-002 (same root cause); `human:project-owner` decision needed on how to get Codex a working read-only command environment on this machine |
+| PRF-002 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 2, after a user-scope plugin reinstall: same failure, more specific — `CreateProcessAsUserW failed: 1920` when Codex's sandbox tries to spawn `pwsh.exe` to run `git status`. A Windows process-creation/token-permission issue in Codex's own sandboxing, reproducible across two independent attempts and two plugin installs | open | `human:project-owner` decision needed: this looks like a genuine Codex-CLI-on-Windows sandbox compatibility issue, not a transient fluke — may need Codex's own sandbox/elevation configuration changed, or a non-sandboxed invocation mode, before a real review can run |
 
-No findings about CHG-001's actual code, tests, or governance artifacts exist yet — the review
-never reached the point of examining them.
+No findings about CHG-001's actual code, tests, or governance artifacts exist yet — neither
+attempt reached the point of examining them.
 
 ### Blocking-Finding Summary
 
-- Open Blocking Findings: 1 (PRF-001 — review-environment failure, not a code finding)
-- Resolution Evidence: None yet
-- Re-verification Required: Yes — the full review must be re-run once PRF-001 is resolved
+- Open Blocking Findings: 2 (PRF-001, PRF-002 — both review-environment failures, not code findings)
+- Resolution Evidence: None yet; the same root cause has now reproduced across two independent
+  attempts and two plugin installs (project-scope, then user-scope)
+- Re-verification Required: Yes — the full review must be re-run once PRF-001/PRF-002 are resolved
 - Re-verification Result: Not applicable yet
 
 ## 10. Approval Evidence

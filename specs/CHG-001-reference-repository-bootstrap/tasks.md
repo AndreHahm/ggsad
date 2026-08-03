@@ -574,14 +574,16 @@
     - GSD subordination;
     - excluded-scope compliance.
   - Output: stable findings with severity, status, artifact reference, and required action.
-  - Status: **Blocked — attempted, did not complete.** `human:project-owner` authorized using the
-    Codex CLI (verified ready and authenticated). Dispatched (job `task-msd06eah-ndu6va`); Codex's
-    own sandbox could not launch PowerShell ("Windows error 1920"), blocking every read-only
-    command it needed. It correctly declined to fabricate a review and returned one blocking
-    finding (PRF-001, in `evidence.md` §9) describing its own environment failure, with every
-    review-scope area explicitly marked "not assessed." This is not a code finding — the review
-    itself hasn't happened yet. Needs `human:project-owner`'s decision on how to get Codex a
-    working read-only command environment before re-dispatching.
+  - Status: **Blocked — attempted twice, neither completed.** Attempt 1 (job `task-msd06eah-ndu6va`):
+    Codex's sandbox couldn't launch PowerShell ("Windows error 1920") — PRF-001. `human:project-
+    owner` reinstalled the Codex plugin at user scope (runtime mode changed "direct" → "shared")
+    and asked to retry. Attempt 2 (job `task-msd1x0jk-jhb3qn`, fresh thread): same root cause,
+    reproduced with more specificity — `CreateProcessAsUserW failed: 1920` spawning `pwsh.exe` for
+    `git status` — PRF-002 (`evidence.md` §9). Both times Codex correctly declined to fabricate a
+    review and marked every review-scope area unassessed. Reproducing across two independent
+    attempts and two plugin installs suggests a genuine Codex-CLI-on-Windows sandbox compatibility
+    issue, not a transient fluke. Needs `human:project-owner`'s decision on how to get Codex a
+    working read-only command environment on this machine before re-dispatching a third time.
 
 - [!] **T-077 — Resolve Reviewer findings**
   - Requestor: agent:claude-code
