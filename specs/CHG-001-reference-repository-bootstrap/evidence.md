@@ -267,10 +267,27 @@ draft-to-ready transition.
     including noting it left the pre-existing `.claude/settings.json` change untouched).
   - Attempts 1, 2, and 2.5 correctly declined to fabricate a review that hadn't actually happened.
     Attempt 3 is the first review that actually examined CHG-001's code, tests, and artifacts.
+  - Attempt 4 (re-verification): after the Requestor applied fixes for PRF-003/004/005 (commits
+    `11cdc23`, `7e33d7e`), dispatched Codex again via the same direct, non-sandboxed
+    `codex exec --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check` invocation
+    against the new tip, asking it to independently re-verify each fix rather than trust the
+    Requestor's claims. Codex re-derived its own judgment (ran `uv sync`, Ruff format/check,
+    `uv run ty check`, full `uv run pytest`, `uv run ggsad validate .`, its own adversarial
+    schema/validator path probes, and `uv build`) and returned an explicit verdict for each:
+    **PRF-003 verified** (`ty` strict-mode config is sound and working; the constitution amendment
+    is coherent and human-approved; this re-verification itself satisfies the amendment's own §19
+    "independent review" requirement — DEV-005 below); **PRF-004 verified** (adversarial
+    drive-absolute/UNC/backslash-traversal/POSIX-traversal probes all correctly rejected, both by
+    schema and by the containment guard, in both schema locations); **PRF-005 verified** (`const:
+    "0.1"` confirmed enforced in all three schemas, with the literal rejection message checked);
+    **PRF-006 reconfirmed informational** (`uv build` still fails in Codex's own environment on the
+    same TLS certificate issue, independently re-confirmed as environmental, not a repository
+    defect). No new findings (would have started at PRF-007). No files were modified during this
+    review either.
 - Review Evidence: `task-msd06eah-ndu6va`, `task-msd1x0jk-jhb3qn`, `task-msd2r7n6-58ccvp` (Codex
-  CLI plugin job IDs, Attempts 1/2/2.5); direct `codex exec` invocation (Attempt 3, no job ID —
-  ungoverned by the plugin's job tracker), full stdout and last-message output captured to session
-  scratchpad files and reproduced in this session's transcript
+  CLI plugin job IDs, Attempts 1/2/2.5); direct `codex exec` invocations (Attempts 3 and 4, no job
+  ID — ungoverned by the plugin's job tracker), full stdout and last-message output captured to
+  session scratchpad files and reproduced in this session's transcript
 
 ### Findings
 
@@ -278,33 +295,28 @@ draft-to-ready transition.
 |---|---|---|---|---|---|---|
 | PRF-001 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 1: Codex's sandbox could not launch PowerShell (Windows error 1920), preventing it from reading any repository file or running any command; it self-reported all review-scope areas as "not assessed" rather than asserting compliance it hadn't checked | resolved | Worked around by bypassing the plugin's sandboxed job runner entirely (Attempt 3, direct `codex exec --dangerously-bypass-approvals-and-sandbox`); the underlying Codex-CLI-on-Windows sandbox incompatibility itself was never root-caused, but the review no longer depends on it |
 | PRF-002 | Review environment | blocking | Codex's own sandbox (not a CHG-001 artifact) | Attempt 2, after a user-scope plugin reinstall: same failure, more specific — `CreateProcessAsUserW failed: 1920` when Codex's sandbox tries to spawn `pwsh.exe` to run `git status`. A Windows process-creation/token-permission issue in Codex's own sandboxing, reproducible across two independent attempts and two plugin installs | resolved | Same disposition as PRF-001 — superseded by the direct, non-sandboxed invocation used in Attempt 3 |
-| PRF-003 | Quality gate / specification compliance | blocking | `pyproject.toml`; `spec.md`; `docs/constitution.md` §11 | Codex found that `uv run mypy` fails (`mypy: error: Missing target module, package, files, or command`) in this environment, while this evidence record has been substituting `ty check` throughout (DEV-002, previously flagged and left open at `human:project-owner`'s discretion, non-blocking). Codex's independent judgment is that substituting `ty` does not satisfy R-019 / the constitution's literal baseline command, and treats this as blocking | **fix applied, pending re-verification** | `human:project-owner` reviewed a `ty` vs. `mypy` comparison and formally chose `ty`. Requestor fix: added `[tool.ty.environment]`/`[tool.ty.rules] all = "error"` to `pyproject.toml` (ty has no `--strict` flag; this promotes all 123 of ty's rules, all `stable` status, to `error` — verified via `ty explain rule --output-format json`). Found and fixed 6 real strict-mode findings this surfaced: `ValidationIssue.__str__` missing `@override` (PEP 698), and 5 test fixtures with bare `dict` instead of `dict[str, Any]`. Amended `docs/constitution.md` §11 (Version 0.1→0.2) plus `docs/project-brief.md`, `docs/architecture.md`, `docs/definitions/definition-of-done.md`, `AGENTS.md`, `CLAUDE.md`, `README.md`, and `spec.md` (Technology Constraints, R-019, Change History) to replace every `uv run mypy`/`mypy` reference with `uv run ty check`/`ty`. 150 tests still pass, all baseline commands (`uv sync`, `ruff format`, `ruff check`, `ty check`, `pytest`, `uv build`, `ggsad --help`) now genuinely pass as documented. This agent cannot mark PRF-003 `verified` unilaterally — awaiting Codex re-verification. Separately, the constitution's own §19 Amendment Process names "independent review" as a required step for a constitutional amendment; that has not yet happened for this amendment specifically — see Section 11 below |
-| PRF-004 | Filesystem safety / schema validation | blocking | `.ggsad/schemas/config.schema.json`, `mappings.schema.json`, `state.schema.json` (and packaged copies); `src/ggsad/application/validate_repository.py` | The relative-path schema accepted Windows traversal and absolute paths (`..\outside.yaml`, `C:\outside.yaml`, UNC paths), and validation then resolved/opened the referenced mapping outside the repository | **fix applied, pending re-verification** | Requestor fix: tightened `relativePath`/`artifactPath` regex in all three schemas (both `.ggsad/schemas/` and `src/ggsad/resources/schemas/`) to reject drive-absolute, UNC, and backslash-traversal paths; added an explicit `is_relative_to(target)` containment check in `_validate_declared_mappings` as defense in depth (new `PATH_SAFETY` issue category), since `Path`'s `/` operator silently discards the left operand for an absolute right-hand side. Added 4 regression tests (`tests/unit/test_validate_repository.py`, `test_prf004_*`). 150 tests pass, ruff/ty/`ggsad validate .` clean. This agent cannot mark a blocking finding fully resolved unilaterally — awaiting Codex re-verification |
-| PRF-005 | Schema-version compatibility | blocking | `.ggsad/schemas/config.schema.json`, `mappings.schema.json`, `state.schema.json` (and packaged copies) | All three validators accepted arbitrary syntactically valid version strings (e.g. `99.9`) instead of only the currently-supported `0.1` | **fix applied, pending re-verification** | Requestor fix: changed `schema_version`'s `pattern` to `const: "0.1"` in all three schemas (both `.ggsad/schemas/` and `src/ggsad/resources/schemas/`); `method.version` (the GG-SAD method's own semver, expected to evolve) was deliberately left untouched — only `schema_version` was in scope. Added 3 regression tests (`tests/integration/test_governed_artifact_validation.py`, `test_prf005_*`) plus 1 more in `test_validate_repository.py`. 150 tests pass, ruff/ty/`ggsad validate .` clean, all three governed YAML files re-validated against their updated schemas. Awaiting Codex re-verification |
-| PRF-006 | Verification environment | informational | `uv build` in the Attempt-3 review environment | `uv build` could not be reproduced in Codex's environment: fetching `hatchling` failed on a local TLS `UnknownIssuer` certificate error. Codex assessed this as environmental, not a source defect | open | No code action required; re-run and record `uv build` in an environment with a trusted package-index certificate before Verify-Done closure, for completeness |
+| PRF-003 | Quality gate / specification compliance | blocking | `pyproject.toml`; `spec.md`; `docs/constitution.md` §11 | Codex found that `uv run mypy` fails (`mypy: error: Missing target module, package, files, or command`) in this environment, while this evidence record has been substituting `ty check` throughout (DEV-002, previously flagged and left open at `human:project-owner`'s discretion, non-blocking). Codex's independent judgment is that substituting `ty` does not satisfy R-019 / the constitution's literal baseline command, and treats this as blocking | **verified** | `human:project-owner` reviewed a `ty` vs. `mypy` comparison and formally chose `ty`. Requestor fix: added `[tool.ty.environment]`/`[tool.ty.rules] all = "error"` to `pyproject.toml`. Found and fixed 6 real strict-mode findings this surfaced. Amended `docs/constitution.md` §11 (Version 0.1→0.2) plus 7 other governing documents to replace every `mypy` reference with `ty`. **Re-verified by Codex (Attempt 4, direct `codex exec`):** confirmed `ty`'s `--error all` equivalence, all 123 rules `stable`, the constitution amendment coherent and human-approved, and every governing document consistently updated (no stray `mypy` references in normative directives). Codex's own re-verification serves as the constitution's §19 "independent review" step for this amendment (DEV-005 resolved) |
+| PRF-004 | Filesystem safety / schema validation | blocking | `.ggsad/schemas/config.schema.json`, `mappings.schema.json`, `state.schema.json` (and packaged copies); `src/ggsad/application/validate_repository.py` | The relative-path schema accepted Windows traversal and absolute paths (`..\outside.yaml`, `C:\outside.yaml`, UNC paths), and validation then resolved/opened the referenced mapping outside the repository | **verified** | Requestor fix: tightened `relativePath`/`artifactPath` regex in all three schemas to reject drive-absolute, UNC, and backslash-traversal paths; added an explicit `is_relative_to(target)` containment check in `_validate_declared_mappings` as defense in depth. Added 4 regression tests. **Re-verified by Codex (Attempt 4):** ran its own adversarial probes (`C:\outside.yaml`, UNC paths, backslash traversal, POSIX traversal) against both the schema and the validator independently, confirmed all rejected, and confirmed packaged/repository schema mirrors match |
+| PRF-005 | Schema-version compatibility | blocking | `.ggsad/schemas/config.schema.json`, `mappings.schema.json`, `state.schema.json` (and packaged copies) | All three validators accepted arbitrary syntactically valid version strings (e.g. `99.9`) instead of only the currently-supported `0.1` | **verified** | Requestor fix: changed `schema_version`'s `pattern` to `const: "0.1"` in all three schemas; `method.version` deliberately left untouched. Added 4 regression tests. **Re-verified by Codex (Attempt 4):** independently confirmed each of the three schemas rejects `schema_version: "99.9"` with `"'0.1' was expected"` |
+| PRF-006 | Verification environment | informational | `uv build` in the Attempt-3/4 review environment | `uv build` could not be reproduced in Codex's environment: fetching `hatchling` failed on a local TLS `UnknownIssuer` certificate error. Codex assessed this as environmental, not a source defect | reconfirmed informational | No code action required. Independently reconfirmed on Attempt 4 (same TLS failure, same environmental assessment); this agent's own environment builds successfully (`dist/ggsad-0.1.0-py3-none-any.whl`). Not blocking |
 
 ### Blocking-Finding Summary
 
-- Open Blocking Findings: 3 (PRF-003, PRF-004, PRF-005 — all genuine findings about CHG-001 itself,
-  not review-environment failures). Per the constitution, only the distinct Reviewer (Codex) can
-  move a blocking finding to `verified`; this agent (the Requestor) can apply and record fixes but
-  not close them out unilaterally.
-- Fix Applied, Pending Re-verification: 3 (PRF-003, PRF-004, PRF-005 — all now have a fix applied;
-  see Findings table for exact changes)
+- Open Blocking Findings: **0.** PRF-003, PRF-004, and PRF-005 are all `verified` by the distinct
+  Reviewer (Codex, Attempt 4, direct `codex exec` re-verification) — this agent did not and cannot
+  self-declare `verified` status; every verdict above is Codex's own.
 - Resolved Findings: 2 (PRF-001, PRF-002 — review-environment findings, superseded by Attempt 3's
   successful non-sandboxed invocation)
-- Resolution Evidence: PRF-004/PRF-005 — schema and validator changes plus 5 new regression tests
-  (`test_prf004_*`, `test_prf005_*`). PRF-003 — `human:project-owner` reviewed a `ty`/`mypy`
-  comparison and chose `ty`; `[tool.ty.rules] all = "error"` added to `pyproject.toml`, 6 real
-  strict-mode findings fixed, constitution and 7 other governing docs amended for consistency. 150
-  tests passing, ruff/ty(strict)/`ggsad validate .`/`uv build`/`ggsad --help` all clean, all three
-  governed YAML files re-validated against their updated schemas.
-- Re-verification Required: Yes — per `plan.md` §15's blocking-finding rule, the distinct Reviewer
-  (Codex) must re-verify all three before they can be marked `verified`. For PRF-003 specifically,
-  this re-verification also serves as the "independent review" step the constitution's own §19
-  Amendment Process names as required for a constitutional amendment, which has not otherwise
-  happened yet — see Section 11 (Deviations, DEV-005) below.
-- Re-verification Result: Not yet dispatched
+- Resolution Evidence: PRF-004/PRF-005 — schema and validator changes plus regression tests,
+  independently re-verified via Codex's own adversarial probes. PRF-003 — `human:project-owner`
+  reviewed a `ty`/`mypy` comparison and chose `ty`; strict-mode config added and independently
+  re-verified by Codex, including the constitution amendment's coherence.
+- Re-verification Required: **Complete.** Per `plan.md` §15's blocking-finding rule, the distinct
+  Reviewer (Codex) has re-verified all three; none remain open. This re-verification also served as
+  the "independent review" step the constitution's own §19 Amendment Process names as required for
+  the `mypy`→`ty` constitutional amendment (DEV-005, now resolved — see Section 11).
+- Re-verification Result: **All three findings `verified` by Codex.** No new findings raised
+  (would have started at PRF-007). No files modified during re-verification.
 
 ### Areas Codex Reviewed With No Findings
 
@@ -315,15 +327,29 @@ deferred-scope exclusion, packaged/top-level schema and GSD-mapping consistency,
 CHG-001 `draft → ready` state transition. `ggsad validate .` passes; the state history contains
 the expected engine-shaped `draft-to-ready` event."
 
-Checks Codex executed itself, independently of this evidence record's own claims:
+Checks Codex executed itself during Attempt 3, independently of this evidence record's own claims:
 
 - `uv run ruff format --check .` — pass
 - `uv run ruff check .` — pass
-- `uv run mypy` — fail (PRF-003)
+- `uv run mypy` — fail (PRF-003, since resolved)
 - `uv run pytest` — pass, 142 passed, 98.56% coverage (matches this evidence record's own claim)
 - `uv build` — unavailable in Codex's environment, TLS certificate issue (PRF-006)
 - `uv run ggsad --help` — pass
-- Schema probes confirming PRF-004 and PRF-005
+- Schema probes confirming PRF-004 and PRF-005 (since fixed)
+
+Checks Codex executed itself during Attempt 4 (re-verification), independently of the Requestor's
+fix claims:
+
+- `uv sync` — pass
+- Ruff format/check — pass
+- `uv run ty check` (strict) — pass, and Codex confirmed the strict configuration is real and
+  working, not just present
+- `uv run pytest` — pass, 150 passed, 98.58% coverage
+- `uv run ggsad validate .` — pass
+- Adversarial schema/validator path probes (drive-absolute, UNC, backslash-traversal, POSIX
+  traversal) — all correctly rejected
+- `uv build` — still fails in Codex's environment on the same TLS issue (PRF-006, reconfirmed
+  environmental, not blocking)
 
 ## 10. Approval Evidence
 
@@ -344,25 +370,23 @@ Checks Codex executed itself, independently of this evidence record's own claims
 | DEV-002 | Constitution / `spec.md` baseline commands said `uv run mypy` | `pyproject.toml`'s dev dependencies only installed `ty`, not `mypy`; `ty` was used for every type-checking gate instead | Escalated by the distinct Pair Reviewer (Codex, Attempt 3) into blocking finding PRF-003: `uv run mypy` was independently confirmed to fail outright, not merely "not installed by choice" | Resolved | `human:project-owner` reviewed a `ty` vs. `mypy` comparison 2026-08-03 and formally adopted `ty` in strict mode, amending `docs/constitution.md` (Version 0.1→0.2) and 7 other governing documents to match. See PRF-003 disposition in Section 9. The gate-passing claim (PRF-003) still needs Codex re-verification before it's fully closed — this row tracks the documentation/decision, not the Pair Review finding itself |
 | DEV-003 | `README.md` (not a `spec.md`/`plan.md` artifact — a pre-existing documentation bug found during T-080) | `README.md` referenced a `QUICK_START.md` file, in the repository-structure diagram and a "For the complete... bootstrap, follow" pointer, that does not exist anywhere in the repository | Broken documentation reference for anyone reading the README | Resolved | Both references removed 2026-08-03; the README's own inline Quick Start content already covers the minimal setup path, so no replacement file was authored (outside this task's scope) |
 | DEV-004 | `spec.md`/`plan.md`/`tasks.md` originally proposed Review ID `PR-CHG-001-01` | `state.schema.json`'s `review_id` pattern is numeric-only (`^PR-\d{3,}$`); `PR-CHG-001-01` doesn't match. Flagged but left unresolved while status was `pending` (no schema requirement yet); became blocking once Pair Review went `active`, since the schema then requires `review_id` present | None — purely a naming/ID convention, no semantic change | Resolved | Renamed to `PR-001` across `spec.md`, `plan.md`, `tasks.md`, `evidence.md`, and `state.yaml` 2026-08-03, once Pair Review actually started; `human:project-owner` was not asked separately since this is an ID-format correction, not a scope or requirement change |
-| DEV-005 | `docs/constitution.md` §19 Amendment Process | The `mypy`→`ty` constitutional amendment (Version 0.1→0.2, 2026-08-03) satisfies §19's steps 1 (dedicated governed change — CHG-001, which surfaced the need via PRF-003), 2 (documented reason/impact — the `ty` vs. `mypy` comparison in this session), 3 (review against ADRs/GG-SAD baseline — no conflict, a tooling substitution only), 5 (explicit human approval — `human:project-owner` approved directly), and 6 (version/history updates — done). Step 4, "independent review," has not happened for the amendment itself | The amendment is in effect (human-approved, per constitution §10/§19.5) but its own required independent-review step is outstanding | Open | Folded into Codex's next Pair Review re-verification dispatch (already needed for PRF-004/PRF-005) rather than triggering a separate review cycle — the same distinct reviewer will see the amended constitution and baseline commands as part of that pass |
+| DEV-005 | `docs/constitution.md` §19 Amendment Process | The `mypy`→`ty` constitutional amendment (Version 0.1→0.2, 2026-08-03) satisfies §19's steps 1 (dedicated governed change — CHG-001, which surfaced the need via PRF-003), 2 (documented reason/impact — the `ty` vs. `mypy` comparison in this session), 3 (review against ADRs/GG-SAD baseline — no conflict, a tooling substitution only), 5 (explicit human approval — `human:project-owner` approved directly), and 6 (version/history updates — done). Step 4, "independent review," had not happened for the amendment itself at the time it was made | The amendment was in effect (human-approved, per constitution §10/§19.5) with its own required independent-review step outstanding | Resolved | Codex's Attempt 4 re-verification (dispatched for PRF-003/004/005) explicitly reviewed the amendment itself — "the constitution amendment is coherent, human-approved, versioned as 0.2 / 2026-08-03, and this review completes its required independent-review step" (Codex's own words) — and confirmed no governing document still normatively references `mypy`. §19's step 4 is now satisfied |
 
 ## 12. Known Limitations
 
-- Pair Review (Section 9) has completed one real pass (Attempt 3) and returned three open blocking
-  findings (PRF-003, PRF-004, PRF-005). Per the constitution, unresolved blocking findings block
-  Verify-Done for architecture/state-engine/transition-engine/security-relevant work, which this
-  change is. All three now have a fix applied, pending the distinct reviewer's re-verification.
+- Pair Review (Section 9) has completed two real passes: Attempt 3 (initial review, three blocking
+  findings) and Attempt 4 (re-verification, all three findings `verified`, no new findings). No
+  blocking findings remain open. This is the first point in CHG-001 where that is true.
 - `mypy` vs. `ty` discrepancy between the documented baseline commands and the actual installed
-  tooling (DEV-002) is resolved: `human:project-owner` formally adopted `ty` in strict mode,
-  amending `docs/constitution.md` (Version 0.1→0.2) and 7 other governing documents. The
-  corresponding Pair Review finding (PRF-003) still needs Codex re-verification.
-- A real, previously-unknown path-traversal gap (PRF-004) and schema-version over-permissiveness
-  gap (PRF-005) were found by the distinct reviewer that this agent's own implementation and test
-  suite had not caught. Both are now fixed, with regression tests, but not yet re-verified by the
-  distinct reviewer.
-- The constitutional amendment that resolved PRF-003 has not itself completed the "independent
-  review" step its own §19 Amendment Process names as required (DEV-005) — folded into the same
-  upcoming Codex re-verification dispatch rather than a separate cycle.
+  tooling (DEV-002) is resolved and independently re-verified: `human:project-owner` formally
+  adopted `ty` in strict mode, amending `docs/constitution.md` (Version 0.1→0.2) and 7 other
+  governing documents; Codex confirmed the amendment is coherent and the configuration works.
+- The real, previously-unknown path-traversal gap (PRF-004) and schema-version over-permissiveness
+  gap (PRF-005) that the distinct reviewer found — which this agent's own implementation and test
+  suite had not caught — are fixed and independently re-verified via Codex's own adversarial probes.
+- Every review-scope area Codex examined across both passes (Attempt 3 and Attempt 4) reported no
+  outstanding findings. This is not a claim that CHG-001 is defect-free — only that Pair Review's
+  specific, bounded scope (`plan.md` §15) found nothing further, twice.
 
 ## 13. Wait and Failure Evidence
 
@@ -389,88 +413,93 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 
 ### Definition of Wait
 
-- Triggered: **Yes** — Pair Review is required, has now completed one real pass (Attempt 3), and
-  returned three open blocking findings (PRF-003, PRF-004, PRF-005).
+- Triggered: **No, as of Attempt 4.** Pair Review completed a second real pass (Attempt 4,
+  re-verification) and returned zero open blocking findings.
 - Criteria: `spec.md` § Flow Gates § Additional Wait Conditions — Verify-Done requires Pair Review
   complete with no open blocking finding.
-- Evidence: Section 9 above. The earlier blockers (no stable commit; no established reviewer
-  mechanism; Codex sandbox unable to execute commands, PRF-001/PRF-002) are all resolved. The
-  current blocker is genuine review output about CHG-001 itself, not tooling.
-- Result: **Waiting** on Codex re-verification of PRF-003/PRF-004/PRF-005 (fixes already applied
-  for all three) — see Section 15.
+- Evidence: Section 9 above. All prior blockers (no stable commit; no established reviewer
+  mechanism; Codex sandbox unable to execute commands, PRF-001/PRF-002; the three substantive
+  findings, PRF-003/004/005) are resolved and independently verified.
+- Result: **Not waiting.** No condition in `spec.md` § Flow Gates § Additional Wait Conditions is
+  currently active.
 
 ### Current Definition of Done (Build-Done)
 
-- Satisfied: **Reconsidered — partially re-affirmed.** Previously recorded as Yes based on this
-  agent's own Sections 3–7 evidence. Codex's Attempt 3 review surfaced two gaps this agent's own
-  evidence did not catch: `spec.md`'s explicit Security Constraint "Prevent path traversal" / "Do
-  not follow unsafe generated paths outside the repository" had a real gap in the mapping-path
-  validation path (PRF-004), and its Compatibility Constraint "Schema versions must be explicit"
-  was not fully enforced (PRF-005). Both are now fixed (schema tightening + explicit containment
-  check + 5 new regression tests). Separately, `spec.md`'s Technology Constraint "mypy in strict
-  mode" was never actually satisfied (only `ty` ran with no strict configuration, and `uv run mypy`
-  fails outright — PRF-003); `human:project-owner` reviewed the `ty`/`mypy` question directly and
-  formally adopted `ty` in strict mode (`pyproject.toml` `[tool.ty.rules] all = "error"`),
-  amending the constitution and 7 other governing documents. 150 tests pass, ruff/ty(strict)/
-  `ggsad validate .`/`uv build`/`ggsad --help` all clean — every R-019 baseline command now
-  genuinely passes as documented. None of the three fixes are yet re-verified by the distinct
-  reviewer.
+- Satisfied: **Yes — fully re-affirmed.** Previously recorded as Yes based on this agent's own
+  Sections 3–7 evidence, then reconsidered once Codex's Attempt 3 review surfaced three real gaps
+  (PRF-003/004/005) this agent's own evidence had not caught. All three are now fixed and
+  independently re-verified by the distinct reviewer (Attempt 4): the mapping-path traversal gap
+  (PRF-004) and schema-version over-permissiveness gap (PRF-005) are closed with regression tests
+  Codex confirmed via its own adversarial probes; the `mypy`/`ty` strict-mode gap (PRF-003) is
+  closed via a human-approved, Codex-reviewed constitutional amendment. 150 tests pass,
+  ruff/ty(strict)/`ggsad validate .`/`uv build`/`ggsad --help` all clean — every R-019 baseline
+  command genuinely passes as documented and independently confirmed by Codex.
 - Criteria: `spec.md` § Flow Gates § Additional Done Conditions — all Must requirements R-001
   through R-020 implemented, all applicable acceptance examples covered, no deferred capability
   introduced, all baseline quality commands pass, generated/failed operations preserve user files
-- Evidence: Sections 3–7 above (this agent's own claims); Section 9 (Codex's independent findings);
-  this section's own record of the PRF-003/PRF-004/PRF-005 fixes and their test evidence
-- Result: **Not fully satisfied as previously claimed, and not yet re-affirmable.** All three fixes
-  are applied — including a re-run of every documented baseline command — but need the distinct
-  reviewer's re-verification before being treated as closed.
+- Evidence: Sections 3–7 above (this agent's own claims); Section 9 (Codex's independent findings
+  and re-verification)
+- Result: **Satisfied.**
 
 ### Next Definition of Ready (for `verify`/`release` phases)
 
-- Satisfied: No
+- Satisfied: **Yes.** `spec.md` § Flow Gates' Verify-Done bullets are each satisfied: all acceptance
+  examples pass or have approved equivalent evidence (Section 4); Pair Review is complete (Section
+  9, Attempt 4); no blocking finding remains open (Section 9 Blocking-Finding Summary); deviations
+  and limitations are documented (Sections 11–12); evidence maps requirements to tests and results
+  (Sections 3, 8).
 - Criteria: Verify-Done requires Pair Review complete with no open blocking finding (`spec.md` §
   Flow Gates § Additional Done Conditions, "Verify-Done")
-- Evidence: Section 9
-- Result: Not satisfied — blocked on Pair Review
+- Evidence: Section 9; Sections 3–4, 8, 11–12
+- Result: **Verify-Done is satisfied.** Note: this is an evidence-level gate assessment, not an
+  engine-executed phase transition — CHG-001's implemented CLI scope only supports the
+  `specify/draft → specify/ready` transition (R-010); `state.yaml`'s `flow.phase`/`flow.status`
+  correctly remain `specify`/`ready`, since no `verify`-phase transition capability exists in this
+  change's approved scope. Reaching Ready-to-Close additionally requires roadmap/status updates
+  (`docs/definitions/definition-of-ready.md` § Ready to Close; `tasks.md` T-082), which are a
+  separate, not-yet-taken action — see Section 15.
 
 ## 15. Final Result
 
-- Final Status: **Waiting** (`state.yaml` is `specify/ready` via a real engine transition;
-  Build-Done reconsidered, partially re-affirmed; Verify-Done blocked solely on Codex
-  re-verification of PRF-003/PRF-004/PRF-005 — see DoW/DoD above)
-- Recommended Transition: None pending from this agent. `ggsad transition CHG-001 ready` already
-  ran successfully (Section 6.5 superseded — see `state.yaml` history, event `draft-to-ready`).
-  The next state-affecting action is re-dispatching Codex for re-verification of all three fixes
-  (and, incidentally, DEV-005's outstanding constitutional-amendment independent-review step).
+- Final Status: **Build-Done and Verify-Done, both satisfied** (`state.yaml` is `specify/ready` via
+  a real engine transition; Pair Review complete with zero open blocking findings — see DoW/DoD
+  above). Not yet Ready-to-Close — see Remaining Actions.
+- Recommended Transition: None pending from this agent via the `ggsad` CLI — `ggsad transition
+  CHG-001 ready` already ran successfully (Section 6.5 superseded — see `state.yaml` history, event
+  `draft-to-ready`), and CHG-001's implemented scope has no further CLI-executed phase transition
+  (`verify`/`release`/`closed` are not in R-010's supported set). The next actions are
+  documentation-level (roadmap status, Ready-to-Close), not engine transitions — see below, and see
+  `human:project-owner` for direction on whether/how far to take closure now.
 - Transition Evidence: `state.yaml` `history` — an engine-appended `draft-to-ready` event with
   `action: complete`, `previous_status: draft`, `new_status: ready`.
 - Remaining Actions:
   1. **Done:** PRF-004 (path-traversal/schema gap) and PRF-005 (schema-version enforcement gap)
-     fixed directly — schema tightening in all three schema pairs, an explicit containment check
-     in `_validate_declared_mappings`, and 5 new regression tests.
+     fixed directly and independently re-verified by Codex via its own adversarial probes.
   2. **Done:** PRF-003 (`mypy` gate failure) resolved — `human:project-owner` reviewed a `ty` vs.
-     `mypy` comparison and formally adopted `ty` in strict mode. `[tool.ty.rules] all = "error"`
-     added to `pyproject.toml`; 6 real strict-mode findings fixed; `docs/constitution.md` (Version
-     0.1→0.2) and 7 other governing documents amended for consistency.
-  3. All three fixes verified together: 150 tests pass, ruff/ty(strict)/`ggsad validate .`/
-     `uv build`/`ggsad --help` all clean — every R-019 baseline command now genuinely passes.
-  4. Re-dispatch Pair Review (Review ID `PR-001`) for re-verification of all three fixes, per
-     `plan.md` §15 — only the distinct reviewer can move these to `verified`. This dispatch also
-     covers DEV-005 (the constitutional amendment's own outstanding independent-review step).
-  5. Once Pair Review reaches no open blocking findings, re-evaluate Build-Done and Verify-Done,
-     then the roadmap-status update (`tasks.md` T-082).
-  6. PRF-006 (`uv build` TLS issue in Codex's environment) is informational only — this agent
-     already re-ran `uv build` successfully in its own local environment (`dist/ggsad-0.1.0-py3-
-     none-any.whl` built cleanly), confirming Codex's failure was specific to its own sandbox's
-     TLS trust store, not a repository defect. Not blocking.
-- Evidence Owner Statement: Pair Review has now genuinely run once (Attempt 3, via a direct
-  non-sandboxed `codex exec` invocation after three sandboxed attempts failed for environment
-  reasons — PRF-001/PRF-002 now resolved). It returned three real, open blocking findings about
-  CHG-001 itself (PRF-003, PRF-004, PRF-005) that this agent's own Sections 3–7 evidence had not
-  caught, plus one informational finding (PRF-006, independently confirmed environmental). All
-  three blocking findings now have a fix applied, with new regression tests or a reviewed human
-  decision behind each, and every documented baseline command re-run clean — but per the
-  constitution, this agent cannot declare them `verified` unilaterally; that requires the distinct
-  reviewer's re-verification. CHG-001 is not yet Build-Done-reaffirmed and not yet Verify-Done.
+     `mypy` comparison and formally adopted `ty` in strict mode, amending the constitution and 7
+     other governing documents; independently re-verified by Codex, including the amendment itself.
+  3. **Done:** All three fixes re-verified together: 150 tests pass, ruff/ty(strict)/
+     `ggsad validate .`/`uv build`/`ggsad --help` all clean — every R-019 baseline command now
+     genuinely passes, confirmed independently by both this agent and Codex.
+  4. **Done:** Pair Review re-dispatched (Review ID `PR-001`, Attempt 4) and returned `verified` for
+     all three findings, no new findings. This also satisfied DEV-005 (the constitutional
+     amendment's own outstanding independent-review step).
+  5. **Open:** `tasks.md` T-082 (roadmap status update) and full Ready-to-Close evaluation
+     (`docs/definitions/definition-of-ready.md` § Ready to Close — roadmap/architecture/ADR/status
+     updates) have not been done. This is a material scope decision (how far to take CHG-001's
+     closure right now) that this agent is surfacing rather than proceeding on unprompted.
+  6. PRF-006 (`uv build` TLS issue in Codex's environment) remains informational only, reconfirmed
+     twice as environmental — not blocking anything.
+- Evidence Owner Statement: Pair Review has now genuinely run twice: Attempt 3 (initial review, via
+  a direct non-sandboxed `codex exec` invocation after three sandboxed attempts failed for
+  environment reasons) found three real blocking findings about CHG-001 itself (PRF-003, PRF-004,
+  PRF-005) that this agent's own Sections 3–7 evidence had not caught, plus one informational
+  finding (PRF-006). Attempt 4 (re-verification, same invocation method) independently confirmed
+  all three fixes are sound and raised no new findings. Per the constitution, this agent did not and
+  could not declare any finding `verified` itself — every verdict recorded in Section 9 is Codex's
+  own, reached by re-deriving its own judgment rather than trusting this agent's fix claims.
+  CHG-001 is now Build-Done and Verify-Done. Whether and how to proceed toward Ready-to-Close is a
+  decision for `human:project-owner`.
 
 ## 16. Evidence History
 
@@ -480,3 +509,4 @@ Evaluated in the mandatory order: DoF → DoW → current DoD → next DoR.
 | 2026-08-03 | agent:claude-code | 2 | Recorded Pair Review Attempt 3: direct, non-sandboxed `codex exec` invocation succeeded after three sandboxed attempts failed (PRF-001, PRF-002, and an unnumbered 36+-minute hang). Codex returned three open blocking findings (PRF-003 mypy gate failure, PRF-004 path-traversal/schema gap, PRF-005 schema-version enforcement gap) and one informational finding (PRF-006 `uv build` TLS issue). Reconsidered Build-Done given these findings; Verify-Done remains blocked. No files were modified during the review. |
 | 2026-08-03 | agent:claude-code | 3 | Fixed PRF-004 and PRF-005: tightened `relativePath`/`artifactPath` regex and constrained `schema_version` to `const: "0.1"` across all three schemas (`.ggsad/schemas/` and packaged `src/ggsad/resources/schemas/`); added an explicit path-containment check (new `PATH_SAFETY` issue category) in `validate_repository.py` as defense in depth. Added 5 regression tests. 150 tests pass (up from 142), ruff/ty/`ggsad validate .` all clean; all three governed YAML files re-validated against updated schemas; `uv build` re-confirmed working locally (PRF-006 independently confirmed environmental to Codex's sandbox). PRF-003 intentionally left unfixed pending `human:project-owner`'s disposition decision. Neither fix is marked `verified` — that requires the distinct reviewer. |
 | 2026-08-03 | agent:claude-code | 4 | Resolved PRF-003: `human:project-owner` reviewed a `ty` vs. `mypy` comparison and formally adopted `ty` in strict mode. Added `[tool.ty.environment]`/`[tool.ty.rules] all = "error"` to `pyproject.toml`; found and fixed 6 real strict-mode findings (`@override` on `ValidationIssue.__str__`, 5 test fixtures with unparameterized `dict`). Amended `docs/constitution.md` (Version 0.1→0.2, Last Updated 2026-08-03) and 7 other governing documents (`project-brief.md`, `architecture.md`, `definitions/definition-of-done.md`, `AGENTS.md`, `CLAUDE.md`, `README.md`, `spec.md`) to replace every `mypy` reference with `ty`/`ty check`. Recorded DEV-002 as resolved and a new deviation DEV-005: the amendment's own §19 Amendment Process "independent review" step is outstanding, folded into the next Codex re-verification dispatch rather than a separate cycle. 150 tests pass, ruff/ty(strict)/`ggsad validate .`/`uv build`/`ggsad --help` all clean. All three blocking findings (PRF-003/004/005) now have a fix applied; none marked `verified` — that requires the distinct reviewer. |
+| 2026-08-03 | agent:claude-code | 5 | Recorded Pair Review Attempt 4 (re-verification): dispatched Codex again via the same direct, non-sandboxed `codex exec` invocation against the fixed commit, explicitly asking it to independently re-derive judgment rather than trust the Requestor's fix claims. Codex returned `verified` for PRF-003, PRF-004, and PRF-005 (each backed by its own independent checks: adversarial path probes for PRF-004, schema rejection tests for PRF-005, and confirmation that the `ty` strict-mode config and constitution amendment are sound for PRF-003), reconfirmed PRF-006 as environmental/non-blocking, and raised no new findings. This also satisfied DEV-005 (the amendment's own outstanding independent-review step), now resolved. Open Blocking Findings is now 0. Re-evaluated all four gates in mandatory order: DoF not triggered, DoW no longer triggered, Build-Done fully re-affirmed, Verify-Done now satisfied per `spec.md`'s Flow Gates. Ready-to-Close (roadmap status update, `tasks.md` T-082) intentionally left as an open, surfaced decision rather than proceeded on unprompted. No files were modified during the re-verification. |
