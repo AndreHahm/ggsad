@@ -1,0 +1,146 @@
+[project]
+name = "ggsad"
+version = "0.1.0"
+description = "Reference implementation of Goal-Gated Spec-Anchored Development (GG-SAD)."
+readme = "README.md"
+requires-python = ">=3.13"
+license = { text = "Apache-2.0" }
+authors = [
+  { name = "Andre Hahm" },
+]
+keywords = [
+  "agentic-development",
+  "governance",
+  "spec-driven-development",
+  "software-development",
+  "workflow",
+]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Software Development",
+]
+dependencies = [
+    "jsonschema>=4.26.0",
+    "pydantic>=2.13.4",
+    "ruamel-yaml>=0.19.1",
+    "typer>=0.27.0",
+]
+
+[dependency-groups]
+dev = [
+    "bandit>=1.9.4",
+    "build>=1.5.0",
+    "hypothesis>=6.165.0",
+    "pre-commit>=4.6.1",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.16.1",
+    "ty>=0.0.65",
+]
+
+[project.urls]
+Documentation = "https://github.com/andrehahm/ggsad"
+Issues = "https://github.com/andrehahm/ggsad/issues"
+Repository = "https://github.com/andrehahm/ggsad"
+
+[project.scripts]
+ggsad = "ggsad.cli:app"
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/ggsad"]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+extend-exclude = [
+  ".claude",
+  ".codex",
+  ".ggsad",
+  ".github",
+  ".idea",
+  ".qodo",
+  "docs",
+  "examples",
+  "scripts",
+  "specs",
+]
+
+[tool.ruff.lint]
+select = [
+  "A",
+  "ANN",
+  "ARG",
+  "B",
+  "C4",
+  "DTZ",
+  "E",
+  "F",
+  "I",
+  "N",
+  "PERF",
+  "PIE",
+  "PL",
+  "PTH",
+  "RUF",
+  "S",
+  "SIM",
+  "T20",
+  "TRY",
+  "UP",
+]
+ignore = [
+  "S101",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+  "ANN",
+  "ARG",
+  "PLR2004",
+  "S",
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+quote-style = "double"
+
+[tool.pytest.ini_options]
+addopts = [
+  "--strict-config",
+  "--strict-markers",
+  "--cov=ggsad",
+  "--cov-report=term-missing",
+]
+testpaths = ["tests"]
+xfail_strict = true
+
+[tool.coverage.run]
+branch = true
+source = ["ggsad"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+skip_covered = true
+exclude_also = [
+  "if TYPE_CHECKING:",
+  "if __name__ == .__main__.:",
+  "raise NotImplementedError",
+]
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B101"]

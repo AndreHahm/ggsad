@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.org/ggsad/schemas/config.schema.json",
+  "title": "GG-SAD Project Configuration",
+  "description": "Schema for .ggsad/config.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project",
+    "method",
+    "workflow",
+    "pair_review",
+    "integrations",
+    "memory"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+$"
+    },
+    "project": {
+      "$ref": "#/$defs/project"
+    },
+    "method": {
+      "$ref": "#/$defs/method"
+    },
+    "workflow": {
+      "$ref": "#/$defs/workflow"
+    },
+    "pair_review": {
+      "$ref": "#/$defs/pairReview"
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/integration"
+      },
+      "uniqueItems": true
+    },
+    "memory": {
+      "$ref": "#/$defs/memory"
+    },
+    "permissions": {
+      "$ref": "#/$defs/permissions"
+    },
+    "evidence": {
+      "$ref": "#/$defs/evidence"
+    },
+    "retention": {
+      "$ref": "#/$defs/retention"
+    },
+    "budgets": {
+      "$ref": "#/$defs/budgets"
+    },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true
+    }
+  },
+  "$defs": {
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$)).+"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "operating_mode",
+        "compliance_profile"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        },
+        "operating_mode": {
+          "type": "string",
+          "enum": [
+            "stand-alone",
+            "combination"
+          ]
+        },
+        "compliance_profile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "repository_type": {
+          "type": "string",
+          "enum": [
+            "single-repository",
+            "multi-repository",
+            "monorepo"
+          ]
+        },
+        "delivery_context": {
+          "type": "string",
+          "enum": [
+            "prototype",
+            "pre-pmf",
+            "product",
+            "platform",
+            "enterprise",
+            "regulated",
+            "open-source"
+          ]
+        }
+      }
+    },
+    "method": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "version"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "const": "Goal-Gated Spec-Anchored Development"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+(?:\\.\\d+)?$"
+        }
+      }
+    },
+    "workflow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_change_class",
+        "enabled_phases"
+      ],
+      "properties": {
+        "default_change_class": {
+          "type": "string",
+          "enum": [
+            "S",
+            "M",
+            "L"
+          ]
+        },
+        "default_flow_profile": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "enabled_phases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "intake",
+              "explore",
+              "decide",
+              "specify",
+              "plan",
+              "design",
+              "build",
+              "verify",
+              "release",
+              "closed"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "skippable_phases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "intake",
+              "explore",
+              "decide",
+              "specify",
+              "plan",
+              "design",
+              "build",
+              "verify",
+              "release",
+              "closed"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "profiles_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "templates_path": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "schemas_path": {
+          "$ref": "#/$defs/relativePath"
+        }
+      }
+    },
+    "pairReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "default_requirement",
+        "distinct_requestor_and_reviewer",
+        "required_for",
+        "human_approval_required_for"
+      ],
+      "properties": {
+        "default_requirement": {
+          "type": "string",
+          "enum": [
+            "optional",
+            "required"
+          ]
+        },
+        "distinct_requestor_and_reviewer": {
+          "type": "boolean",
+          "const": true
+        },
+        "human_human_allowed": {
+          "type": "boolean",
+          "default": true
+        },
+        "allowed_participant_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "human",
+              "agent",
+              "external-review-service"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "required_for": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "uniqueItems": true
+        },
+        "human_approval_required_for": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "uniqueItems": true
+        },
+        "separate_review_document": {
+          "type": "string",
+          "enum": [
+            "optional",
+            "conditional",
+            "mandatory"
+          ]
+        },
+        "blocking_finding_rule": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "mode",
+        "mapping"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$"
+        },
+        "version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "companion",
+            "adapter"
+          ]
+        },
+        "mapping": {
+          "$ref": "#/$defs/relativePath"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "backend": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            null,
+            "files",
+            "embedded",
+            "external"
+          ]
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "record_types": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "learning",
+              "failure",
+              "definition",
+              "external-source"
+            ]
+          },
+          "uniqueItems": true
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "enabled": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "backend"
+            ]
+          }
+        }
+      ]
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "phase_write_scopes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/relativePath"
+            },
+            "uniqueItems": true
+          }
+        },
+        "destructive_actions_require_approval": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required_for_classes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "reference_external_reports": {
+          "type": "boolean"
+        },
+        "require_requirement_traceability": {
+          "type": "boolean"
+        },
+        "require_acceptance_example_traceability": {
+          "type": "boolean"
+        }
+      }
+    },
+    "retention": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evidence_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "history_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "review_days": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "max_retry_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_token_budget": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "max_cost": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        },
+        "currency": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[A-Z]{3}$"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "project": {
+            "properties": {
+              "operating_mode": {
+                "const": "stand-alone"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "integrations": {
+            "maxItems": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "project": {
+            "properties": {
+              "operating_mode": {
+                "const": "combination"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "integrations": {
+            "minItems": 1
+          }
+        }
+      }
+    }
+  ]
+}

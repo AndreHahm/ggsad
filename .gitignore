@@ -1,0 +1,37 @@
+node_modules/
+npm-debug.log
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.ty/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+dist/
+build/
+reports/events/
+.env
+.env.*
+!.env.example
+.idea/
+.qodo/
+!.claude/
+!.codex/
+!.agents/
+
+
+#Ignore vscode AI rules
+.github\instructions\codacy.instructions.md
+
+#Repo-specific files and directories
+*.local
+*.local.*
+**/*.local.*
+.claude/output/
+**/.draft/
+**/.backup/
+**/.temp/
+**/.experiments/

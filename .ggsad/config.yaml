@@ -1,0 +1,44 @@
+schema_version: "0.1"
+
+project:
+  id: ggsad-reference-implementation
+  operating_mode: combination
+  compliance_profile: standard
+
+method:
+  name: Goal-Gated Spec-Anchored Development
+  version: "1.2"
+
+workflow:
+  default_change_class: M
+  enabled_phases:
+    - intake
+    - specify
+    - plan
+    - build
+    - verify
+    - release
+    - closed
+
+pair_review:
+  default_requirement: optional
+  distinct_requestor_and_reviewer: true
+  required_for:
+    - architecture_changes
+    - state_engine_changes
+    - transition_engine_changes
+    - gate_engine_changes
+    - security_relevant_changes
+    - breaking_changes
+  human_approval_required_for:
+    - adr_changes
+    - releases
+    - breaking_changes
+
+integrations:
+  - id: gsd
+    mode: companion
+    mapping: .ggsad/mappings/gsd.yaml
+
+memory:
+  enabled: false
