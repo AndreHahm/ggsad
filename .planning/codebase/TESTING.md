@@ -103,7 +103,7 @@ def test_valid_change_ids_are_accepted(change_id: str) -> None:
 @pytest.mark.parametrize(
     "change_id",
     [
-        "CHG-1",      # comment explaining invalid case
+        "CHG-1",  # comment explaining invalid case
         "CHG-01",
         "chg-001",
         # ...
@@ -127,6 +127,7 @@ def test_invalid_change_ids_are_rejected(change_id: str) -> None:
 ```python
 from hypothesis import given
 from hypothesis import strategies as st
+
 
 @given(digits=st.integers(min_value=1, max_value=999999).map(str))
 def test_property_any_chg_prefixed_id_with_three_or_more_digits_is_valid(digits: str) -> None:
@@ -197,6 +198,7 @@ from typer.testing import CliRunner
 from ggsad.cli import app
 
 runner = CliRunner()
+
 
 def test_e001_initialize_a_clean_repository(tmp_path: Path) -> None:
     """E-001: an empty writable target directory is initialized successfully."""
@@ -321,8 +323,9 @@ def test_e001_initialize_a_clean_repository(tmp_path: Path) -> None:
 
 **Excluded from Coverage:**
 ```python
-"if TYPE_CHECKING:"          # Type-checking-only imports
-"if __name__ == .__main__.:" # Script entry points
+"if TYPE_CHECKING:"  # Type-checking-only imports
+
+"if __name__ == .__main__.:"  # Script entry points
 "raise NotImplementedError"  # Stub implementations
 ```
 
