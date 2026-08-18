@@ -24,6 +24,12 @@
       "appliedAt": "2026-08-02T17:51:30.244Z",
       "journal": null,
       "checksum": "sha256:6555dd044659276fbc204e81793cd92c5315d54e7316bcdd82d2c98d15a7e9e8"
+    },
+    {
+      "id": "2026-07-28-retire-config-root-commonjs-marker",
+      "appliedAt": "2026-08-18T10:43:17.633Z",
+      "journal": "gsd-migration-journal/2026-08-18T10-43-17-633Z-11eb49f72f7e3c1a.json",
+      "checksum": "sha256:8f2140cbe8f2dd8f7dfd52a0f6957c5edfe966c52d7e6e4d74ec7366930e0e1d"
     }
   ]
 }
