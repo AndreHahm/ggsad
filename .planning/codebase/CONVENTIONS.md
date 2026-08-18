@@ -136,8 +136,10 @@ from ggsad.validators.schema_validator import load_schema
   class ChangeCreationError(ValueError):
       """Base for `ggsad new` rejections (R-004 validation, R-012 containment/conflict)."""
 
+
   class InvalidChangeIdentifierError(ChangeCreationError):
       """Raised when a change ID, slug, or class fails R-004 validation."""
+
 
   class ChangeAlreadyExistsError(ChangeCreationError):
       """Raised when the target change directory already exists."""
