@@ -13,7 +13,9 @@
   because the transition replaces GG-SAD development governance with GSD.
 - Design approval status: Approved
 - Final approval record: The repository owner explicitly approved reviewed design revision
-  `6ece3bf` in the Codex review session on 2026-08-18 after disposition of F-01 through F-07.
+  `6ece3bf` in the Codex review session on 2026-08-18 after disposition of F-01 through F-07, and
+  subsequently approved sequencing the GSD update and onboarding before the normative amendment
+  so all substantive implementation work uses the selected development method.
 
 This document designs the transition. It does not itself amend the normative specification,
 delete existing governance, install GSD, or change the Python implementation.
@@ -239,17 +241,21 @@ Requestor dispositioned its findings as follows on 2026-08-18:
 ## Transition sequence
 
 1. Approve this design.
-2. Create a detailed implementation plan.
-3. Prepare the normative amendment without changing implementation behavior.
-4. Obtain owner approval for the exact normative diff.
-5. Obtain independent Claude Code review and resolve blocking findings.
-6. Update the installer-managed GSD Core 1.9.1 files to pinned version 1.10.0, verify the installed
-   version and manifest, and then onboard the existing repository to create `.planning/`.
-7. Retire or relocate conflicting development-governance artifacts.
-8. Configure quality tools to separate owned source from installer-owned tooling.
-9. Audit the retained implementation against the clarified contract.
-10. Implement only identified conformance gaps through GSD.
-11. Run the complete verification baseline and record GSD verification results.
+2. Create a bootstrap implementation plan limited to installing the selected GSD version,
+   neutralizing conflicting development instructions, and onboarding the existing repository.
+3. Update the installer-managed GSD Core 1.9.1 files to pinned version 1.10.0 and verify the
+   installed version and manifest.
+4. Replace or suspend conflicting `AGENTS.md`, `CLAUDE.md`, and
+   `CLAUDE_CODE_PROJECT_START.md` instructions sufficiently for GSD-only development.
+5. Onboard the existing repository with GSD to create `.planning/`.
+6. Use GSD to plan and prepare the normative amendment without changing implementation behavior.
+7. Obtain owner approval for the exact normative diff.
+8. Obtain independent Claude Code review and resolve blocking findings.
+9. Use GSD to retire or relocate remaining conflicting development-governance artifacts.
+10. Configure quality tools to separate owned source from installer-owned tooling.
+11. Audit the retained implementation against the clarified contract.
+12. Implement only identified conformance gaps through GSD.
+13. Run the complete verification baseline and record GSD verification results.
 
 ## Safety and rollback
 
