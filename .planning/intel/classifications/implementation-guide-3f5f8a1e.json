@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/implementation-guide.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD Implementation Guide",
+  "summary": "Defines the recommended staged implementation approach and repository structure for GG-SAD.",
+  "scope": ["GG-SAD", "implementation strategy", "repository structure", "compliance profiles", "project memory"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

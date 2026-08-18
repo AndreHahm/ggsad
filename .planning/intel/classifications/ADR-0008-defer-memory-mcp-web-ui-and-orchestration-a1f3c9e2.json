@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0008-defer-memory-mcp-web-ui-and-orchestration.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0008: Defer Memory, MCP, Web UI, and Multi-Agent Orchestration",
+  "summary": "Decision record deferring project memory, MCP server, web UI, and multi-agent orchestration until after bootstrap.",
+  "scope": ["project memory", "MCP server", "web UI", "multi-agent orchestration", "CHG-001"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/implementation-roadmap.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD Implementation Roadmap",
+  "summary": "Phased implementation roadmap for the GG-SAD method, listing principles, phase goals, deliverables, and exit criteria.",
+  "scope": ["GG-SAD method", "roadmap phases", "reference repository", "Example-Driven Specification", "Pair Review", "compliance profiles", "state model", "project-brief.md"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

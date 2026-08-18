@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/CHG-001-reference-repository-bootstrap/state.yaml",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "state.yaml",
+  "summary": "State/history record for CHG-001 Reference Repository Bootstrap tracking phase, status, and event history.",
+  "scope": ["CHG-001", "reference repository bootstrap", "pair review", "state tracking"],
+  "cross_refs": ["evidence.md", "plan.md", "spec.md", "tasks.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

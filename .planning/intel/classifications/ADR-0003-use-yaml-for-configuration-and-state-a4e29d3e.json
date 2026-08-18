@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0003-use-yaml-for-configuration-and-state.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0003: Use YAML for Configuration and State",
+  "summary": "Legacy ADR proposing YAML for GG-SAD project configuration, profiles, mappings, and change state.",
+  "scope": ["YAML", "configuration", "state", "GG-SAD", "JSON Schema"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Manifest declared type DOC overriding content signals; document itself reads as an ADR with Status: Proposed (not locked)."
+}

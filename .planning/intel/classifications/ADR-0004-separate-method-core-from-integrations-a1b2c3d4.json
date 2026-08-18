@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0004-separate-method-core-from-integrations.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0004: Separate the Method Core from Integrations",
+  "summary": "Proposed decision to keep the GG-SAD method core independent from tool/vendor integrations via layered architecture.",
+  "scope": ["Method Core", "Engine", "Services", "Agent Workflows", "Integrations", "GSD", "Claude Code"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Manifest declared type DOC, overriding native ADR structure/status. Status field reads Proposed, not Accepted."
+}

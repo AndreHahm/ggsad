@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/workflow-reference.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Standard Product, Development, and Open Source Workflow",
+  "summary": "Reference workflow integrating product, GG-SAD development, and open source lifecycles from ideation to retirement.",
+  "scope": ["product lifecycle", "GG-SAD development lifecycle", "open source lifecycle", "gates", "release process"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

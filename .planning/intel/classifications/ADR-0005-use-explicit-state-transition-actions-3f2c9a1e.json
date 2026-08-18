@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0005-use-explicit-state-transition-actions.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0005: Use Explicit State Transition Actions",
+  "summary": "Considers using explicit state transition actions to control mutation of state.yaml with gate evaluation.",
+  "scope": ["state.yaml", "state transitions", "gate evaluation", "GG-SAD engine"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Manifest overrides content-based classification; document has ADR structure (Status: Proposed, Decision Drivers, Considered Options) but manifest declares type DOC."
+}

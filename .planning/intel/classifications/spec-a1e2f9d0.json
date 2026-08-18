@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/CHG-001-reference-repository-bootstrap/spec.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "CHG-001 — Reference Repository Bootstrap",
+  "summary": "Legacy GG-SAD change spec for bootstrapping a reference repository with validation and state transitions.",
+  "scope": ["GG-SAD", "reference repository bootstrap", "Class M change", "state transitions", "validation"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": "MANIFEST_TYPE override applied (DOC). Content itself reads as a legacy GG-SAD change spec (CHG-001) with ADR/PRD-like structure, but CLAUDE.md instructs that legacy specs/CHG-* files are not active development governance; classified per manifest as DOC."
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/architecture-reference.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD Reference Architecture",
+  "summary": "Describes the GG-SAD layered reference architecture separating method core, engine, services, workflows, and integrations.",
+  "scope": ["reference architecture", "method core", "method engine", "method services", "agent workflows", "integrations"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

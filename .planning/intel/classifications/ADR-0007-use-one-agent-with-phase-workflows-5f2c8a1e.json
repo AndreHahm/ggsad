@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0007-use-one-agent-with-phase-workflows.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0007: Use One Agent with Phase-Specific Workflows Initially",
+  "summary": "Decision to use one agent with phase-specific workflows instead of multiple specialized agents initially.",
+  "scope": ["agent architecture", "phase workflows", "orchestration", "permissions"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Manifest declared type DOC overriding document's own ADR structure (Status: Proposed, Decision/Consequences sections present); manifest_override honored per instructions. Status is Proposed, not Accepted, so would not have been locked regardless."
+}

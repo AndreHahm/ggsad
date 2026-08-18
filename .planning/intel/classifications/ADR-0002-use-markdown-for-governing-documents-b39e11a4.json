@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0002-use-markdown-for-governing-documents.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0002: Use Markdown for Governing Documents",
+  "summary": "Decision to use Markdown as the normative format for governing and change-level documents, with YAML/JSON for structured state.",
+  "scope": ["governing documents", "Markdown", "YAML", "JSON", "change specifications", "documentation format"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "MANIFEST_TYPE override applied (DOC). Document itself has ADR structure/frontmatter with Status: Proposed (not Accepted, so would not be locked even as ADR)."
+}

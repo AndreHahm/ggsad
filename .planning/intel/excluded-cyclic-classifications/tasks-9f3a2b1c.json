@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/CHG-001-reference-repository-bootstrap/tasks.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Implementation Checklist: CHG-001 — Reference Repository Bootstrap",
+  "summary": "Execution checklist tracking tasks for CHG-001 reference repository bootstrap, subordinate to spec and plan.",
+  "scope": ["CHG-001", "reference repository bootstrap", "governance readiness", "ADR disposition"],
+  "cross_refs": ["spec.md", "plan.md", "state.yaml", "evidence.md", "docs/adr/ADR-0001-*.md", "docs/adr/ADR-0008-*.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

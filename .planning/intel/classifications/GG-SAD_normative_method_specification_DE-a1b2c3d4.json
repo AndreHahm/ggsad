@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/method/GG-SAD_normative_method_specification_DE.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD — Normative Methodenbeschreibung",
+  "summary": "Normative German-language specification of the GG-SAD goal-gated, spec-anchored development method and its phases, gates, and rules.",
+  "scope": ["GG-SAD", "development method", "document hierarchy", "phase-based flow", "gates", "AI agents", "evidence"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/examples/class-s/.gitkeep",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": ".gitkeep",
+  "summary": "Empty placeholder file used to preserve an otherwise empty directory in git.",
+  "scope": [],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/constitution.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD Project Constitution",
+  "summary": "Defines non-negotiable rules and precedence order for developing, reviewing, and releasing the GG-SAD reference implementation.",
+  "scope": ["constitution", "governance", "precedence order", "ADRs", "GG-SAD reference implementation"],
+  "cross_refs": ["docs/adr/", "docs/project-brief.md", "docs/architecture.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

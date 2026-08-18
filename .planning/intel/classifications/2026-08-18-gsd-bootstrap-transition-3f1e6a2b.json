@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/superpowers/plans/2026-08-18-gsd-bootstrap-transition.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GSD Bootstrap Transition Implementation Plan",
+  "summary": "Sequential implementation plan to replace mixed GG-SAD/GSD governance with a pinned GSD Core 1.10.0 install and onboarded planning workspace.",
+  "scope": ["GSD Core 1.10.0", "GG-SAD normative specification", ".planning workspace", "bootstrap transition", "development governance"],
+  "cross_refs": ["docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md", "docs/method/GG-SAD_normative_method_specification.md", "AGENTS.md", "CLAUDE.md", "CLAUDE_CODE_PROJECT_START.md", ".claude/gsd-file-manifest.json", ".claude/gsd-install-state.json"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

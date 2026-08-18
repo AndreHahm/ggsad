@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/guides/GG-SAD_human_readable_guide_DE.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD verständlich erklärt",
+  "summary": "German-language explanatory guide describing the Goal-Gated Spec-Anchored Development (GG-SAD) model and its four building blocks.",
+  "scope": ["GG-SAD", "Goal-Gated Spec-Anchored Development", "Goal", "Specification", "gates", "governance layer"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
