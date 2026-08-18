@@ -119,7 +119,19 @@ the output and stop before running the installer. Do not reset or discard unexpe
 - Consumes: clean Task 1 baseline and official npm package `@opengsd/gsd-core@1.10.0`.
 - Produces: installer-managed GSD Core 1.10.0 files and an updated manifest/install state.
 
-- [ ] **Step 1: Run the official pinned installer**
+- [ ] **Step 1: Verify official npm package metadata**
+
+Run:
+
+```powershell
+npm view @opengsd/gsd-core@1.10.0 name version repository.url dist.integrity
+```
+
+Expected: name is `@opengsd/gsd-core`; version is `1.10.0`; repository URL identifies
+`open-gsd/gsd-core`; npm reports a non-empty integrity value. Stop before installation if any field
+is absent or differs.
+
+- [ ] **Step 2: Run the official pinned installer**
 
 Run from the repository root:
 
@@ -132,7 +144,7 @@ reports a successful Claude-local installation. If it asks before replacing a mo
 installer-owned file, inspect the reported path and stop unless the manifest proves the file is
 unmodified upstream content.
 
-- [ ] **Step 2: Verify the installed version**
+- [ ] **Step 3: Verify the installed version**
 
 Run:
 
@@ -142,7 +154,7 @@ Get-Content -Raw .claude\gsd-core\VERSION
 
 Expected: exactly `1.10.0`, allowing only the file's trailing newline.
 
-- [ ] **Step 3: Verify installer state and command surface**
+- [ ] **Step 4: Verify installer state and command surface**
 
 Run:
 
@@ -155,7 +167,7 @@ node .claude\gsd-core\bin\gsd-tools.cjs --help
 Expected: both JSON documents parse; CLI exits successfully and lists `init`, `validate`, `state`,
 `roadmap`, and `verify` commands.
 
-- [ ] **Step 4: Review installer scope**
+- [ ] **Step 5: Review installer scope**
 
 Run:
 
@@ -168,7 +180,7 @@ git diff -- .claude/analysis-kit.settings.json .claude/git-kit.settings.json .cl
 Expected: installer-owned GSD files may change; project-owned settings and skills show no diff.
 Stop if the installer changes product code, tests, normative documents, or project-owned skills.
 
-- [ ] **Step 5: Commit the installer-managed update**
+- [ ] **Step 6: Commit the installer-managed update**
 
 Run:
 
@@ -388,14 +400,20 @@ the reported issue is understood.
 Run:
 
 ```powershell
-git diff main...HEAD -- src tests pyproject.toml uv.lock
+git diff main...HEAD -- src tests pyproject.toml uv.lock .ggsad specs/examples
 uv run pytest
 ```
 
-Expected: no product-code, test, dependency, or lockfile diff from this bootstrap; all 150 current
-tests pass.
+Expected: no product-code, test, dependency, lockfile, root product-resource, or example diff from
+this bootstrap; all 150 current tests pass.
 
-- [ ] **Step 7: Commit GSD onboarding artifacts**
+- [ ] **Step 7: Preserve a failed pre-commit onboarding for diagnosis**
+
+If any check in Steps 3 through 6 fails, stop before committing. Preserve the uncommitted
+`.planning/` files and command output for diagnosis. Do not reset, restore, clean, or delete them
+automatically, and do not alter the completed GSD installer or instruction-transition commits.
+
+- [ ] **Step 8: Commit GSD onboarding artifacts**
 
 Run:
 
@@ -453,7 +471,31 @@ uv build
 Expected: all commands pass. Record `uv run ty check` separately as expected to remain blocked only
 by installer-owned `.claude/scripts` diagnostics until GSD plans the ownership-scope correction.
 
-- [ ] **Step 3: Identify the GSD next action**
+- [ ] **Step 3: Roll back only a committed onboarding failure**
+
+Perform this step only if Step 1 or Step 2 reveals a failure specifically caused by the committed
+`.planning/` onboarding artifacts. Identify and verify the onboarding commit before reverting it:
+
+```powershell
+$onboardingCommit = git log -1 --format=%H -- .planning
+git show --stat --oneline $onboardingCommit
+git show --format=%s -s $onboardingCommit
+```
+
+Expected subject: `docs: onboard repository into GSD`. If the subject or changed paths do not
+match the onboarding commit, stop and request direction. If they match, run:
+
+```powershell
+git revert --no-edit $onboardingCommit
+```
+
+Expected: a new revert commit removes only `.planning/` onboarding artifacts. Preserve the GSD
+1.10.0 installer commit and instruction-transition commit, report the failure, and stop bootstrap
+execution.
+
+If Steps 1 and 2 pass, skip this rollback step.
+
+- [ ] **Step 4: Identify the GSD next action**
 
 In Claude Code, run:
 
@@ -464,7 +506,20 @@ In Claude Code, run:
 Expected: the next action discusses or plans the normative-clarification phase. It must not point
 to a legacy GG-SAD change or CHG-001 closure action.
 
-- [ ] **Step 4: Stop bootstrap execution**
+- [ ] **Step 5: Stop bootstrap execution**
 
 Do not amend the normative specification from this bootstrap plan. Continue exclusively through
-the GSD command and plan identified in Step 3.
+the GSD command and plan identified in Step 4.
+
+---
+
+## Independent plan-review dispositions
+
+Claude Code reviewed commit `dd1aadd3c4f0fdc4a756c9574ba03020751887d7`. The repository owner and
+Requestor dispositioned its findings on 2026-08-18:
+
+| Finding | Disposition | Resulting action |
+|---|---|---|
+| PF-01 | Accepted | Expanded Task 4's protected-path diff to include `.ggsad` and `specs/examples`; corrected the review's step reference from Task 5 to Task 4. |
+| PF-02 | Accepted with revised remedy | Added pre-commit preservation and post-commit targeted-revert procedures matching the actual onboarding commit boundary. |
+| PF-03 | Accepted as informational | Added an npm package-name, version, repository, and integrity preflight before installation. |
