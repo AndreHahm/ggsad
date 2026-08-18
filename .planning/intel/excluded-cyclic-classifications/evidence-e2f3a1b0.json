@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/CHG-001-reference-repository-bootstrap/evidence.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Verification Evidence: CHG-001 — Reference Repository Bootstrap",
+  "summary": "Verification evidence report documenting requirement coverage and test results for CHG-001 reference repository bootstrap.",
+  "scope": ["CHG-001", "reference repository bootstrap", "requirement coverage", "verification evidence", "pair review"],
+  "cross_refs": ["spec.md", "plan.md", "state.yaml"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

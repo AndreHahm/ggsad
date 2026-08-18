@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/project-brief.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Project Brief",
+  "summary": "Describes GG-SAD's problem, opportunity, stakeholders, desired outcomes, and project scope for a lightweight development governance method.",
+  "scope": ["GG-SAD", "governance", "specifications", "architecture", "permissions", "state transitions", "pilot projects"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

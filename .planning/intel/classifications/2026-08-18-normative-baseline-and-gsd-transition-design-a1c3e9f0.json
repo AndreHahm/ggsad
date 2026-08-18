@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Normative Baseline Clarification and GSD Transition Design",
+  "summary": "Designs the transition to a coherent English normative baseline and GSD-only development for the GG-SAD reference prototype.",
+  "scope": ["GG-SAD normative method specification", "GSD Core", "reference implementation", "Python implementation", "development governance"],
+  "cross_refs": ["docs/method/GG-SAD_normative_method_specification.md", "CLAUDE_CODE_PROJECT_START.md", "CLAUDE.md", "AGENTS.md"],
+  "locked": false,
+  "precedence": 1,
+  "notes": ""
+}

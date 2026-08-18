@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/definitions/definition-of-ready.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Definition of Ready",
+  "summary": "Defines phase-by-phase readiness criteria (DoR) that must be satisfied before each development phase may begin.",
+  "scope": ["Definition of Ready", "gate evaluation", "phase transitions", "Class and Profile tailoring", "Definition of Fail", "Definition of Wait"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

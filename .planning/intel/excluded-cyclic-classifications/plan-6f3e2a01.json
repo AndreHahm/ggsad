@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/CHG-001-reference-repository-bootstrap/plan.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Implementation Plan: CHG-001 — Reference Repository Bootstrap",
+  "summary": "Legacy implementation plan for CHG-001 reference repository bootstrap, subordinate to constitution, ADRs, project brief, and architecture docs.",
+  "scope": ["CHG-001", "reference repository bootstrap", "CLI", "application services", "ADR-0001 through ADR-0008"],
+  "cross_refs": ["docs/constitution.md", "docs/project-brief.md", "docs/architecture.md", "spec.md", "state.yaml", ".ggsad/config.yaml", ".ggsad/mappings/gsd.yaml"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

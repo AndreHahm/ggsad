@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/roadmap.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD Implementation Roadmap",
+  "summary": "Roadmap of phased milestones (R0, R1, ...) for building out the GG-SAD reference implementation and tooling.",
+  "scope": ["GG-SAD", "reference implementation", "repository bootstrap", "GSD integration", "roadmap principles"],
+  "cross_refs": ["specs/CHG-001-reference-repository-bootstrap/evidence.md"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

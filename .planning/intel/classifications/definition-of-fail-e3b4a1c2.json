@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/definitions/definition-of-fail.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Definition of Fail",
+  "summary": "Defines conditions and rules under which a flow must terminate unsuccessfully, including failure categories and required failure rule structure.",
+  "scope": ["Definition of Fail", "gate evaluation", "failure categories", "flow termination"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

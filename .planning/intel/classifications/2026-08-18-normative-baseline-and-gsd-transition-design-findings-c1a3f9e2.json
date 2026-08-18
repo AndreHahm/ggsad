@@ -1,0 +1,20 @@
+{
+  "source_path": "docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design-findings.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Independent Review Findings — Normative Baseline and GSD Transition Design",
+  "summary": "Independent reviewer findings on a design document for normative baseline and GSD transition, flagging blocking gaps before owner approval.",
+  "scope": ["normative baseline", "GSD transition", "CLAUDE.md", "CLAUDE_CODE_PROJECT_START.md", "bootstrap authorization"],
+  "cross_refs": [
+    "docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CLAUDE_CODE_PROJECT_START.md",
+    "specs/CHG-001-reference-repository-bootstrap/state.yaml",
+    "docs/method/GG-SAD_normative_method_specification.md"
+  ],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

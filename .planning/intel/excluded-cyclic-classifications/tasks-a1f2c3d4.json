@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/examples/class-m/tasks.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Implementation Checklist: CHG-000 — Example: Add a --quiet Flag to ggsad validate",
+  "summary": "Illustrative example implementation checklist demonstrating task-to-requirement mapping conventions; not real work.",
+  "scope": ["implementation checklist", "CHG-000 example", "--quiet flag", "ggsad validate"],
+  "cross_refs": ["spec.md", "plan.md", "state.yaml"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

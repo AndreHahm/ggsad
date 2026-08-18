@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/definitions/definition-of-wait.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Definition of Wait",
+  "summary": "Defines wait states, categories, triggers, and required wait record fields for pausing work safely.",
+  "scope": ["wait states", "wait categories", "wait triggers", "wait record schema"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

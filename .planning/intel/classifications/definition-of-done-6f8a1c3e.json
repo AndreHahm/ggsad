@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/definitions/definition-of-done.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "Definition of Done",
+  "summary": "Defines completion criteria (Definition of Done) for each phase of the governed workflow, from intake through later phases.",
+  "scope": ["Definition of Done", "phase completion criteria", "intake", "exploration", "specification"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

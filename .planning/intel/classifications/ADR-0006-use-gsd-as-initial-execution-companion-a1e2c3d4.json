@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0006-use-gsd-as-initial-execution-companion.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0006: Use GSD as the Initial Execution Companion",
+  "summary": "Proposes using GSD as the initial execution companion workflow subordinate to GG-SAD governance.",
+  "scope": ["GSD", "GG-SAD", "execution companion", "context engineering", "CHG-001"],
+  "cross_refs": ["CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": "Content follows ADR structure (Status: Proposed, Context/Decision Drivers/Considered Options) and would otherwise classify as ADR (Proposed, not locked); type set to DOC per manifest override."
+}

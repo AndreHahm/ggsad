@@ -1,0 +1,13 @@
+{
+  "source_path": "specs/examples/class-m/spec.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "CHG-000 — Example: Add a --quiet Flag to ggsad validate",
+  "summary": "Fictional illustrative example spec demonstrating a Class M change adding a --quiet flag to ggsad validate.",
+  "scope": ["ggsad validate", "--quiet flag", "CI scripts", "example spec"],
+  "cross_refs": ["state.yaml", "CHG-001"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}

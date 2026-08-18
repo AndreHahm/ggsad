@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/method/GG-SAD_normative_method_specification.md",
+  "type": "SPEC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "GG-SAD — Normative Method Specification",
+  "summary": "Normative specification defining the Goal-Gated Spec-Anchored Development method's document hierarchy, phase model, gates, and evidence model.",
+  "scope": ["document hierarchy", "phase model", "state model", "definition of ready", "definition of done", "evidence model", "pair review model", "agent execution algorithm"],
+  "cross_refs": [],
+  "locked": false,
+  "precedence": 0,
+  "notes": ""
+}

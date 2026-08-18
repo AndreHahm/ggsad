@@ -1,0 +1,13 @@
+{
+  "source_path": "docs/adr/ADR-0001-use-python-for-reference-engine.md",
+  "type": "DOC",
+  "confidence": "high",
+  "manifest_override": true,
+  "title": "ADR-0001: Use Python for the Reference Engine",
+  "summary": "Decision to use Python 3.12+ for the initial GG-SAD reference engine and CLI implementation.",
+  "scope": ["reference engine", "CLI", "Python", "GG-SAD implementation platform"],
+  "cross_refs": ["docs/constitution.md", "docs/project-brief.md", "docs/architecture.md", "docs/roadmap.md", "specs/CHG-001-reference-repository-bootstrap/"],
+  "locked": false,
+  "precedence": null,
+  "notes": ""
+}
