@@ -2,7 +2,7 @@
 
 ## Status and authority
 
-- Status: Draft for owner review
+- Status: Approved
 - Date: 2026-08-18
 - Requestor: Codex
 - Decision owner: repository owner
@@ -11,9 +11,9 @@
 - Bootstrap authorization evidence: The repository owner explicitly authorized this one-time
   transition in the Codex review session on 2026-08-18 without requiring another GG-SAD change,
   because the transition replaces GG-SAD development governance with GSD.
-- Design approval status: Pending review-findings disposition and owner approval of the resulting
-  design revision.
-- Final approval record: When approved, record the reviewed design commit and approval date here.
+- Design approval status: Approved
+- Final approval record: The repository owner explicitly approved reviewed design revision
+  `6ece3bf` in the Codex review session on 2026-08-18 after disposition of F-01 through F-07.
 
 This document designs the transition. It does not itself amend the normative specification,
 delete existing governance, install GSD, or change the Python implementation.
