@@ -7,13 +7,21 @@
 - Requestor: Codex
 - Decision owner: repository owner
 - Independent reviewer: Claude Code
-- Bootstrap authorization: The repository owner authorized this transition without creating
-  another GG-SAD change because the transition replaces GG-SAD development governance with GSD.
+- Bootstrap authorization status: Approved
+- Bootstrap authorization evidence: The repository owner explicitly authorized this one-time
+  transition in the Codex review session on 2026-08-18 without requiring another GG-SAD change,
+  because the transition replaces GG-SAD development governance with GSD.
+- Design approval status: Pending review-findings disposition and owner approval of the resulting
+  design revision.
+- Final approval record: When approved, record the reviewed design commit and approval date here.
 
 This document designs the transition. It does not itself amend the normative specification,
 delete existing governance, install GSD, or change the Python implementation.
 
-## Decisions
+## Owner-confirmed governing decisions
+
+The repository owner confirmed these decisions during the clarification sequence. Final design
+approval governs how they are implemented; it does not reopen the selected direction.
 
 1. `docs/method/GG-SAD_normative_method_specification.md` is the leading document.
 2. The leading document has two explicit responsibilities:
@@ -137,8 +145,15 @@ Python module structure or a vendor-specific agent interface.
 
 ### GSD baseline
 
-Use the current stable official GSD Core release, pinned during onboarding. Do not combine a GSD
-workflow with GG-SAD change state, gates, approvals, or closure for prototype development.
+Use official GSD Core 1.10.0, the stable release selected during this design review. The repository
+already contains an installer-managed GSD Core 1.9.1 installation under `.claude/`, but it has not
+been onboarded because no `.planning/` directory exists. Use the official installer's supported
+update path to replace 1.9.1 with pinned version 1.10.0, then verify the installed version and
+generated manifest before onboarding the existing repository. Do not manually edit or delete
+installer-owned GSD files unless the official update or uninstall procedure requires it.
+
+Do not combine a GSD workflow with GG-SAD change state, gates, approvals, or closure for prototype
+development.
 
 GSD owns development discussion, requirements decomposition, roadmap, plans, execution state,
 verification workflow, and shipping artifacts. The English GG-SAD specification remains the
@@ -157,11 +172,18 @@ Retain initially:
 Retire, archive outside the active workflow, or rewrite:
 
 - the German normative specification;
-- root development constitution and agent rules that impose GG-SAD workflow;
+- the root development constitution and agent rules that impose GG-SAD workflow;
+- `CLAUDE_CODE_PROJECT_START.md`, which is retired because it hardcodes CHG-001 and the former
+  GG-SAD/GSD combination model;
+- `CLAUDE.md`, which is replaced with concise instructions for GSD as the sole development method
+  and the English normative specification as the leading product authority;
+- `AGENTS.md`, which is rewritten consistently so general agents do not continue enforcing GG-SAD
+  development governance;
 - `specs/CHG-*` development state and evidence;
 - roadmap, ADRs, architecture, and implementation plans whose conclusions assumed the prior
   GG-SAD/GSD combination model;
-- old GSD installation artifacts before clean onboarding with the selected release.
+- the existing GSD Core 1.9.1 installation, updated through the official installer rather than
+  manually rewritten, before clean onboarding with pinned version 1.10.0.
 
 Root `.ggsad` assets require classification before removal. Product resources and fixtures must be
 relocated or clearly labeled; development-governance state must be retired.
@@ -178,6 +200,7 @@ specific technical finding showing that repair is more costly or risky.
 The implementation baseline is:
 
 ```text
+uv sync --locked
 uv run ruff format --check .
 uv run ruff check .
 uv run ty check
@@ -198,6 +221,21 @@ Verification will include:
 - a clean GSD development-state check;
 - independent Claude Code review of the normative amendment and transition diff.
 
+## Design review dispositions
+
+Claude Code reviewed commit `8377892df692ec6237fa6cadbf74377a99dbd94a`. The repository owner and
+Requestor dispositioned its findings as follows on 2026-08-18:
+
+| Finding | Disposition | Resulting action |
+|---|---|---|
+| F-01 | Accepted | Removed the unrelated owner-authored blank line from the normative file. |
+| F-02 | Accepted as blocking | Named `CLAUDE_CODE_PROJECT_START.md`, `CLAUDE.md`, and `AGENTS.md` explicitly in the retirement or rewrite scope. |
+| F-03 | Partially accepted | Confirmed the bootstrap exception was approved; separated its evidence from pending final design approval. |
+| F-04 | Clarity concern accepted; proposed wording rejected | Labeled the direction as owner-confirmed while leaving implementation details subject to design approval. |
+| F-05 | Accepted | Defined installer-managed update from GSD Core 1.9.1 to pinned 1.10.0 before repository onboarding. |
+| F-06 | Accepted as informational | Carry the CHG-001 state mismatch into amendment rationale and planning evidence; no design correction required. |
+| F-07 | Accepted | Added `uv sync --locked` to the verification baseline. |
+
 ## Transition sequence
 
 1. Approve this design.
@@ -205,7 +243,8 @@ Verification will include:
 3. Prepare the normative amendment without changing implementation behavior.
 4. Obtain owner approval for the exact normative diff.
 5. Obtain independent Claude Code review and resolve blocking findings.
-6. Pin and cleanly onboard current stable GSD Core.
+6. Update the installer-managed GSD Core 1.9.1 files to pinned version 1.10.0, verify the installed
+   version and manifest, and then onboard the existing repository to create `.planning/`.
 7. Retire or relocate conflicting development-governance artifacts.
 8. Configure quality tools to separate owned source from installer-owned tooling.
 9. Audit the retained implementation against the clarified contract.
