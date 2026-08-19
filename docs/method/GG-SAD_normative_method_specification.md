@@ -328,6 +328,17 @@ The effective workflow MUST be resolved in this order:
 
 A lower layer MUST NOT silently weaken a higher layer.
 
+### 5.4 Non-Delegable Human Approval
+
+Regardless of the active compliance profile or the `lean` profile's self-approval allowance in Section 5.1, the following decisions MUST always be made by a human and MUST NOT be satisfied by agent self-approval:
+
+- approval of a breaking change under Section 13;
+- resolution of an ADR conflict requiring a decision under Section 13;
+- any decision that would trigger a Definition of Fail condition under Section 12 if left unresolved;
+- release approvals required by Ready-to-Release and Release-Done under Sections 9 and 10.
+
+Self-approval under the `lean` profile is permitted only for decisions outside this non-delegable set.
+
 ## 6. Size Classes
 
 ### 5.1 Class S — Patch
