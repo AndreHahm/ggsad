@@ -14,8 +14,8 @@ other work.
 Scope of the amendment is fixed by the approved transition design's "Normative
 Specification Correction Scope" — clarification only, no implementation-behavior change.
 
-- [ ] **NORM-01**: A proposed diff to `docs/method/GG-SAD_normative_method_specification.md` separates the SPEC's own authority/applicability, method semantics, reference-implementation requirements, and optional integration guidance into distinct sections
-- [ ] **NORM-02**: The proposed diff defines a canonical artifact model distinguishing mandatory information from mandatory files (`state.yaml` when persistent state is used; `plan.md`/`tasks.md`/`evidence.md`/`review.md` remain conditional)
+- [x] **NORM-01**: A proposed diff to `docs/method/GG-SAD_normative_method_specification.md` separates the SPEC's own authority/applicability, method semantics, reference-implementation requirements, and optional integration guidance into distinct sections
+- [x] **NORM-02**: The proposed diff defines a canonical artifact model distinguishing mandatory information from mandatory files (`state.yaml` when persistent state is used; `plan.md`/`tasks.md`/`evidence.md`/`review.md` remain conditional)
 - [ ] **NORM-03**: The proposed diff replaces the state narrative with an explicit transition-table contract (canonical phases/statuses, legal combinations, gate evaluation per action, cancellation/supersession/reopening/terminal behavior)
 - [ ] **NORM-04**: The proposed diff makes tailoring deterministic — self-approval under the `lean` profile stays subordinate to non-delegable human approval
 - [ ] **NORM-05**: The proposed diff defines portable Pair Review evidence fields (participant, role, reviewed revision, action, timestamp, result, findings, disposition)
@@ -108,6 +108,7 @@ scope, not tracked further here:
 | VERIFY-01, VERIFY-02 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 29 total (NORM 8, APPR 2, REVIEW 3, RETIRE 5, TOOL 4, AUDIT 3, GAP 2, VERIFY 2)
 - Mapped to phases: 29
 - Unmapped: 0 ✓
