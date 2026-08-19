@@ -259,13 +259,23 @@ Contains durable architecture decisions. Existing accepted ADRs take precedence 
 
 ```text
 specs/<change-id>/
+├── state.yaml
 ├── spec.md
 ├── plan.md
 ├── tasks.md
-└── evidence.md
+├── evidence.md
+└── review.md
 ```
 
-`spec.md` is mandatory for normal changes. `plan.md`, `tasks.md`, and `evidence.md` depend on size, risk, and evidence requirements.
+`spec.md` remains the mandatory file for normal (Class M and Class L) changes as defined in Section 6.
+
+Every change carries mandatory information regardless of file layout: the goal, specification anchor, gate outcome, evidence, wait or fail behavior when applicable, and final status.
+
+`state.yaml` is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`.
+
+`plan.md`, `tasks.md`, `evidence.md`, and `review.md` remain conditional files. They are required only when the change's size, risk, evidence needs, or review-depth needs call for them.
+
+Inline storage of any of this information is permitted only when its authoritative location and required fields are unambiguous.
 
 ---
 
