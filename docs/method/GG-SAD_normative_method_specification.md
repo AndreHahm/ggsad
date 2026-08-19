@@ -816,6 +816,8 @@ Pair Review evidence MAY be recorded inline in `evidence.md`. A separate `review
 
 Review findings are not requirements and do not override higher-ranking artifacts. A finding that requires a requirement or architecture change MUST trigger the appropriate specification or ADR workflow.
 
+Regardless of whether it is stored inline in `evidence.md` or separately in `review.md`, a portable Pair Review evidence record MUST capture exactly these eight fields: participant; role (`Requestor` or `Reviewer`); reviewed revision (the exact artifact revision reviewed); action (the review action taken); timestamp; result; findings (a reference to or summary of the findings); and disposition. This evidence-record field set is distinct from, and complements, the per-finding fields in Section 14.4.
+
 ## 15. Evidence Model
 
 Evidence MUST demonstrate traceably whether requirements, gates, and quality criteria have been satisfied.
