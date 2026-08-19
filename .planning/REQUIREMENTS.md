@@ -25,8 +25,8 @@ Specification Correction Scope" — clarification only, no implementation-behavi
 
 ### Owner Approval (APPR)
 
-- [ ] **APPR-01**: The repository owner reviews the exact proposed normative diff (NORM-01–07) and records explicit approval, or specific requested changes, before the diff is treated as final
-- [ ] **APPR-02**: If the owner requests changes, the diff is revised and re-submitted for approval before proceeding to REVIEW
+- [x] **APPR-01**: The repository owner reviews the exact proposed normative diff (NORM-01–07) and records explicit approval, or specific requested changes, before the diff is treated as final
+- [x] **APPR-02**: If the owner requests changes, the diff is revised and re-submitted for approval before proceeding to REVIEW
 
 ### Independent Review (REVIEW)
 
@@ -99,7 +99,7 @@ scope, not tracked further here:
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | NORM-01 … NORM-08 | Phase 1 | Pending |
-| APPR-01, APPR-02 | Phase 2 | Pending |
+| APPR-01, APPR-02 | Phase 2 | Complete |
 | REVIEW-01 … REVIEW-03 | Phase 3 | Pending |
 | RETIRE-01 … RETIRE-05 | Phase 4 | Pending |
 | TOOL-01 … TOOL-04 | Phase 5 | Pending |
