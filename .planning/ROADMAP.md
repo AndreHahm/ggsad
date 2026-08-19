@@ -82,7 +82,11 @@ other phase's work.
   3. If changes were requested, the diff was revised and re-submitted for owner approval, and that re-approval was obtained, before this phase closes (APPR-02)
   4. This phase does not close until an explicit recorded owner approval exists for the diff exactly as it will be merged
 
-**Plans**: TBD
+**Plans**: 0/1 plans executed
+
+Plans:
+
+- [ ] 02-01-PLAN.md — Apply SF-01–SF-08 corrections, verify the corrected exact diff, and obtain explicit owner approval
 
 ### Phase 3: Independent Review
 
