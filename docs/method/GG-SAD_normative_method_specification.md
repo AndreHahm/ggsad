@@ -342,7 +342,7 @@ Self-approval under the `lean` profile is permitted only for decisions outside t
 
 ## 6. Size Classes
 
-### 5.1 Class S — Patch
+### 6.1 Class S — Patch
 
 Suitable for small, clearly bounded changes with a known solution and low risk.
 
@@ -357,7 +357,7 @@ Minimum content:
 - acceptance conditions,
 - verification.
 
-### 5.2 Class M — Change
+### 6.2 Class M — Change
 
 Suitable for self-contained functional or technical changes.
 
@@ -371,7 +371,7 @@ Optional artifacts:
 - `tasks.md`
 - `evidence.md`
 
-### 5.3 Class L — Initiative
+### 6.3 Class L — Initiative
 
 Suitable for multiple independent or interdependent changes.
 
@@ -401,7 +401,7 @@ CLOSED
 
 Not every change MUST pass through every phase.
 
-### 6.1 Permitted Shortened Flows
+### 7.1 Permitted Shortened Flows
 
 #### Patch Flow
 
@@ -504,7 +504,7 @@ A satisfied DoD does not override a satisfied DoF or DoW.
 
 DoR determines whether a phase may begin.
 
-### 8.1 Ready-to-Spec
+### 9.1 Ready-to-Spec
 
 At minimum:
 
@@ -515,7 +515,7 @@ At minimum:
 - affected system areas are roughly known,
 - no obvious conflict with the constitution exists.
 
-### 8.2 Ready-to-Plan
+### 9.2 Ready-to-Plan
 
 At minimum:
 
@@ -525,7 +525,7 @@ At minimum:
 - open questions have been answered or explicitly accepted,
 - no unresolved contradictions exist.
 
-### 8.3 Ready-to-Build
+### 9.3 Ready-to-Build
 
 At minimum:
 
@@ -536,7 +536,7 @@ At minimum:
 - test and verification criteria are defined,
 - no blocking decision is pending.
 
-### 8.4 Ready-to-Verify
+### 9.4 Ready-to-Verify
 
 At minimum:
 
@@ -545,7 +545,7 @@ At minimum:
 - build and analysis tools are available,
 - known deviations are documented.
 
-### 8.5 Ready-to-Release
+### 9.5 Ready-to-Release
 
 At minimum:
 
@@ -561,7 +561,7 @@ At minimum:
 
 DoD determines whether a phase has been completed successfully.
 
-### 9.1 Spec-Done
+### 10.1 Spec-Done
 
 At minimum:
 
@@ -574,7 +574,7 @@ At minimum:
 - ADR conflicts are resolved or returned to the requestor,
 - the specification is approved.
 
-### 9.2 Plan-Done
+### 10.2 Plan-Done
 
 At minimum:
 
@@ -586,7 +586,7 @@ At minimum:
 - risks and decisions are documented,
 - implementation is decomposed appropriately.
 
-### 9.3 Build-Done
+### 10.3 Build-Done
 
 At minimum:
 
@@ -597,7 +597,7 @@ At minimum:
 - required documentation is updated,
 - deviations from the specification are explained and approved.
 
-### 9.4 Verify-Done
+### 10.4 Verify-Done
 
 At minimum:
 
@@ -608,7 +608,7 @@ At minimum:
 - evidence is complete,
 - remaining limitations are documented.
 
-### 9.5 Release-Done
+### 10.5 Release-Done
 
 At minimum:
 
@@ -625,7 +625,7 @@ At minimum:
 
 DoW describes conditions under which the flow MUST pause in a controlled manner without being considered failed.
 
-### 10.1 Typical Wait Categories
+### 11.1 Typical Wait Categories
 
 - `WAIT_USER_INPUT`
 - `WAIT_DECISION`
@@ -634,7 +634,7 @@ DoW describes conditions under which the flow MUST pause in a controlled manner 
 - `WAIT_APPROVAL`
 - `WAIT_EXTERNAL_SYSTEM`
 
-### 10.2 Mandatory Content of a Wait State
+### 11.2 Mandatory Content of a Wait State
 
 Every wait state MUST include:
 
@@ -657,7 +657,7 @@ resume_at: planning
 next_action: update-plan
 ```
 
-### 10.3 AI Agent Behavior in a Wait State
+### 11.3 AI Agent Behavior in a Wait State
 
 An AI agent MUST:
 
@@ -674,7 +674,7 @@ An AI agent MUST:
 
 DoF describes conditions under which the flow MUST terminate unsuccessfully.
 
-### 11.1 Typical Fail Categories
+### 12.1 Typical Fail Categories
 
 - critical technical error,
 - data loss or repository corruption,
@@ -686,7 +686,7 @@ DoF describes conditions under which the flow MUST terminate unsuccessfully.
 - unrecoverable build or migration state,
 - permanently unsatisfiable acceptance conditions.
 
-### 11.2 Mandatory Content of a Fail Rule
+### 12.2 Mandatory Content of a Fail Rule
 
 Every fail rule MUST include:
 
@@ -720,7 +720,7 @@ A breaking change is required but has not been approved.
 
 ## 13. Conflict and Decision Rules
 
-### 12.1 ADR Conflicts
+### 13.1 ADR Conflicts
 
 Existing accepted ADRs take precedence.
 
@@ -734,7 +734,7 @@ When a requirement conflicts with an ADR, the agent MUST:
 
 An existing ADR MUST only be changed or replaced through an explicitly approved change flow.
 
-### 12.2 Specification Drift
+### 13.2 Specification Drift
 
 When implementation or tests deviate from the specification, one of the following actions MUST occur:
 
@@ -743,7 +743,7 @@ When implementation or tests deviate from the specification, one of the followin
 - document the deviation as an accepted exception,
 - stop the flow if the deviation is not permitted.
 
-### 12.3 Breaking Changes
+### 13.3 Breaking Changes
 
 Breaking changes MUST be explicitly marked, assessed, and approved. Without approval, the corresponding DoF rule applies.
 
@@ -768,13 +768,13 @@ Lean and low-risk Class S flows MAY omit Pair Review. Governed or regulated prof
 
 A participant may be a human, AI agent, coding agent, review agent, or external review service. Requestor and Reviewer MUST have distinct participant identities for the same review cycle.
 
-Examples:
+Examples (illustrative, non-normative):
 
 - Requestor: Human; Reviewer: Human
-- Requestor: Human; Reviewer: Claude Code
-- Requestor: Claude Code; Reviewer: Codex
-- Requestor: Codex; Reviewer: Human
-- Requestor: Claude Code; Reviewer: CodeRabbit
+- Requestor: Human; Reviewer: AI Agent (any vendor or product)
+- Requestor: AI Agent; Reviewer: AI Agent from a distinct vendor or product
+- Requestor: AI Agent (any vendor or product); Reviewer: Human
+- Requestor: AI Agent (any vendor or product); Reviewer: External Review Service
 
 Separate sessions of the same participant identity do not satisfy the independence rule unless the project explicitly defines and justifies them as independently controlled participants.
 
