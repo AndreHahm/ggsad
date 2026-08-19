@@ -1,7 +1,8 @@
 # GG-SAD — Normative Method Specification
 
-**Version:** 1.2  
+**Version:** 1.3  
 **Status:** Normative Baseline  
+**Revision:** 2026-08-19 — Clarified authority, artifact, transition, tailoring, Pair Review evidence, and minimal automation contracts.  
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
 
 ---
@@ -30,13 +31,15 @@ GG-SAD MUST be usable in two operating modes:
 
 This specification is the leading GG-SAD semantic and product baseline. The precedence list in Section 4, Document Hierarchy, governs artifacts inside a GG-SAD-managed project; it does not rank this specification itself, which remains superior to every document ordered by that list.
 
+A GG-SAD implementation MAY be developed using another development method. That development method MAY govern implementation work, but it MUST NOT redefine the GG-SAD product semantics established by this specification.
+
 | Section | Category |
 |---|---|
 | 1. Purpose | Authority & Applicability |
 | 2. Normative Terms | Method Semantics |
 | 3. Core Principles | Method Semantics |
-| 4. Document Hierarchy | Method Semantics |
-| 5. Workflow and Compliance Tailoring | Method Semantics |
+| 4. Document Hierarchy | Project Governance |
+| 5. Workflow and Compliance Tailoring | Project Governance |
 | 6. Size Classes | Method Semantics |
 | 7. Phase Model | Method Semantics |
 | 8. State Model | Method Semantics |
