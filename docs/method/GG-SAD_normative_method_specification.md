@@ -343,6 +343,21 @@ Regardless of the active compliance profile or the `lean` profile's self-approva
 
 Self-approval under the `lean` profile is permitted only for decisions outside this non-delegable set.
 
+### 5.5 Phase Omission
+
+A phase MAY be omitted only when the resolved workflow explicitly permits that omission and a participant authorized by the applicable approval rules approves it. An agent MUST NOT infer permission to omit a phase from silence, missing artifacts, project size, or apparent lack of relevance.
+
+The omission record MUST identify:
+
+- the omitted phase;
+- the authorizing workflow rule;
+- the approver;
+- the rationale;
+- the approval timestamp;
+- the replacement evidence.
+
+Replacement evidence MUST cover the outcomes and gates that the omitted phase would normally establish or explain why each outcome or gate is not applicable. Omitting a phase MUST NOT remove an invariant-core obligation or bypass the Definition of Ready for the next phase.
+
 ## 6. Size Classes
 
 ### 6.1 Class S — Patch
