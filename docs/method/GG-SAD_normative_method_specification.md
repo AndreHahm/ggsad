@@ -384,22 +384,36 @@ An initiative MUST be decomposed into multiple change specifications. A short ro
 
 ## 7. Phase Model
 
-GG-SAD defines the following standard phases:
+The canonical phase identifiers are lowercase and limited to:
 
 ```text
-INTAKE
+intake
+explore
+decide
+specify
+plan
+build
+verify
+release
+closed
+```
+
+The standard delivery flow is:
+
+```text
+intake
   ↓
-SPECIFY
+specify
   ↓
-PLAN
+plan
   ↓
-BUILD
+build
   ↓
-VERIFY
+verify
   ↓
-RELEASE
+release
   ↓
-CLOSED
+closed
 ```
 
 Not every change MUST pass through every phase.
@@ -409,25 +423,25 @@ Not every change MUST pass through every phase.
 #### Patch Flow
 
 ```text
-SPECIFY → BUILD → VERIFY → CLOSED
+specify → build → verify → closed
 ```
 
 #### Standard Flow
 
 ```text
-SPECIFY → PLAN → BUILD → VERIFY → CLOSED
+specify → plan → build → verify → closed
 ```
 
 #### Release Flow
 
 ```text
-SPECIFY → PLAN → BUILD → VERIFY → RELEASE → CLOSED
+specify → plan → build → verify → release → closed
 ```
 
 #### Exploration Flow
 
 ```text
-EXPLORE → DECIDE → SPECIFY
+explore → decide → specify
 ```
 
 Exploration MUST NOT silently transition into production implementation.
@@ -474,17 +488,17 @@ The statuses `failed`, `cancelled`, and `superseded` are legal only with the `cl
 | Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
 |---|---|---|---|---|---|
 | `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `complete` | A non-closed phase with status `active` | The current phase's DoD is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | Current phase with status `done`; when the next phase's DoR is satisfied, advancement may produce the next phase with status `ready`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `complete` | A non-closed phase with status `draft` or `active` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | From `draft`, the same phase with status `ready`; from `active`, the current phase with status `done`, after which satisfied next-phase DoR may produce the next phase with status `ready`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition or gate is not satisfied. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 | `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | Recorded resume phase, or an explicitly required earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `fail` | Any phase/status | A DoF condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `cancel` | Any phase/status | An authorized cancellation decision exists. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `cancelled`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `supersede` | Any phase/status | A later goal-bound change is authorized to replace this change. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `superseded`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `fail` | Any non-closed phase/status | A DoF condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `cancelled`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `superseded`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 | `reopen` | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF → DoW → current-phase DoD → next-phase DoR | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 
 ### 8.4 Cancellation, Supersession, Reopening, and Terminal Behavior
 
-`cancel` moves any phase/status to the `closed` phase with status `cancelled` when an authorized cancellation decision exists. `supersede` moves any phase/status to the `closed` phase with status `superseded` when a later change replaces this change's goal.
+`cancel` moves any non-closed phase/status to the `closed` phase with status `cancelled` when an authorized cancellation decision exists. `supersede` moves any non-closed phase/status to the `closed` phase with status `superseded` when a later change replaces this change's goal.
 
 `reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history.
 
@@ -500,6 +514,8 @@ The following order MUST be applied during every gate evaluation:
 4. DoR for the next phase
 
 A satisfied DoD does not override a satisfied DoF or DoW.
+
+This order defines evaluation precedence. A gate that is not applicable to the requested action or current state is skipped and, when gate evidence is recorded, MUST be recorded as `not_applicable`. Evaluation MUST stop as soon as a gate determines the requested action's outcome.
 
 ---
 
