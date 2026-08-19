@@ -53,6 +53,7 @@ This specification is the leading GG-SAD semantic and product baseline. The prec
 | 19. Agent Execution Algorithm | Reference-Implementation Requirements |
 | 20. Completion Criteria for a Change | Method Semantics |
 | 21. Quick Reference | Method Semantics |
+| 22. Minimal Automation Contract | Reference-Implementation Requirements |
 
 ---
 
@@ -1289,3 +1290,30 @@ Constitution
 ```
 
 GG-SAD does not optimize for maximum documentation volume. It optimizes for **clear goals, controlled transitions, and verifiable outcomes**.
+
+## 22. Minimal Automation Contract
+
+### 22.1 Contract Operations
+
+A GG-SAD automation contract MUST support these technology-neutral operations:
+
+- initialize a stand-alone GG-SAD project;
+- create a goal-bound change;
+- validate governing configuration, artifacts, references, and state;
+- evaluate and execute one controlled state transition under the Section 8 Transition Table.
+
+The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
+
+### 22.2 Minimal Result Envelope
+
+Every contract operation MUST return a result envelope containing three fields present in every response regardless of outcome: `operation`, identifying which contract operation ran; `result`, whose value is one of `success`, `rejected`, or `error` and is never partial; and `changed`, indicating whether persistent state changed.
+
+The `state` field contains the resulting phase and status and is included when applicable to the operation; it is omitted when the operation produces no phase/status result. As defined in Section 8, the phase may be `closed`, while the status carries the terminal outcome. The `issues` field contains stable codes plus human-readable messages and is included whenever `result` is `rejected` or `error` and omitted whenever `result` is `success`. The `data` field is always optional operation-specific output and is present only when relevant to the operation.
+
+A goal summary, specification anchor, gate outcome, evidence references, and timestamp are not universally required envelope fields. They MAY appear inside `data` when relevant to a specific operation.
+
+### 22.3 Rejection and Output Requirements
+
+An invalid operation MUST be rejected without any partial mutation of persisted state. Its `result` MUST be `rejected` or `error`, and `changed` MUST be `false`.
+
+For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the Section 8 Transition Table and Section 15 Evidence Model.
