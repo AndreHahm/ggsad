@@ -26,6 +26,34 @@ GG-SAD MUST be usable in two operating modes:
 - **stand-alone mode**, where GG-SAD provides the governing method and execution flow;
 - **combination mode**, where GG-SAD governs goals, gates, evidence, state, and precedence while another method, framework, tool, or agent platform supplies planning, execution, review, context engineering, or automation capabilities.
 
+### 1.1 Document Scope and Category Map
+
+This specification is the leading GG-SAD semantic and product baseline. The precedence list in Section 4, Document Hierarchy, governs artifacts inside a GG-SAD-managed project; it does not rank this specification itself, which remains superior to every document ordered by that list.
+
+| Section | Category |
+|---|---|
+| 1. Purpose | Authority & Applicability |
+| 2. Normative Terms | Method Semantics |
+| 3. Core Principles | Method Semantics |
+| 4. Document Hierarchy | Method Semantics |
+| 5. Workflow and Compliance Tailoring | Method Semantics |
+| 6. Size Classes | Method Semantics |
+| 7. Phase Model | Method Semantics |
+| 8. State Model | Method Semantics |
+| 9. Definition of Ready | Method Semantics |
+| 10. Definition of Done | Method Semantics |
+| 11. Definition of Wait | Method Semantics |
+| 12. Definition of Fail | Method Semantics |
+| 13. Conflict and Decision Rules | Method Semantics |
+| 14. Pair Review Model | Method Semantics |
+| 15. Evidence Model | Method Semantics |
+| 16. Minimum Templates | Reference-Implementation Requirements |
+| 17. Combination Contracts | Optional Integration Guidance |
+| 18. GG-SAD Memory Model | Optional Integration Guidance |
+| 19. Agent Execution Algorithm | Reference-Implementation Requirements |
+| 20. Completion Criteria for a Change | Method Semantics |
+| 21. Quick Reference | Method Semantics |
+
 ---
 
 ## 2. Normative Terms
