@@ -30,7 +30,7 @@ MUST NOT be bundled with any other phase's work and MUST NOT be skipped or merge
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED) — none in this milestone
 
-- [ ] **Phase 1: Normative Clarification** - Produce a proposed diff to the normative spec that clarifies scope without changing implementation behavior
+- [x] **Phase 1: Normative Clarification** - Produce a proposed diff to the normative spec that clarifies scope without changing implementation behavior (completed 2026-08-19)
 - [ ] **Phase 2: Owner Approval** - Repository owner reviews and explicitly approves (or requests changes to) the exact Phase 1 diff — hard gate
 - [ ] **Phase 3: Independent Review** - Structurally independent Claude Code review evaluates the owner-approved diff; blocking findings resolved — hard gate
 - [ ] **Phase 4: Legacy Governance Retirement** - Classify and disposition every legacy development-governance artifact; retire/relocate without silent deletion
@@ -196,7 +196,7 @@ no autonomous or parallel execution.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Normative Clarification | 3/3 | In Progress|  |
+| 1. Normative Clarification | 3/3 | Complete    | 2026-08-19 |
 | 2. Owner Approval | 0/TBD | Not started | - |
 | 3. Independent Review | 0/TBD | Not started | - |
 | 4. Legacy Governance Retirement | 0/TBD | Not started | - |
