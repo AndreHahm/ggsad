@@ -55,7 +55,11 @@ changing implementation behavior. No file under `src/ggsad/` is touched in this 
   4. The diff makes tailoring deterministic (self-approval under `lean` stays subordinate to non-delegable human approval), defines portable Pair Review evidence fields, and defines a technology-neutral minimal automation contract (NORM-04, NORM-05, NORM-06)
   5. The diff repairs document quality: Sections 6–13 renumbered, the German-spec reference removed, tool-local citations removed, examples clearly labeled (NORM-07)
   6. No file under `src/ggsad/` is modified as part of producing this diff (NORM-08)
-**Plans**: TBD
+**Plans**: 3 plans
+Plans:
+- [ ] 01-01-PLAN.md — Phase 1 pre-execution baseline (F-01) + Section 1.1 document category map (NORM-01) + Section 4.3 canonical artifact model (NORM-02)
+- [ ] 01-02-PLAN.md — Section 8 transition-table contract + Section 20 fix (NORM-03) + Section 5.4 non-delegable approval (NORM-04) + Section 14.5 portable Pair Review evidence fields (NORM-05)
+- [ ] 01-03-PLAN.md — Section 22 minimal automation contract (NORM-06) + Sections 6/7/9-13 renumbering + Section 14.2 tool-citation cleanup (NORM-07) + baseline-anchored phase-closing NORM-08 verification
 
 ### Phase 2: Owner Approval
 **Goal**: The repository owner reviews the exact proposed normative diff from Phase 1 and
@@ -166,7 +170,7 @@ no autonomous or parallel execution.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Normative Clarification | 0/TBD | Not started | - |
+| 1. Normative Clarification | 0/3 | Not started | - |
 | 2. Owner Approval | 0/TBD | Not started | - |
 | 3. Independent Review | 0/TBD | Not started | - |
 | 4. Legacy Governance Retirement | 0/TBD | Not started | - |
