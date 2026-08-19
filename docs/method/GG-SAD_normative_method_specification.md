@@ -1,8 +1,8 @@
 # GG-SAD — Normative Method Specification
 
-**Version:** 1.3  
+**Version:** 1.3
 **Status:** Normative Baseline  
-**Revision:** 2026-08-19 — Clarified authority, artifact, transition, tailoring, Pair Review evidence, and minimal automation contracts.  
+**Revision:** 2026-08-19 — Clarified authority, artifact, transition, tailoring, Pair Review evidence, and minimal automation contracts.
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
 
 ---
