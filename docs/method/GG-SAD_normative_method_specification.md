@@ -423,7 +423,7 @@ Exploration MUST NOT silently transition into production implementation.
 
 Every phase has a status.
 
-### 7.1 Standard Statuses
+### 8.1 Canonical Statuses
 
 ```text
 draft
@@ -446,33 +446,36 @@ owner: requestor
 resume_when: approval-recorded
 ```
 
-### 7.2 State Transitions
+`closed` is the terminal phase defined in Section 7; it is never a status value. When a change is in the `closed` phase, its terminal outcome is recorded in `status` as `done`, `failed`, `cancelled`, or `superseded`.
 
-```text
-DRAFT
-  └── DoR satisfied → READY
+### 8.2 Legal Phase/Status Combinations
 
-READY
-  └── Start authorized → ACTIVE
+The statuses `draft`, `ready`, `active`, and `waiting` are legal at any non-closed phase. The status `done` is legal at any phase as that phase's local completion signal, gating advancement on the next phase's Definition of Ready. It represents the change's successful terminal outcome only when it occurs with the `closed` phase.
 
-ACTIVE
-  ├── DoF satisfied → FAILED
-  ├── DoW satisfied → WAITING
-  ├── DoD satisfied → DONE
-  └── otherwise → ACTIVE
+The statuses `failed`, `cancelled`, and `superseded` are legal only with the `closed` phase. An action producing any of these outcomes MUST finalize the change into the `closed` phase in the same state mutation.
 
-WAITING
-  ├── Resume condition satisfied → ACTIVE
-  ├── Replanning required → earlier phase
-  ├── Cancellation decision → CANCELLED
-  └── DoF satisfied → FAILED
+### 8.3 Transition Table
 
-DONE
-  ├── DoR for next phase satisfied → next phase READY
-  └── DoR not satisfied → WAITING
-```
+| Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
+|---|---|---|---|---|---|
+| `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `complete` | A non-closed phase with status `active` | The current phase's DoD is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | Current phase with status `done`; when the next phase's DoR is satisfied, advancement may produce the next phase with status `ready`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | Recorded resume phase, or an explicitly required earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `fail` | Any phase/status | A DoF condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `cancel` | Any phase/status | An authorized cancellation decision exists. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `cancelled`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `supersede` | Any phase/status | A later goal-bound change is authorized to replace this change. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `superseded`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
+| `reopen` | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF → DoW → current-phase DoD → next-phase DoR | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 
-### 7.3 Evaluation Priority
+### 8.4 Cancellation, Supersession, Reopening, and Terminal Behavior
+
+`cancel` moves any phase/status to the `closed` phase with status `cancelled` when an authorized cancellation decision exists. `supersede` moves any phase/status to the `closed` phase with status `superseded` when a later change replaces this change's goal.
+
+`reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history.
+
+Once a change is in the `closed` phase, no further phase advancement is legal except through `reopen`.
+
+### 8.5 Evaluation Priority
 
 The following order MUST be applied during every gate evaluation:
 
@@ -1227,7 +1230,7 @@ An AI agent MUST NOT:
 
 ## 20. Completion Criteria for a Change
 
-A change may receive the status `closed` or `done` only when:
+A change transitions into the `closed` phase with the terminal status `done`, representing successful completion, only when all of the following conditions are satisfied. The `closed` phase MAY also be reached with a different terminal status under the rules in Section 8; those outcomes are not gated by this list.
 
 - no DoF condition is active,
 - no DoW condition is active,
