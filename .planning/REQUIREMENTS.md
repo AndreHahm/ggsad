@@ -16,9 +16,9 @@ Specification Correction Scope" — clarification only, no implementation-behavi
 
 - [x] **NORM-01**: A proposed diff to `docs/method/GG-SAD_normative_method_specification.md` separates the SPEC's own authority/applicability, method semantics, reference-implementation requirements, and optional integration guidance into distinct sections
 - [x] **NORM-02**: The proposed diff defines a canonical artifact model distinguishing mandatory information from mandatory files (`state.yaml` when persistent state is used; `plan.md`/`tasks.md`/`evidence.md`/`review.md` remain conditional)
-- [ ] **NORM-03**: The proposed diff replaces the state narrative with an explicit transition-table contract (canonical phases/statuses, legal combinations, gate evaluation per action, cancellation/supersession/reopening/terminal behavior)
-- [ ] **NORM-04**: The proposed diff makes tailoring deterministic — self-approval under the `lean` profile stays subordinate to non-delegable human approval
-- [ ] **NORM-05**: The proposed diff defines portable Pair Review evidence fields (participant, role, reviewed revision, action, timestamp, result, findings, disposition)
+- [x] **NORM-03**: The proposed diff replaces the state narrative with an explicit transition-table contract (canonical phases/statuses, legal combinations, gate evaluation per action, cancellation/supersession/reopening/terminal behavior)
+- [x] **NORM-04**: The proposed diff makes tailoring deterministic — self-approval under the `lean` profile stays subordinate to non-delegable human approval
+- [x] **NORM-05**: The proposed diff defines portable Pair Review evidence fields (participant, role, reviewed revision, action, timestamp, result, findings, disposition)
 - [ ] **NORM-06**: The proposed diff defines a technology-neutral minimal automation contract (init, create goal-bound change, validate, evaluate/execute one controlled transition, reject invalid operations without partial mutation, emit human- and machine-readable results, record history)
 - [ ] **NORM-07**: The proposed diff repairs document quality — renumbers Sections 6–13, removes the German-spec reference, removes tool-local citations, labels examples clearly
 - [ ] **NORM-08**: No implementation file under `src/ggsad/` is modified by this phase

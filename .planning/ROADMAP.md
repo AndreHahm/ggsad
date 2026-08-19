@@ -59,11 +59,11 @@ changing implementation behavior. No file under `src/ggsad/` is touched in this 
   5. The diff repairs document quality: Sections 6–13 renumbered, the German-spec reference removed, tool-local citations removed, examples clearly labeled (NORM-07)
   6. No file under `src/ggsad/` is modified as part of producing this diff (NORM-08)
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 Plans:
 
 - [x] 01-01-PLAN.md — Phase 1 pre-execution baseline (F-01) + Section 1.1 document category map (NORM-01) + Section 4.3 canonical artifact model (NORM-02)
-- [ ] 01-02-PLAN.md — Section 8 transition-table contract + Section 20 fix (NORM-03) + Section 5.4 non-delegable approval (NORM-04) + Section 14.5 portable Pair Review evidence fields (NORM-05)
+- [x] 01-02-PLAN.md — Section 8 transition-table contract + Section 20 fix (NORM-03) + Section 5.4 non-delegable approval (NORM-04) + Section 14.5 portable Pair Review evidence fields (NORM-05)
 - [ ] 01-03-PLAN.md — Section 22 minimal automation contract (NORM-06) + Sections 6/7/9-13 renumbering + Section 14.2 tool-citation cleanup (NORM-07) + baseline-anchored phase-closing NORM-08 verification
 
 ### Phase 2: Owner Approval
@@ -196,7 +196,7 @@ no autonomous or parallel execution.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Normative Clarification | 1/3 | In Progress|  |
+| 1. Normative Clarification | 2/3 | In Progress|  |
 | 2. Owner Approval | 0/TBD | Not started | - |
 | 3. Independent Review | 0/TBD | Not started | - |
 | 4. Legacy Governance Retirement | 0/TBD | Not started | - |
