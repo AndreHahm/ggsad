@@ -127,7 +127,11 @@ deletion.
   4. Retired or archived artifacts are moved outside the active GSD-governed workflow (not silently deleted) and are no longer read as active development governance by any agent instruction file (RETIRE-04)
   5. `specs/CHG-*` state and evidence are explicitly marked historical — not promoted, referenced, or restated as current governance or proof of conformance anywhere in the retained document set (RETIRE-05)
 
-**Plans**: TBD
+**Plans**: 0/1 plans executed
+
+Plans:
+
+- [ ] 04-01-PLAN.md — Decouple CHG-001 tests, archive 28 legacy files with a 29-entry manifest, rewrite README, and verify retirement scope
 
 ### Phase 5: Quality-Tool Ownership Boundaries
 
