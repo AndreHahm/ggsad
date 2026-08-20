@@ -148,7 +148,11 @@ document.
   3. `uv sync --locked` (not bare `uv sync`) is the sole documented baseline command across every retained governing document (TOOL-03)
   4. `ty` strict mode (not `mypy`) is the sole documented type-checker across every retained governing document, closing the tooling-drift concern logged in `.planning/codebase/CONCERNS.md` (TOOL-04)
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+
+- [ ] 05-01-PLAN.md — Align quality-tool ownership configuration, synchronize active baseline commands, and verify TOOL-01 through TOOL-04
 
 ### Phase 6: Implementation Conformance Audit
 
