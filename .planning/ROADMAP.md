@@ -31,7 +31,7 @@ MUST NOT be bundled with any other phase's work and MUST NOT be skipped or merge
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED) — none in this milestone
 
 - [x] **Phase 1: Normative Clarification** - Produce a proposed diff to the normative spec that clarifies scope without changing implementation behavior (completed 2026-08-19)
-- [ ] **Phase 2: Owner Approval** - Repository owner reviews and explicitly approves (or requests changes to) the exact Phase 1 diff — hard gate
+- [x] **Phase 2: Owner Approval** - Repository owner reviews and explicitly approves (or requests changes to) the exact Phase 1 diff — hard gate (completed 2026-08-19)
 - [ ] **Phase 3: Independent Review** - Structurally independent Claude Code review evaluates the owner-approved diff; blocking findings resolved — hard gate
 - [ ] **Phase 4: Legacy Governance Retirement** - Classify and disposition every legacy development-governance artifact; retire/relocate without silent deletion
 - [ ] **Phase 5: Quality-Tool Ownership Boundaries** - Scope product quality tooling correctly and standardize commands/type-checker across retained docs
@@ -86,7 +86,7 @@ other phase's work.
 
 Plans:
 
-- [ ] 02-01-PLAN.md — Apply SF-01–SF-08 corrections, verify the corrected exact diff, and obtain explicit owner approval
+- [x] 02-01-PLAN.md — Apply SF-01–SF-08 corrections, verify the corrected exact diff, and obtain explicit owner approval
 
 ### Phase 3: Independent Review
 
@@ -201,7 +201,7 @@ no autonomous or parallel execution.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Normative Clarification | 3/3 | Complete    | 2026-08-19 |
-| 2. Owner Approval | 0/TBD | Not started | - |
+| 2. Owner Approval | 1/1 | Complete    | 2026-08-19 |
 | 3. Independent Review | 0/TBD | Not started | - |
 | 4. Legacy Governance Retirement | 0/TBD | Not started | - |
 | 5. Quality-Tool Ownership Boundaries | 0/TBD | Not started | - |
