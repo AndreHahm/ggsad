@@ -1,0 +1,37 @@
+schema_version: "0.1"
+change:
+  id: CHG-900
+  slug: representative-state
+  title: Representative State Fixture
+  class: M
+flow:
+  profile: standard
+  phase: specify
+  status: ready
+goal:
+  summary: Validate a representative persistent state artifact.
+artifacts:
+  spec: spec.md
+  plan: null
+  tasks: null
+  evidence: null
+pair_review:
+  required: false
+  status: not_required
+  requestor: null
+  reviewer: null
+wait:
+  reason: null
+  category: null
+  owner: null
+  resume_condition: null
+  safe_state: null
+  resume_phase: null
+  next_action: null
+failure:
+  reason: null
+  category: null
+history:
+  - timestamp: "2026-08-20T00:00:00Z"
+    event: fixture-created
+    actor: test-suite
