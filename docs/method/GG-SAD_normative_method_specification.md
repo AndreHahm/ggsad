@@ -503,7 +503,7 @@ The statuses `failed`, `cancelled`, and `superseded` are legal only with the `cl
 | Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
 |---|---|---|---|---|---|
 | `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `complete` | A non-closed phase with status `draft` or `active` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | From `draft`, the same phase with status `ready`; from `active`, the current phase with status `done`, after which satisfied next-phase DoR may produce the next phase with status `ready`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition or gate is not satisfied. |
+| `complete` | A non-closed phase with status `draft` or `active` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. | From `draft`, the same phase with status `ready`; from `active`, the current phase with status `done`, after which satisfied next-phase DoR may produce the next phase with status `ready`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition or gate is not satisfied. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 | `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied. | DoF → DoW → current-phase DoD → next-phase DoR | Recorded resume phase, or an explicitly required earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF → DoW → current-phase DoD → next-phase DoR | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
@@ -525,8 +525,9 @@ The following order MUST be applied during every gate evaluation:
 
 1. DoF
 2. DoW
-3. DoD
-4. DoR for the next phase
+3. DoR for the current phase
+4. DoD for the current phase
+5. DoR for the next phase
 
 A satisfied DoD does not override a satisfied DoF or DoW.
 
