@@ -30,9 +30,9 @@ Specification Correction Scope" — clarification only, no implementation-behavi
 
 ### Independent Review (REVIEW)
 
-- [ ] **REVIEW-01**: An independent Claude Code review — not a fresh context or subagent of the Requestor who authored the diff — evaluates the owner-approved normative diff
-- [ ] **REVIEW-02**: Review findings are returned with stable IDs, severity, and exact references, per the Pair Review model's evidence requirements
-- [ ] **REVIEW-03**: All blocking findings are resolved (fixed or explicitly dispositioned by the owner) before the diff is treated as final and merged
+- [x] **REVIEW-01**: An independent Claude Code review — not a fresh context or subagent of the Requestor who authored the diff — evaluates the owner-approved normative diff
+- [x] **REVIEW-02**: Review findings are returned with stable IDs, severity, and exact references, per the Pair Review model's evidence requirements
+- [x] **REVIEW-03**: All blocking findings are resolved (fixed or explicitly dispositioned by the owner) before the diff is treated as final and merged
 
 ### Legacy Governance Retirement (RETIRE)
 
@@ -100,7 +100,7 @@ scope, not tracked further here:
 |-------------|-------|--------|
 | NORM-01 … NORM-08 | Phase 1 | Pending |
 | APPR-01, APPR-02 | Phase 2 | Complete |
-| REVIEW-01 … REVIEW-03 | Phase 3 | Pending |
+| REVIEW-01 … REVIEW-03 | Phase 3 | Complete |
 | RETIRE-01 … RETIRE-05 | Phase 4 | Pending |
 | TOOL-01 … TOOL-04 | Phase 5 | Pending |
 | AUDIT-01 … AUDIT-03 | Phase 6 | Pending |
