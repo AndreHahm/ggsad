@@ -2,7 +2,7 @@
 
 Review source: `.planning/phases/03-independent-review/03-PAIR-REVIEW-FINDINGS.md`
 
-Status: All findings are accepted, pending implementation, exact-diff owner approval, and independent Claude Code follow-up review.
+Status: All findings are accepted and implemented, pending exact-diff owner approval and independent Claude Code follow-up review.
 
 ### PR-01 — Complete-action gate order
 
@@ -11,7 +11,7 @@ Status: All findings are accepted, pending implementation, exact-diff owner appr
 - Owner decision date: 2026-08-20
 - Remedy: Give the `complete` action distinct gate sequences: `draft` to `ready` evaluates DoF → DoW → current-phase DoR; `active` to local `done` and possible advancement evaluates DoF → DoW → current-phase DoD → next-phase DoR. Section 8.5 will explicitly order current-phase DoR while retaining applicability, `not_applicable`, and short-circuit rules.
 - Affected sections: 8.3, 8.5
-- Implementation status: Pending
+- Implementation status: Applied in commit `6a13257`; pending exact-diff approval.
 - Follow-up review status: Required
 
 ### PR-02 — Named-flow omission record
@@ -21,7 +21,7 @@ Status: All findings are accepted, pending implementation, exact-diff owner appr
 - Owner decision date: 2026-08-20
 - Remedy: Treat selection of a named Section 7.1 flow as one authorized decision with one compact record covering all phases omitted by that flow. The named flow supplies the authorizing rule and omitted-phase list; the record still supplies approver, rationale, approval timestamp, and replacement evidence. Class S may store the record inline with its minimal specification.
 - Affected sections: 5.5
-- Implementation status: Pending
+- Implementation status: Applied in commits `9bb9cb3` and `f260196`; pending exact-diff approval.
 - Follow-up review status: Required
 
 ### PR-03 — SF-06 evidence reference
