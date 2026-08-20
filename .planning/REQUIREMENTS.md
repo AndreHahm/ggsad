@@ -39,11 +39,11 @@ Specification Correction Scope" — clarification only, no implementation-behavi
 Scope is the full DOC-classified corpus catalogued in `.planning/intel/context.md` that
 currently frames GG-SAD as governing this repository's own development.
 
-- [ ] **RETIRE-01**: Every legacy development-governance artifact identified in `.planning/intel/context.md` (`docs/constitution.md`, `docs/project-brief.md`, `docs/architecture.md`, `docs/architecture-reference.md`, `docs/roadmap.md`, `docs/implementation-roadmap.md`, `docs/adr/ADR-0001`–`0008`, `docs/workflow-reference.md`, `CLAUDE_CODE_PROJECT_START.md`, `docs/method/GG-SAD_normative_method_specification_DE.md`, `specs/CHG-001-reference-repository-bootstrap/` state and evidence) is classified as retained, retired, archived, or rewritten
-- [ ] **RETIRE-02**: The two near-duplicate architecture documents (`docs/architecture.md` vs. `docs/architecture-reference.md`) receive an explicit disposition (one canonical, merged, or both retired) rather than being left as an unresolved duplicate pair
-- [ ] **RETIRE-03**: The two competing "GG-SAD Implementation Roadmap" documents (`docs/implementation-roadmap.md` vs. `docs/roadmap.md`) receive an explicit disposition, preserving `docs/roadmap.md`'s live delivery-status content for the historical record
-- [ ] **RETIRE-04**: Retired or archived artifacts are moved outside the active GSD-governed workflow (not silently deleted) and are no longer read as active development governance by any agent instruction file
-- [ ] **RETIRE-05**: `specs/CHG-*` state and evidence are explicitly marked historical — not promoted, referenced, or restated as current governance or proof of conformance anywhere in the retained document set
+- [x] **RETIRE-01**: Every legacy development-governance artifact identified in `.planning/intel/context.md` (`docs/constitution.md`, `docs/project-brief.md`, `docs/architecture.md`, `docs/architecture-reference.md`, `docs/roadmap.md`, `docs/implementation-roadmap.md`, `docs/adr/ADR-0001`–`0008`, `docs/workflow-reference.md`, `CLAUDE_CODE_PROJECT_START.md`, `docs/method/GG-SAD_normative_method_specification_DE.md`, `specs/CHG-001-reference-repository-bootstrap/` state and evidence) is classified as retained, retired, archived, or rewritten
+- [x] **RETIRE-02**: The two near-duplicate architecture documents (`docs/architecture.md` vs. `docs/architecture-reference.md`) receive an explicit disposition (one canonical, merged, or both retired) rather than being left as an unresolved duplicate pair
+- [x] **RETIRE-03**: The two competing "GG-SAD Implementation Roadmap" documents (`docs/implementation-roadmap.md` vs. `docs/roadmap.md`) receive an explicit disposition, preserving `docs/roadmap.md`'s live delivery-status content for the historical record
+- [x] **RETIRE-04**: Retired or archived artifacts are moved outside the active GSD-governed workflow (not silently deleted) and are no longer read as active development governance by any agent instruction file
+- [x] **RETIRE-05**: `specs/CHG-*` state and evidence are explicitly marked historical — not promoted, referenced, or restated as current governance or proof of conformance anywhere in the retained document set
 
 ### Quality-Tool Ownership Boundaries (TOOL)
 
@@ -101,7 +101,7 @@ scope, not tracked further here:
 | NORM-01 … NORM-08 | Phase 1 | Pending |
 | APPR-01, APPR-02 | Phase 2 | Complete |
 | REVIEW-01 … REVIEW-03 | Phase 3 | Complete |
-| RETIRE-01 … RETIRE-05 | Phase 4 | Pending |
+| RETIRE-01 … RETIRE-05 | Phase 4 | Complete |
 | TOOL-01 … TOOL-04 | Phase 5 | Pending |
 | AUDIT-01 … AUDIT-03 | Phase 6 | Pending |
 | GAP-01, GAP-02 | Phase 7 | Pending |
