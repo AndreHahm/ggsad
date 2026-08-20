@@ -49,7 +49,7 @@ Status: All findings are accepted, implemented, and approved as part of the exac
 - Disposition: Accepted
 - Owner decision date: 2026-08-19
 - Remedy: Add Project Governance as the fifth normative category and reclassify Sections 4 and 5 only.
-- Affected sections: 2.1, 4, 5
+- Affected sections: 1.1, 4, 5
 - Implementation status: Applied in commit `11fb156`; approved in corrected revision `936aa85d3ada744358c5a515248641767f7e33c5`.
 
 ### SF-07 — Normative version and revision metadata
