@@ -109,13 +109,15 @@ Update `README.md` so an active reader sees only the current model:
 - CHG-001 is not presented as the current project status or as conformance proof;
 - the repository tree reflects the active normative document, GSD planning, archive, implementation, and tests.
 
+The existing Document Hierarchy and Project Status and Initial Scope sections require replacement, not isolated reference deletion. Their replacements must point readers to `AGENTS.md` for repository authority rules and `.planning/` for current development requirements, roadmap, state, plans, and verification. The overview, repository tree, compliance/contributing guidance, and every other repeated occurrence of the legacy hierarchy or CHG-001-as-current framing must be aligned in the same rewrite.
+
 This phase does not turn README into a second normative specification. It references authoritative sources instead of duplicating their rules.
 
 ## Test-Fixture Decoupling
 
 `tests/integration/test_governed_artifact_validation.py` currently reads CHG-001's historical `state.yaml` from its active `specs/` path in two tests. Phase 4 must remove that dependency.
 
-Create a dedicated minimal valid state fixture under `tests/fixtures/governed_artifacts/`. The fixture must be written as test data against the current state schema, not copied or described as CHG-001 evidence. Update the two tests and their names/comments so they validate:
+Create a dedicated minimal valid state fixture under `tests/fixtures/governed_artifacts/`. The fixture must be written as test data against the current state schema, not copied or described as CHG-001 evidence. Update the module docstring, the two tests, and their names/comments so they validate:
 
 - a representative state fixture is schema-valid and model-parseable;
 - an unsupported state schema version is rejected.
