@@ -1,11 +1,4 @@
-"""Integration tests: validate this repository's own governed artifacts.
-
-This is the permanent regression coverage for what was, during CHG-001
-Slice 2 development, an ad hoc one-off script: confirming
-`.ggsad/config.yaml`, `.ggsad/mappings/gsd.yaml`, and CHG-001's own
-`state.yaml` stay schema-valid, model-parseable, and (for the mapping)
-authority-compliant as the repository evolves.
-"""
+"""Validate the repository's active configuration, mapping, and state fixture."""
 
 from __future__ import annotations
 
@@ -21,6 +14,9 @@ from ggsad.validators.schema_validator import load_schema, validate_against_sche
 from ggsad.validators.yaml_loader import YamlLoadError, load_yaml_file, load_yaml_text
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+STATE_FIXTURE_PATH = (
+    REPO_ROOT / "tests" / "fixtures" / "governed_artifacts" / "representative-state.yaml"
+)
 
 
 def test_project_config_is_schema_and_model_valid() -> None:
@@ -48,8 +44,8 @@ def test_gsd_mapping_is_schema_valid_model_valid_and_authority_compliant() -> No
     assert authority_issues == []
 
 
-def test_chg_001_state_is_schema_and_model_valid() -> None:
-    path = REPO_ROOT / "specs" / "CHG-001-reference-repository-bootstrap" / "state.yaml"
+def test_representative_state_is_schema_and_model_valid() -> None:
+    path = STATE_FIXTURE_PATH
     schema = load_schema(REPO_ROOT / ".ggsad" / "schemas" / "state.schema.json")
     data = load_yaml_file(path)
 
@@ -57,12 +53,10 @@ def test_chg_001_state_is_schema_and_model_valid() -> None:
     assert issues == []
 
     state = ChangeState.model_validate(data)
-    assert state.change.id == "CHG-001"
+    assert state.change.id == "CHG-900"
     assert state.flow.phase == "specify"
-    # Was "draft" through Slices 1-6; CHG-001 reached specify/ready in Slice 7 once
-    # evidence.md existed and its own draft->ready transition preconditions held.
     assert state.flow.status == "ready"
-    assert len(state.history) >= 1
+    assert len(state.history) == 1
 
 
 def test_e005_invalid_project_yaml_is_rejected_with_actionable_location() -> None:
@@ -99,7 +93,7 @@ def test_prf005_mappings_schema_rejects_unsupported_schema_version() -> None:
 
 
 def test_prf005_state_schema_rejects_unsupported_schema_version() -> None:
-    path = REPO_ROOT / "specs" / "CHG-001-reference-repository-bootstrap" / "state.yaml"
+    path = STATE_FIXTURE_PATH
     schema = load_schema(REPO_ROOT / ".ggsad" / "schemas" / "state.schema.json")
     data = load_yaml_file(path)
     mutated = {**data, "schema_version": "99.9"}
