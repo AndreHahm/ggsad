@@ -98,7 +98,10 @@ class WaitState(BaseModel):
     owner: str | None = None
     resume_condition: str | None = None
     safe_state: str | None = None
-    resume_phase: str | None = None
+    resume_phase: (
+        Literal["intake", "explore", "decide", "specify", "plan", "build", "verify", "release"]
+        | None
+    ) = None
     next_action: str | None = None
     created_at: str | None = None
 

@@ -505,9 +505,9 @@ The statuses `failed`, `cancelled`, and `superseded` are legal only with the `cl
 | Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
 |---|---|---|---|---|---|
 | `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW; current-phase DoR was established by `ready`, and current-phase DoD and next-phase DoR are not applicable. | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `complete` | A non-closed phase with status `draft` or `active` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition, DoF, DoW, current-phase DoR, or current-phase DoD is not satisfied. Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds; it preserves the current phase with status `done`. |
+| `complete` | A non-closed phase with status `draft`, `active`, or `done` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied; from `done`, the next phase's DoR is re-evaluated. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition, DoF, DoW, current-phase DoR, or current-phase DoD is not satisfied. Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW; current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition is not satisfied or DoF determines failure. |
-| `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied. | DoF → DoW → DoR for the recorded resume phase or explicitly required earlier phase; current-phase DoD and next-phase DoR are not applicable. | Recorded resume phase, or an explicitly required earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; remain `waiting` when a DoW condition is still active; fail when DoF determines failure. |
+| `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; remain `waiting` when a DoW condition is still active; fail when DoF determines failure. |
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
@@ -546,7 +546,16 @@ This order defines evaluation precedence. A gate that is not applicable to the r
 
 DoR determines whether a phase may begin.
 
-### 9.1 Ready-to-Explore
+### 9.1 Ready-to-Intake
+
+At minimum:
+
+- a request, problem, opportunity, or goal has been captured,
+- the requestor or intake owner is identifiable,
+- enough context exists to classify or route the work,
+- no active DoF condition requires immediate failure handling.
+
+### 9.2 Ready-to-Explore
 
 At minimum:
 
@@ -555,7 +564,7 @@ At minimum:
 - exploration boundaries and relevant constraints are known,
 - an owner for the exploration is identified.
 
-### 9.2 Ready-to-Decide
+### 9.3 Ready-to-Decide
 
 At minimum:
 
@@ -564,7 +573,7 @@ At minimum:
 - material tradeoffs, risks, and constraints are visible,
 - the authorized decision owner is identified.
 
-### 9.3 Ready-to-Spec
+### 9.4 Ready-to-Spec
 
 At minimum:
 
@@ -575,7 +584,7 @@ At minimum:
 - affected system areas are roughly known,
 - no obvious conflict with the constitution exists.
 
-### 9.4 Ready-to-Plan
+### 9.5 Ready-to-Plan
 
 At minimum:
 
@@ -585,7 +594,7 @@ At minimum:
 - open questions have been answered or explicitly accepted,
 - no unresolved contradictions exist.
 
-### 9.5 Ready-to-Build
+### 9.6 Ready-to-Build
 
 At minimum:
 
@@ -596,7 +605,7 @@ At minimum:
 - test and verification criteria are defined,
 - no blocking decision is pending.
 
-### 9.6 Ready-to-Verify
+### 9.7 Ready-to-Verify
 
 At minimum:
 
@@ -605,7 +614,7 @@ At minimum:
 - build and analysis tools are available,
 - known deviations are documented.
 
-### 9.7 Ready-to-Release
+### 9.8 Ready-to-Release
 
 At minimum:
 
@@ -621,7 +630,16 @@ At minimum:
 
 DoD determines whether a phase has been completed successfully.
 
-### 10.1 Explore-Done
+### 10.1 Intake-Done
+
+At minimum:
+
+- the request is recorded and goal-bound,
+- its class, risk, and applicable workflow are resolved sufficiently for routing,
+- the next phase and responsible owner are identified,
+- rejected, duplicate, or out-of-scope requests are dispositioned traceably.
+
+### 10.2 Explore-Done
 
 At minimum:
 
@@ -630,7 +648,7 @@ At minimum:
 - viable options or a justified conclusion are available for decision,
 - no production implementation has begun merely because exploration completed.
 
-### 10.2 Decide-Done
+### 10.3 Decide-Done
 
 At minimum:
 
@@ -639,7 +657,7 @@ At minimum:
 - consequences, constraints, and required follow-up are identified,
 - any resulting specification work has an explicit goal-bound handoff.
 
-### 10.3 Spec-Done
+### 10.4 Spec-Done
 
 At minimum:
 
@@ -652,7 +670,7 @@ At minimum:
 - ADR conflicts are resolved or returned to the requestor,
 - the specification is approved.
 
-### 10.4 Plan-Done
+### 10.5 Plan-Done
 
 At minimum:
 
@@ -664,7 +682,7 @@ At minimum:
 - risks and decisions are documented,
 - implementation is decomposed appropriately.
 
-### 10.5 Build-Done
+### 10.6 Build-Done
 
 At minimum:
 
@@ -675,7 +693,7 @@ At minimum:
 - required documentation is updated,
 - deviations from the specification are explained and approved.
 
-### 10.6 Verify-Done
+### 10.7 Verify-Done
 
 At minimum:
 
@@ -686,7 +704,7 @@ At minimum:
 - evidence is complete,
 - remaining limitations are documented.
 
-### 10.7 Release-Done
+### 10.8 Release-Done
 
 At minimum:
 

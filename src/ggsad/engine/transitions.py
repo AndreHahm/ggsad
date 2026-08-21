@@ -9,6 +9,7 @@ atomic_replace_state`, so a rejected transition never mutates `state.yaml`
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,6 +24,21 @@ from ggsad.validators.yaml_loader import dump_yaml_bytes, load_yaml_file
 SUPPORTED_SOURCE_PHASE = "specify"
 SUPPORTED_SOURCE_STATUS = "draft"
 SUPPORTED_TARGET_STATUS = "ready"
+
+
+def _transition_evidence(target: Path, change_dir: Path) -> list[str]:
+    """Capture immutable digests of artifacts evaluated for draft-to-ready."""
+    paths = [
+        target / ".ggsad" / "config.yaml",
+        change_dir / "state.yaml",
+        change_dir / "spec.md",
+        change_dir / "plan.md",
+    ]
+    return [
+        f"sha256:{path.relative_to(target).as_posix()}:{hashlib.sha256(path.read_bytes()).hexdigest()}"
+        for path in paths
+        if path.is_file()
+    ]
 
 
 def find_change_directory(target: Path, change_id: str) -> Path | None:
@@ -157,6 +173,7 @@ def perform_transition(target: Path, change_id: str, *, actor: str) -> Transitio
         new_phase=state.flow.phase,
         new_status=SUPPORTED_TARGET_STATUS,
         reason="draft-to-ready transition (R-010)",
+        evidence=_transition_evidence(target, change_dir),
     )
     new_state = state.model_copy(
         update={

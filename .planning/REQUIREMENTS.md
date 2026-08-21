@@ -54,14 +54,14 @@ currently frames GG-SAD as governing this repository's own development.
 
 ### Implementation Conformance Audit (AUDIT)
 
-- [ ] **AUDIT-01**: Every component of the retained implementation (`src/ggsad/application/`, `src/ggsad/engine/`, `src/ggsad/validators/`, `src/ggsad/models/`, `src/ggsad/resources/`, `src/ggsad/cli.py`) is evaluated against the *clarified* normative contract from NORM-01–07 — not against prior GG-SAD/CHG-001 completion evidence
-- [ ] **AUDIT-02**: The audit explicitly re-evaluates each item already catalogued in `.planning/codebase/CONCERNS.md` (tech debt, known limitations, fragile areas, security considerations, test-coverage gaps) for continued relevance and severity under the clarified contract
-- [ ] **AUDIT-03**: The audit produces a written list of evidenced conformance gaps — each with an exact file/requirement reference — or an explicit statement that none exist
+- [x] **AUDIT-01**: Every component of the retained implementation (`src/ggsad/application/`, `src/ggsad/engine/`, `src/ggsad/validators/`, `src/ggsad/models/`, `src/ggsad/resources/`, `src/ggsad/cli.py`) is evaluated against the *clarified* normative contract from NORM-01–07 — not against prior GG-SAD/CHG-001 completion evidence
+- [x] **AUDIT-02**: The audit explicitly re-evaluates each item already catalogued in `.planning/codebase/CONCERNS.md` (tech debt, known limitations, fragile areas, security considerations, test-coverage gaps) for continued relevance and severity under the clarified contract
+- [x] **AUDIT-03**: The audit produces a written list of evidenced conformance gaps — each with an exact file/requirement reference — or an explicit statement that none exist
 
 ### Gap Remediation (GAP)
 
-- [ ] **GAP-01**: Only conformance gaps evidenced by AUDIT-03 are implemented; no speculative, unrelated, or "clean up while I'm here" changes are made
-- [ ] **GAP-02**: Each implemented gap fix has corresponding automated test coverage
+- [x] **GAP-01**: Only conformance gaps evidenced by AUDIT-03 are implemented; no speculative, unrelated, or "clean up while I'm here" changes are made
+- [x] **GAP-02**: Each implemented gap fix has corresponding automated test coverage
 
 ### Full Verification (VERIFY)
 
