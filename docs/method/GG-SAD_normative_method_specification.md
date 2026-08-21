@@ -639,6 +639,9 @@ At minimum:
 - the next phase and responsible owner are identified,
 - rejected, duplicate, or out-of-scope requests are dispositioned traceably.
 
+A rejected, duplicate, or out-of-scope disposition ends the change through the `cancel` action
+defined in Section 8.3, rather than satisfying this Definition of Done for forward advancement.
+
 ### 10.2 Explore-Done
 
 At minimum:
