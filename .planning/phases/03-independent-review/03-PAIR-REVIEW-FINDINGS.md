@@ -8,9 +8,10 @@
 - Requestor: Codex (confirmed by the repository owner as the sole executing agent for Phase 1 and
   Phase 2 Requestor work; Claude Code has held only the Reviewer role throughout this lineage)
 - Reviewed artifact: `docs/method/GG-SAD_normative_method_specification.md`
-- Reviewed revision: owner-approved corrected revision `936aa85d3ada744358c5a515248641767f7e33c5`
-  (baseline `54f203668179d424395a237398ef06278ab0f5cd`), confirmed unchanged through current HEAD
-  `252c46602503ba05a25f809748eca0701de8eaee`, branch `bootstrap-gsd-transition`
+- Reviewed revision: owner-approved corrected revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`
+  (baseline `eaefb212a82e8d2e870d00bda052bc810949392e`), confirmed unchanged through current HEAD
+  `1a90ee74152be5ae82ed0fedde9a1db16826a470` (rebased equivalent; original reviewed identity is
+  recorded in `.planning/milestones/PR-3-REBASE-SHA-RECONCILIATION.md`)
 - Review date: 2026-08-20
 - Action: Phase 3 independent re-review of the owner-approved, Phase-2-corrected normative diff
 - Result: SF-01 through SF-08 (Phase 1 findings) all correctly resolved; 3 new findings from this
@@ -29,7 +30,7 @@ internal inconsistency, rather than only checking that the original defects were
 
 ## Part 1 — Disposition of Phase 1 findings (SF-01–SF-08)
 
-All eight are correctly and completely resolved in revision `936aa85`:
+All eight are correctly and completely resolved in revision `710ac3b`:
 
 | Finding | Verified resolution |
 |---|---|

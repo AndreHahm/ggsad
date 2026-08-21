@@ -9,8 +9,8 @@
   before the Phase 3 initial review)
 - Requestor: Codex
 - Reviewed artifact: `docs/method/GG-SAD_normative_method_specification.md`
-- Reviewed revision: `f26019607dc874fb9d239f241ea9a42007a4521a` (owner-approved corrected revision,
-  per `03-DISPOSITIONS.md`: prior revision `936aa85d3ada744358c5a515248641767f7e33c5`, owner approval
+- Reviewed revision: `c5347abb431e463dbe43b23c3ad765c28a03af17` (owner-approved corrected revision,
+  per `03-DISPOSITIONS.md`: prior revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`, owner approval
   timestamp `2026-08-20T08:11:12Z`)
 - Review timestamp: 2026-08-20
 - Action: Independent follow-up review (Phase 3, Task 5) verifying the owner-approved correction of
@@ -18,17 +18,17 @@
 - Result: **Verified.** All three findings resolved correctly. No new findings. No blocking findings
   remain open.
 - Scope: Diff and full-document review, scoped to exactly
-  `git diff 936aa85d3ada744358c5a515248641767f7e33c5 f26019607dc874fb9d239f241ea9a42007a4521a -- docs/method/GG-SAD_normative_method_specification.md`,
+  `git diff 710ac3ba6b7702d208beaaa9c625da3e319ca25c c5347abb431e463dbe43b23c3ad765c28a03af17 -- docs/method/GG-SAD_normative_method_specification.md`,
   cross-checked against the complete current document. No repository files were modified as part of
   this review.
 
 ## Method
 
-Reviewed the diff from the prior owner-approved revision (`936aa85`) to the newly owner-approved
-revision (`f260196`) in three passes across this correction cycle: once against the first correction
-commit set (`9bb9cb3`), once confirming the follow-up wording fix (`f260196` vs. `9bb9cb3`), and once
+Reviewed the diff from the prior owner-approved revision (`710ac3b`) to the newly owner-approved
+revision (`c5347ab`) in three passes across this correction cycle: once against the first correction
+commit set (`b273006`), once confirming the follow-up wording fix (`c5347ab` vs. `b273006`), and once
 more here as the formal, complete re-verification against the full document. Re-extracted every
-`Section \d` and `Sections \d` cross-reference in the complete `f260196` document and confirmed each
+`Section \d` and `Sections \d` cross-reference in the complete `c5347ab` document and confirmed each
 still resolves to the correct current section. Confirmed the diff's scope: outside `.planning/`,
 only `docs/method/GG-SAD_normative_method_specification.md` changed.
 
@@ -57,7 +57,7 @@ still requires approver, rationale, timestamp, and replacement evidence; and a C
 keep this record inline with its Section 6.1 minimal specification. The immediately following
 replacement-evidence sentence now correctly reads "each omitted phase" (plural), consistent with the
 new multi-phase compact-record model — the singular/plural inconsistency I flagged on the prior
-revision (`9bb9cb3`) is fixed in `f260196`. Cross-references to Section 7.1 and Section 6.1 both
+revision (`b273006`) is fixed in `c5347ab`. Cross-references to Section 7.1 and Section 6.1 both
 resolve correctly. The existing prohibition on inferred omission and the invariant-core/next-phase-DoR
 protections are unchanged.
 
@@ -65,7 +65,7 @@ protections are unchanged.
 
 `.planning/phases/02-owner-approval/02-DISPOSITIONS.md`'s SF-06 entry now reads "Affected sections:
 `1.1, 4, 5`," matching the actual location of the category map. `03-PAIR-REVIEW-FINDINGS.md` is
-confirmed unchanged from commit `825d4d8`.
+confirmed unchanged from commit `9a82932`.
 
 ## New findings
 

@@ -7,13 +7,14 @@
   that normative amendments receive owner approval and independent Claude Code review)
 - Requestor: agent executing Phase 1 (`01-normative-clarification`)
 - Reviewed artifact: `docs/method/GG-SAD_normative_method_specification.md`
-- Reviewed revision: diff from baseline `54f203668179d424395a237398ef06278ab0f5cd` to
-  `c3c9359ee65f80b8aa698288a2373d3c93807cdd` (HEAD), branch `bootstrap-gsd-transition`
+- Reviewed revision: diff from baseline `eaefb212a82e8d2e870d00bda052bc810949392e` to
+  `c6d1209fdf9e8acedae1cca03a788a729933cb20` (rebased equivalent; original reviewed identity is
+  recorded in `.planning/milestones/PR-3-REBASE-SHA-RECONCILIATION.md`)
 - Review date: 2026-08-19
 - Action: Independent review of the Phase 1 normative-clarification diff, gating Phase 2 start
 - Result: Not clear to approve as written — 4 blocking/major findings, 4 recommended findings
 - Scope: Diff review only, scoped to exactly
-  `git diff 54f203668179d424395a237398ef06278ab0f5cd..HEAD -- docs/method/GG-SAD_normative_method_specification.md`.
+  `git diff eaefb212a82e8d2e870d00bda052bc810949392e..HEAD -- docs/method/GG-SAD_normative_method_specification.md`.
   No repository files were modified as part of this review (Pair Review rule: a Reviewer must not
   silently edit the Requestor's governed work product).
 

@@ -28,7 +28,7 @@ state:
   reports zero matches once the fix is applied, not just that it plausibly should.
 - Counted occurrences of `uv run ty check` in each target file to rule out a second instance being
   missed by a single-replace instruction.
-- Verified the Task 3 revision anchor (`6f98eab`) is a real commit and is exactly the commit that
+- Verified the Task 3 revision anchor (`c2268a3`) is a real commit and is exactly the commit that
   recorded `05-CONTEXT-REVIEW.md` — the correct Phase 5 starting point.
 
 ## What checked out
@@ -53,7 +53,7 @@ state:
 - **Scope boundaries and protected-file list** match `05-CONTEXT.md` exactly; `CLAUDE.md` is
   correctly left untouched (already delegates, no duplicate command block, consistent with what I
   verified in the context review).
-- The Task 3 revision anchor `6f98eab` is real and correct.
+- The Task 3 revision anchor `c2268a3` is real and correct.
 
 ## Finding
 

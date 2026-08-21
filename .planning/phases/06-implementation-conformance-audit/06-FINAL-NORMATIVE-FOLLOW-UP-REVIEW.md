@@ -4,9 +4,9 @@
 
 - Participant: Claude Code (Sonnet 5)
 - Role: Independent Reviewer
-- Reviewed revision: `58724700230b3f63338630b8920a52ff935c015d`
-- Action: Read-only follow-up review of the normative changes introduced by `3831dab` and the
-  Intake-Done clarification in `5872470`
+- Reviewed revision: `09ec1d79147e0f3d368dd0abc9758c6e45482c4d`
+- Action: Read-only follow-up review of the normative changes introduced by `58a588f` and the
+  Intake-Done clarification in `09ec1d7`
 - Timestamp: 2026-08-21
 - Result: Verified; no blocking or non-blocking findings
 

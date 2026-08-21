@@ -46,9 +46,9 @@ and standardize locked sync and strict `ty` across retained active documentation
 
 ## Scope Evidence
 
-- `git diff --name-status 6f98eab..HEAD` before closure evidence showed only the Phase 5 plan and
+- `git diff --name-status c2268a3..HEAD` before closure evidence showed only the Phase 5 plan and
   review artifacts plus `pyproject.toml`, `AGENTS.md`, README, and the active Class M example.
-- `git diff --exit-code 6f98eab..HEAD -- docs/method/GG-SAD_normative_method_specification.md src/ggsad tests .ggsad .claude archive`
+- `git diff --exit-code c2268a3..HEAD -- docs/method/GG-SAD_normative_method_specification.md src/ggsad tests .ggsad .claude archive`
   — no differences.
 - No wrapper, permanent policy test, placeholder scripts directory, dependency, rule suppression,
   warning downgrade, or exit-zero behavior was added.
@@ -72,7 +72,7 @@ was needed.
 
 ## Review Finding Disposition
 
-PLR5-01 was accepted and resolved in plan revision `5e9e438`: Task 3's automated verification now
+PLR5-01 was accepted and resolved in plan revision `0f45ab1`: Task 3's automated verification now
 includes configuration assertions, documentation drift scans, and explicit handling of the plain
 build result before any native-TLS fallback.
 

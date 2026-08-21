@@ -2,14 +2,14 @@
 
 ## Boundary
 
-Phase 3 resolves and re-verifies the independent Claude Code review of the owner-approved normative revision `936aa85d3ada744358c5a515248641767f7e33c5`. It does not start legacy-governance retirement or modify implementation behavior.
+Phase 3 resolves and re-verifies the independent Claude Code review of the owner-approved normative revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`. It does not start legacy-governance retirement or modify implementation behavior.
 
 ## Review Evidence
 
 - Immutable findings: `03-PAIR-REVIEW-FINDINGS.md`
 - Reviewer: Claude Code, structurally independent from the Codex Requestor
 - Review result: Phase 1 findings `SF-01` through `SF-08` resolved; new findings `PR-01` through `PR-03`; `PR-01` blocking
-- Findings commit: `825d4d8`
+- Findings commit: `9a82932`
 
 ## Owner Dispositions
 

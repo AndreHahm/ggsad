@@ -515,7 +515,7 @@ the GSD command and plan identified in Step 4.
 
 ## Independent plan-review dispositions
 
-Claude Code reviewed commit `dd1aadd3c4f0fdc4a756c9574ba03020751887d7`. The repository owner and
+Claude Code reviewed commit `f070237eca7a9f6e9be15d7d1b87059f6a6eeb46`. The repository owner and
 Requestor dispositioned its findings on 2026-08-18:
 
 | Finding | Disposition | Resulting action |

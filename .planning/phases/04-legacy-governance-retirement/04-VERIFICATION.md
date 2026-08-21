@@ -19,7 +19,7 @@ normative product authority, and leave active development governed solely throug
 |---|---|---|---|
 | 1 | All inventoried legacy artifacts have explicit dispositions. | VERIFIED | Manifest has 29 data rows: 28 archived files and one already-absent file. |
 | 2 | Duplicate architectures and competing roadmaps are resolved. | VERIFIED | Manifest retires both architectures and distinguishes historical delivery status from the aspirational roadmap. |
-| 3 | Historical content is preserved outside active governance. | VERIFIED | Commit `97b265f` reports exactly 28 `R100` moves. |
+| 3 | Historical content is preserved outside active governance. | VERIFIED | Commit `bad10e3` reports exactly 28 `R100` moves. |
 | 4 | Active guidance reflects current authority. | VERIFIED | README rewrite and the full key-file prohibited-reference scan return no matches. |
 | 5 | Active tests no longer use CHG-001 evidence. | VERIFIED | Dedicated `CHG-900` fixture; integration module has no CHG-001 or Slice text; full suite passes. |
 
@@ -37,13 +37,13 @@ normative product authority, and leave active development governed solely throug
 
 ## Structural and Scope Evidence
 
-- `git show --format= --name-status --find-renames=100% 97b265f` — one manifest addition and
+- `git show --format= --name-status --find-renames=100% bad10e3` — one manifest addition and
   exactly 28 `R100` moves.
 - `rg -c "^\|" archive/legacy-ggsad-governance/MANIFEST.md` — 31 table lines: header, separator,
   and 29 dispositions.
-- `git diff --exit-code 677b6f0..HEAD -- docs/method/GG-SAD_normative_method_specification.md src/ggsad .ggsad`
+- `git diff --exit-code 6ee1f2f..HEAD -- docs/method/GG-SAD_normative_method_specification.md src/ggsad .ggsad`
   — no differences.
-- `git diff --name-only 677b6f0..HEAD -- tests` — only the dedicated state fixture and the one
+- `git diff --name-only 6ee1f2f..HEAD -- tests` — only the dedicated state fixture and the one
   integration module.
 - Full prohibited-reference scan over `README.md`, `AGENTS.md`, `CLAUDE.md`, and
   `THIRD_PARTY_NOTICES.md` — no matches (ripgrep exit 1).

@@ -79,8 +79,8 @@ status: complete
 
 ## Task Commits
 
-1. **Define minimal automation contract** — `e61a6d6`
-2. **Repair numbering and genericize examples** — `bbbb1e3`
+1. **Define minimal automation contract** — `1b88d4b`
+2. **Repair numbering and genericize examples** — `37be09e`
 3. **Final phase-closing verification** — no content commit; verification-only task recorded here
 
 ## Files Created/Modified

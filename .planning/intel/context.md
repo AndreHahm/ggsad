@@ -35,12 +35,12 @@ replacement, or manifest conflict.
 
 Two independent-review cycles by Claude Code (as Reviewer, Codex as Requestor) preceded and
 followed the plan:
-- Review of the design document (commit `8377892`) found two blocking gaps (F-02: `CLAUDE.md`
+- Review of the design document (commit `800a004`) found two blocking gaps (F-02: `CLAUDE.md`
   and `CLAUDE_CODE_PROJECT_START.md` not named in the retirement/rewrite scope; F-03: bootstrap
   authorization claim lacked an evidence trail) plus five non-blocking findings; all were
   dispositioned by the repository owner on 2026-08-18 (see the disposition table in
   `constraints.md`'s source SPEC).
-- Review of the resulting plan (commit `dd1aadd`) found full conformance to the approved design
+- Review of the resulting plan (commit `f070237`) found full conformance to the approved design
   with **no blocking findings** and three non-blocking gaps (PF-01: Task 5's diff check omitted
   `.ggsad/` and `specs/examples/`; PF-02: no explicit single-commit rollback step for the
   onboarding task; PF-03: npm package identity asserted but not independently verifiable from

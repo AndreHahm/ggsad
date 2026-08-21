@@ -6,7 +6,7 @@
 - Reviewer role: Independent reviewer
 - Requestor: Codex
 - Reviewed artifact: `.planning/phases/05-quality-tool-ownership-boundaries/05-CONTEXT.md`
-- Reviewed revision: commit `a138481` ("docs(gsd): define phase 5 quality-tool boundaries")
+- Reviewed revision: commit `26e48d9` ("docs(gsd): define phase 5 quality-tool boundaries")
 - Review date: 2026-08-20
 - Action: Review of the Phase 5 boundary/design context prior to planning
 - Result: **Approved.** Every checkable claim verified accurate by direct testing, not just

@@ -22,7 +22,7 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 ### Validated
 
-- ✓ GSD Core 1.10.0 pinned as the sole development method for this repository — transition steps 1–5 (design approval, bootstrap plan, GSD pin, AGENTS.md/CLAUDE.md replacement, GSD onboarding), evidenced by commits `8377892`…`3b3ff72`
+- ✓ GSD Core 1.10.0 pinned as the sole development method for this repository — transition steps 1–5 (design approval, bootstrap plan, GSD pin, AGENTS.md/CLAUDE.md replacement, GSD onboarding), evidenced by commits `800a004`…`8642fbb`
 
 ### Active
 
