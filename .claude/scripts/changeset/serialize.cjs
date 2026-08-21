@@ -26,11 +26,14 @@ function serializeChangelog(ir) {
     lines.push(`### ${section.type}`);
     lines.push('');
     for (const b of section.bullets) {
-      // #3001: indent continuation lines so parseChangelog's continuation-fold
-      // (/^\s+/) picks them up instead of terminating the bullet at the first
-      // blank line. A multi-paragraph body round-trips with content preserved.
-      const body = b.body.replace(/\n/g, '\n  ');
-      lines.push(`- ${body} (#${b.pr})`);
+      // Prefix every logical continuation line with exactly two spaces. The
+      // parser removes this transport prefix and preserves the remaining
+      // Markdown indentation and line breaks verbatim.
+      const bodyLines = b.body.split('\n').map((line, index) =>
+        index === 0 ? `- ${line}` : `  ${line}`
+      );
+      bodyLines[bodyLines.length - 1] += ` (#${b.pr})`;
+      lines.push(...bodyLines);
     }
     lines.push('');
   }
@@ -67,12 +70,12 @@ function parseChangelog(text) {
 
   function flushBullet() {
     if (bulletLines === null || !curSection) return;
-    const joined = bulletLines.join(' ').trim();
+    const joined = bulletLines.join('\n');
     // Locate the (# pr) trailer anywhere in the joined text.  The trailer is
     // expected to be at the very end, but we tolerate trailing whitespace.
-    const trailMatch = joined.match(/^(.*?)\s*\(#(\d+)\)\s*$/);
+    const trailMatch = joined.match(/^([\s\S]*?)\s*\(#(\d+)\)\s*$/);
     if (trailMatch) {
-      curSection.bullets.push({ body: trailMatch[1].trim(), pr: Number(trailMatch[2]) });
+      curSection.bullets.push({ body: trailMatch[1], pr: Number(trailMatch[2]) });
     } else {
       // Bullet has no PR trailer — preserve it with pr: null so callers
       // (e.g. cmdExtract) do not silently drop authored content.
@@ -115,15 +118,18 @@ function parseChangelog(text) {
       continue;
     }
 
-    // Continuation line: any indentation (F7: relaxed from /^[ \t]{2}/ so that
-    // 1-space-indented continuations also fold) BUT NOT a nested bullet marker
-    // (F4: `  - nested item` terminates the current bullet rather than folding).
-    if (bulletLines !== null && /^\s+/.test(line) && !/^\s+-\s/.test(line)) {
-      bulletLines.push(line.trim());
+    // Continuation line: remove only the Markdown transport indentation.
+    // Content indentation after that prefix is significant (for example,
+    // nested lists and indented code blocks) and must survive round trips.
+    if (bulletLines !== null && /^[ \t]+/.test(line)) {
+      const content = line.startsWith('  ')
+        ? line.slice(2)
+        : line.slice(1);
+      bulletLines.push(content);
       continue;
     }
 
-    // Any other line (blank, heading, nested bullet, etc.) terminates a pending bullet.
+    // Any other line (blank, heading, etc.) terminates a pending bullet.
     flushBullet();
   }
   flushBullet();

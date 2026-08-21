@@ -13,37 +13,20 @@ distributed by the respective third-party projects.
 - Project: `open-gsd/gsd-core`
 - Copyright: Copyright (c) 2026 Open GSD
 - License: MIT License
-- Usage in GG-SAD: Optional project-local execution and context-engineering companion
-- Installed Version: `1.9.1` (confirmed via `.claude/gsd-core/VERSION` and
+- Usage in this repository: Pinned sole development method and project-local tooling
+- Installed Version: `1.10.0` (confirmed via `.claude/gsd-core/VERSION` and
   `.claude/gsd-file-manifest.json`, both committed alongside this repository)
+
 ### Relationship to GG-SAD
 
-GSD Core is not part of the GG-SAD Method Core.
+GSD Core is not part of the GG-SAD Method Core or reference implementation. The English normative
+specification remains the leading authority for GG-SAD product semantics and behavior.
 
-GG-SAD may use GSD Core to support:
-
-- implementation discussion;
-- subordinate execution planning;
-- context engineering;
-- implementation execution;
-- verification support;
-- shipping or pull-request preparation.
-
-GG-SAD remains authoritative for:
-
-- goals and approved scope;
-- governing documents;
-- specifications;
-- architecture and ADR precedence;
-- workflow state;
-- Definition of Ready, Done, Wait, and Fail;
-- evidence requirements;
-- approvals;
-- Pair Review policy;
-- change closure.
-
-GSD-generated files under `.planning/` are third-party-tool execution artifacts and remain
-subordinate to GG-SAD artifacts.
+This repository uses GSD Core 1.10.0 as its sole development method. Its `.planning/` artifacts
+hold the active repository-development requirements, roadmap, state, plans, and verification. A
+GG-SAD-managed consumer project may separately configure GSD as an optional integration according
+to the normative mapping contract; that product capability does not govern this repository's
+development workflow.
 
 ### Distribution and Generated Files
 

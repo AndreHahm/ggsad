@@ -24,7 +24,9 @@ unnecessary document proliferation.
 
 - **Goal:** the desired outcome, success signals, scope, and non-goals.
 - **Specification anchor:** the approved definition of what a change must achieve.
-- **Goal gates:** Definition of Fail, Wait, Done, and Ready, evaluated in that order.
+- **Goal gates:** Definition of Fail, Definition of Wait, current-phase Definition of Ready,
+  current-phase Definition of Done, and next-phase Definition of Ready, skipping gates that are not
+  applicable to the requested action or state.
 - **Evidence:** verifiable tests, analyses, reviews, approvals, reports, commits, or release records.
 
 Key capabilities include Class S, M, and L changes; explicit phases and statuses; controlled state
@@ -80,8 +82,8 @@ uv run ggsad --help
 Useful commands include:
 
 ```bash
-uv run ggsad init <project-id>
-uv run ggsad change create <change-id> --title "Change title" --class M
+uv run ggsad init .
+uv run ggsad new CHG-002 example-change --title "Change title" --class M
 uv run ggsad validate
 ```
 

@@ -65,7 +65,7 @@ currently frames GG-SAD as governing this repository's own development.
 
 ### Full Verification (VERIFY)
 
-- [ ] **VERIFY-01**: The complete verification baseline runs clean and its output is captured as evidence: `uv sync --locked`, `uv run ruff format --check .`, `uv run ruff check .`, `uv run ty check`, `uv run pytest`, `uv build`
+- [ ] **VERIFY-01**: The complete verification baseline runs clean and its output is captured as evidence: `uv sync --locked`, `uv run ruff format --check .`, `uv run ruff check .`, `uv run ty check src tests`, `uv run pytest`, `uv build`
 - [ ] **VERIFY-02**: GSD verification results for this milestone are recorded per GSD's own evidence conventions (not a GG-SAD `evidence.md`)
 
 ## v2 Requirements (Deferred, Explicit Non-Goals for This Milestone)
