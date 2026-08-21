@@ -47,10 +47,10 @@ currently frames GG-SAD as governing this repository's own development.
 
 ### Quality-Tool Ownership Boundaries (TOOL)
 
-- [ ] **TOOL-01**: Product quality-tool scope (ruff, ty, pytest/coverage) is explicitly configured to include product code, tests, and owned scripts
-- [ ] **TOOL-02**: Product quality-tool scope explicitly excludes installer-owned GSD runtime files (`.claude/gsd-core/`, `.claude/hooks/`, etc.) — they are development tooling, not Python product source
-- [ ] **TOOL-03**: The documented baseline command is `uv sync --locked` (not bare `uv sync`), reconciling the discrepancy between `AGENTS.md`/the transition SPEC and the legacy `docs/constitution.md` §11 / `docs/definitions/definition-of-done.md` wording
-- [ ] **TOOL-04**: The `ty` strict-mode baseline (not `mypy`) is the sole documented type-checker across all retained governing documents, closing the tooling-drift concern already logged in `.planning/codebase/CONCERNS.md`
+- [x] **TOOL-01**: Product quality-tool scope (ruff, ty, pytest/coverage) is explicitly configured to include product code, tests, and owned scripts
+- [x] **TOOL-02**: Product quality-tool scope explicitly excludes installer-owned GSD runtime files (`.claude/gsd-core/`, `.claude/hooks/`, etc.) — they are development tooling, not Python product source
+- [x] **TOOL-03**: The documented baseline command is `uv sync --locked` (not bare `uv sync`), reconciling the discrepancy between `AGENTS.md`/the transition SPEC and the legacy `docs/constitution.md` §11 / `docs/definitions/definition-of-done.md` wording
+- [x] **TOOL-04**: The `ty` strict-mode baseline (not `mypy`) is the sole documented type-checker across all retained governing documents, closing the tooling-drift concern already logged in `.planning/codebase/CONCERNS.md`
 
 ### Implementation Conformance Audit (AUDIT)
 
@@ -102,7 +102,7 @@ scope, not tracked further here:
 | APPR-01, APPR-02 | Phase 2 | Complete |
 | REVIEW-01 … REVIEW-03 | Phase 3 | Complete |
 | RETIRE-01 … RETIRE-05 | Phase 4 | Complete |
-| TOOL-01 … TOOL-04 | Phase 5 | Pending |
+| TOOL-01 … TOOL-04 | Phase 5 | Complete |
 | AUDIT-01 … AUDIT-03 | Phase 6 | Pending |
 | GAP-01, GAP-02 | Phase 7 | Pending |
 | VERIFY-01, VERIFY-02 | Phase 8 | Pending |
