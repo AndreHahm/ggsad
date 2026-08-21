@@ -146,6 +146,17 @@ def test_unsupported_change_class_is_rejected(tmp_path: Path) -> None:
         )
 
 
+def test_title_longer_than_schema_limit_is_rejected(tmp_path: Path) -> None:
+    with pytest.raises(InvalidChangeIdentifierError, match="200"):
+        build_change_manifest(
+            tmp_path,
+            change_id="CHG-002",
+            slug="example-change",
+            title="x" * 201,
+            goal="Ship it",
+        )
+
+
 def test_build_change_manifest_rejects_invalid_id_before_touching_filesystem(
     tmp_path: Path,
 ) -> None:

@@ -101,3 +101,15 @@ def test_transition_missing_change_id_is_rejected(tmp_path: Path) -> None:
 
     assert result.exit_code != 0
     assert "CHG-999" in result.output
+
+
+def test_transition_malformed_change_id_returns_rejected_envelope(tmp_path: Path) -> None:
+    initialize_project(tmp_path)
+
+    result = runner.invoke(app, ["transition", "BAD", "ready", "--target", str(tmp_path)])
+
+    assert result.exit_code == 1
+    assert '"operation": "transition"' in result.output
+    assert '"result": "rejected"' in result.output
+    assert '"changed": false' in result.output
+    assert '"code": "invalid_change_id"' in result.output

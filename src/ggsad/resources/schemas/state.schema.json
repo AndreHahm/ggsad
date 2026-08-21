@@ -463,8 +463,7 @@
             "plan",
             "build",
             "verify",
-            "release",
-            "closed"
+            "release"
           ]
         },
         "next_action": {

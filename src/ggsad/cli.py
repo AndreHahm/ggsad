@@ -12,6 +12,7 @@ from ggsad import __version__
 from ggsad.application.create_change import (
     SUPPORTED_CHANGE_CLASS,
     ChangeCreationError,
+    InvalidChangeIdentifierError,
     build_change_manifest,
 )
 from ggsad.application.initialize_project import initialize_project
@@ -305,6 +306,17 @@ def transition_command(
 
     try:
         result = perform_transition(target, change_id, actor=actor)
+    except InvalidChangeIdentifierError as exc:
+        typer.echo(f"Transition rejected: {exc}")
+        _emit_envelope(
+            _result_envelope(
+                "transition",
+                "rejected",
+                changed=False,
+                issues=[{"code": "invalid_change_id", "message": str(exc)}],
+            )
+        )
+        raise typer.Exit(code=1) from exc
     except StateWriteError as exc:
         typer.echo(f"Transition failed during write: {exc}")
         _emit_envelope(

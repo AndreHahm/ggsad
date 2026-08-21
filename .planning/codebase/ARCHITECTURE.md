@@ -237,10 +237,10 @@ GG-SAD (Goal-Gated Spec-Anchored Development) is a reference implementation of a
 - Triggers: User runs `ggsad init` or `ggsad init <directory>`
 - Responsibilities: Initialize project structure, generate `.ggsad/config.yaml`, materialize templates and schemas, create docs (constitution, project-brief, architecture, roadmap)
 
-**`ggsad new CHG-<N> <slug> [--class M] [--title <title>] [--target <dir>]`:**
+**`ggsad new CHG-<N> <slug> --goal <summary> [--class M] [--title <title>] [--target <dir>]`:**
 - Location: `src/ggsad/cli.py:new_command`
-- Triggers: User runs `ggsad new CHG-002 example-change`
-- Responsibilities: Validate change ID and slug, build change directory manifest, write spec/plan/tasks/evidence templates and state.yaml
+- Triggers: User runs `ggsad new CHG-002 example-change --goal "Desired outcome"`
+- Responsibilities: Validate change ID, slug, title, and required goal; build the change directory manifest; write spec/plan/tasks/evidence templates and goal-bound state.yaml
 
 **`ggsad validate [target] [--change CHG-<N>] [--format text|json]`:**
 - Location: `src/ggsad/cli.py:validate_command`

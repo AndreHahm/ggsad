@@ -71,15 +71,22 @@ function parseChangelog(text) {
   function flushBullet() {
     if (bulletLines === null || !curSection) return;
     const joined = bulletLines.join('\n');
-    // Locate the (# pr) trailer anywhere in the joined text.  The trailer is
-    // expected to be at the very end, but we tolerate trailing whitespace.
-    const trailMatch = joined.match(/^([\s\S]*?)\s*\(#(\d+)\)\s*$/);
-    if (trailMatch) {
-      curSection.bullets.push({ body: trailMatch[1], pr: Number(trailMatch[2]) });
+    const trailerOnly = bulletLines.at(-1)?.match(/^\(#(\d+)\)$/);
+    if (trailerOnly) {
+      bulletLines[bulletLines.length - 1] = '';
+      curSection.bullets.push({
+        body: bulletLines.join('\n'),
+        pr: Number(trailerOnly[1]),
+      });
     } else {
-      // Bullet has no PR trailer — preserve it with pr: null so callers
-      // (e.g. cmdExtract) do not silently drop authored content.
-      curSection.bullets.push({ body: joined, pr: null });
+      const trailMatch = joined.match(/^([\s\S]*) \(#(\d+)\)[ \t]*$/);
+      if (trailMatch) {
+        curSection.bullets.push({ body: trailMatch[1], pr: Number(trailMatch[2]) });
+      } else {
+        // Bullet has no PR trailer — preserve it with pr: null so callers
+        // (e.g. cmdExtract) do not silently drop authored content.
+        curSection.bullets.push({ body: joined, pr: null });
+      }
     }
     bulletLines = null;
   }

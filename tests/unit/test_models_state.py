@@ -73,3 +73,10 @@ def test_removed_design_phase_is_rejected() -> None:
 
     with pytest.raises(ValidationError, match="phase"):
         ChangeState.model_validate(data)
+
+
+def test_closed_phase_is_rejected_as_resume_target() -> None:
+    data = {**_VALID, "wait": {**_VALID["wait"], "resume_phase": "closed"}}
+
+    with pytest.raises(ValidationError, match="resume_phase"):
+        ChangeState.model_validate(data)

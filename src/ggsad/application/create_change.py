@@ -40,6 +40,7 @@ from ggsad.validators.yaml_loader import dump_yaml_bytes
 CHANGE_ID_PATTERN = re.compile(r"^CHG-\d{3,}$")
 SLUG_PATTERN = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 SUPPORTED_CHANGE_CLASS = "M"
+MAX_TITLE_LENGTH = 200
 
 _ARTIFACT_TEMPLATES: dict[str, str] = {
     "spec.template.md": "spec.md",
@@ -144,6 +145,9 @@ def build_change_manifest(  # noqa: PLR0913
     """
     validate_change_id(change_id)
     validate_slug(slug)
+    if not title or len(title) > MAX_TITLE_LENGTH:
+        msg = f"Change title must contain between 1 and {MAX_TITLE_LENGTH} characters."
+        raise InvalidChangeIdentifierError(msg)
     if not goal.strip():
         msg = "A non-empty goal is required to create a goal-bound change."
         raise InvalidChangeIdentifierError(msg)

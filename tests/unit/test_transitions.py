@@ -99,6 +99,9 @@ def test_e010_valid_transition_succeeds_and_appends_history(tmp_path: Path) -> N
     assert event["new_phase"] == "specify"
     assert event["new_status"] == "ready"
     assert event["reason"]
+    assert len(event["evidence"]) == 4
+    assert all(item.startswith("sha256:") for item in event["evidence"])
+    assert any(":specs/CHG-002-example-change/spec.md:" in item for item in event["evidence"])
 
 
 # --- E-011: unsupported source state ---------------------------------------------------

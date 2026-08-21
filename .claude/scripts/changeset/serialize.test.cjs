@@ -49,3 +49,11 @@ test('extract indents every multiline bullet continuation', () => {
   assert.equal(result.exitCode, 0);
   assert.match(result.textOutput, /- Summary\n  continued \(#42\)/);
 });
+
+test('round trip preserves terminal blank lines', () => {
+  assert.equal(roundTripBody('Summary\n\n'), 'Summary\n\n');
+});
+
+test('round trip preserves Markdown hard-break spaces', () => {
+  assert.equal(roundTripBody('Summary  \ncontinued  '), 'Summary  \ncontinued  ');
+});
