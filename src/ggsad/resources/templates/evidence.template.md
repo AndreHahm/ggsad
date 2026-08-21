@@ -100,13 +100,14 @@ Goal
 
 - Required: Yes | No | Conditional
 - Review ID: <PR-NNN-or-none>
-- Requestor: <participant-id>
-- Reviewer: <distinct-participant-id>
-- Reviewer Type: Human | Agent | External Review Service
 - Review Scope: <artifacts and criteria>
-- Review Target: <commit, worktree, or artifact version>
 - Result: Pending | Pass | Pass with Findings | Fail | Not Required
 - Review Evidence: <reference>
+
+| Participant | Role | Reviewed Revision | Action | Timestamp | Result | Findings | Disposition |
+|---|---|---|---|---|---|---|---|
+| <participant-id> | Requestor | <exact-revision> | <action> | <timestamp> | <result> | <reference-or-summary> | <disposition> |
+| <distinct-participant-id> | Reviewer | <exact-revision> | <action> | <timestamp> | <result> | <reference-or-summary> | <disposition> |
 
 ### Findings
 

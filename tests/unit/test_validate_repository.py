@@ -25,7 +25,9 @@ def _init(tmp_path: Path) -> Path:
 
 
 def _new_change(target: Path, change_id: str = "CHG-002", slug: str = "example-change") -> Path:
-    manifest = build_change_manifest(target, change_id=change_id, slug=slug, title="Example")
+    manifest = build_change_manifest(
+        target, change_id=change_id, slug=slug, title="Example", goal="Ship it"
+    )
     write_manifest(manifest)
     return target / "specs" / f"{change_id}-{slug}"
 
@@ -245,15 +247,47 @@ def test_validate_change_on_filled_in_change_has_no_issues(tmp_path: Path) -> No
     assert validate_change(target, change_dir) == []
 
 
-def test_e008_missing_plan_is_reported(tmp_path: Path) -> None:
+def test_missing_conditional_plan_is_allowed_when_state_does_not_reference_it(
+    tmp_path: Path,
+) -> None:
     target = _init(tmp_path)
     change_dir = _new_change(target)
     (change_dir / "plan.md").unlink()
+    state_path = change_dir / "state.yaml"
+    state = load_yaml_file(state_path)
+    state["artifacts"]["plan"] = None
+    state_path.write_bytes(dump_yaml_bytes(state))
+
+    issues = validate_change(target, change_dir)
+
+    assert not any(issue.field == "plan.md" for issue in issues)
+
+
+def test_missing_state_declared_artifact_is_reported(tmp_path: Path) -> None:
+    target = _init(tmp_path)
+    change_dir = _new_change(target)
+    (change_dir / "evidence.md").unlink()
 
     issues = validate_change(target, change_dir)
 
     assert any(
-        issue.category is IssueCategory.MISSING_ARTIFACT and issue.field == "plan.md"
+        issue.category is IssueCategory.MISSING_ARTIFACT and issue.field == "artifacts/evidence"
+        for issue in issues
+    )
+
+
+def test_state_declared_artifact_must_stay_within_change_directory(tmp_path: Path) -> None:
+    target = _init(tmp_path)
+    change_dir = _new_change(target)
+    state_path = change_dir / "state.yaml"
+    state = load_yaml_file(state_path)
+    state["artifacts"]["spec"] = "../../outside.md"
+    state_path.write_bytes(dump_yaml_bytes(state))
+
+    issues = validate_change(target, change_dir)
+
+    assert any(
+        issue.category is IssueCategory.PATH_SAFETY and issue.field == "artifacts/spec"
         for issue in issues
     )
 
@@ -298,7 +332,7 @@ def test_validate_repository_scans_all_changes_by_default(tmp_path: Path) -> Non
 
     issues = validate_repository(target)
 
-    assert any(issue.field == "evidence.md" for issue in issues)
+    assert any(issue.field == "artifacts/evidence" for issue in issues)
 
 
 def test_validate_repository_with_change_filter_scopes_to_that_change(tmp_path: Path) -> None:

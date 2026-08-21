@@ -54,7 +54,7 @@ def test_e006_unknown_compliance_profile_fails(tmp_path: Path) -> None:
 def test_e008_missing_plan_is_identified_by_change_and_file(tmp_path: Path) -> None:
     initialize_project(tmp_path)
     manifest = build_change_manifest(
-        tmp_path, change_id="CHG-002", slug="example-change", title="Example"
+        tmp_path, change_id="CHG-002", slug="example-change", title="Example", goal="Ship it"
     )
     write_manifest(manifest)
     change_dir = tmp_path / "specs" / "CHG-002-example-change"
@@ -96,8 +96,10 @@ def test_json_format_produces_parseable_structured_issues(tmp_path: Path) -> Non
 
     assert result.exit_code != 0
     payload = json.loads(result.output)
-    assert isinstance(payload, list)
-    assert payload[0]["category"] == "unknown_profile"
+    assert payload["operation"] == "validate"
+    assert payload["result"] == "rejected"
+    assert payload["changed"] is False
+    assert payload["issues"][0]["code"] == "unknown_profile"
 
 
 def test_invalid_format_value_is_rejected(tmp_path: Path) -> None:
@@ -112,7 +114,9 @@ def test_invalid_format_value_is_rejected(tmp_path: Path) -> None:
 def test_change_filter_scopes_output_to_that_change(tmp_path: Path) -> None:
     initialize_project(tmp_path)
     for change_id, slug in (("CHG-002", "example-change"), ("CHG-003", "another-change")):
-        manifest = build_change_manifest(tmp_path, change_id=change_id, slug=slug, title="Example")
+        manifest = build_change_manifest(
+            tmp_path, change_id=change_id, slug=slug, title="Example", goal="Ship it"
+        )
         write_manifest(manifest)
     change_002 = tmp_path / "specs" / "CHG-002-example-change"
     # ggsad new copies the raw templates verbatim -- fill CHG-002 in so this

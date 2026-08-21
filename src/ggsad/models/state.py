@@ -10,9 +10,10 @@ there is no current consumer for a fully modeled `GateState`.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic_core import PydanticCustomError
 
 
 class ChangeIdentity(BaseModel):
@@ -28,9 +29,28 @@ class FlowState(BaseModel):
     model_config = ConfigDict(frozen=True, extra="allow")
 
     profile: str
-    phase: str
-    status: str
+    phase: Literal[
+        "intake", "explore", "decide", "specify", "plan", "build", "verify", "release", "closed"
+    ]
+    status: Literal[
+        "draft", "ready", "active", "waiting", "done", "failed", "cancelled", "superseded"
+    ]
     owner: str | None = None
+
+    @model_validator(mode="after")
+    def validate_phase_status_combination(self) -> FlowState:
+        """Enforce the normative terminal phase/status combinations."""
+        terminal_statuses = {"done", "failed", "cancelled", "superseded"}
+        closed_only_statuses = {"failed", "cancelled", "superseded"}
+        if self.phase == "closed" and self.status not in terminal_statuses:
+            raise PydanticCustomError("phase_status", "the closed phase requires a terminal status")
+        if self.phase != "closed" and self.status in closed_only_statuses:
+            raise PydanticCustomError(
+                "phase_status",
+                "status {status!r} requires the closed phase",
+                {"status": self.status},
+            )
+        return self
 
 
 class GoalSummary(BaseModel):

@@ -83,7 +83,7 @@ Useful commands include:
 
 ```bash
 uv run ggsad init .
-uv run ggsad new CHG-002 example-change --title "Change title" --class M
+uv run ggsad new CHG-002 example-change --goal "Desired outcome" --title "Change title" --class M
 uv run ggsad validate
 ```
 

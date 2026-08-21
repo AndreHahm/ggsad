@@ -393,7 +393,10 @@ function cmdExtract(opts) {
         const sections = (rel.sections || [])
           .map((s) => {
             const bullets = s.bullets
-              .map((b) => (b.pr !== null ? `- ${b.body} (#${b.pr})` : `- ${b.body}`))
+              .map((b) => {
+                const body = b.body.replace(/\n/g, '\n  ');
+                return b.pr !== null ? `- ${body} (#${b.pr})` : `- ${body}`;
+              })
               .join('\n');
             return `### ${s.type}\n\n${bullets}`;
           })

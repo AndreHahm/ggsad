@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+from pydantic import ValidationError
+
 from ggsad.models.state import ChangeState
 
 _VALID: dict[str, Any] = {
@@ -47,3 +50,26 @@ def test_gates_block_is_preserved_untyped_when_present() -> None:
     state = ChangeState.model_validate(data)
 
     assert state.gates == {"current": {"definition": "DoD", "result": "pending"}}
+
+
+@pytest.mark.parametrize("status", ["failed", "cancelled", "superseded"])
+def test_terminal_status_requires_closed_phase(status: str) -> None:
+    data = {**_VALID, "flow": {**_VALID["flow"], "status": status}}
+
+    with pytest.raises(ValidationError, match="closed phase"):
+        ChangeState.model_validate(data)
+
+
+@pytest.mark.parametrize("status", ["draft", "ready", "active", "waiting"])
+def test_closed_phase_rejects_nonterminal_status(status: str) -> None:
+    data = {**_VALID, "flow": {**_VALID["flow"], "phase": "closed", "status": status}}
+
+    with pytest.raises(ValidationError, match="terminal status"):
+        ChangeState.model_validate(data)
+
+
+def test_removed_design_phase_is_rejected() -> None:
+    data = {**_VALID, "flow": {**_VALID["flow"], "phase": "design"}}
+
+    with pytest.raises(ValidationError, match="phase"):
+        ChangeState.model_validate(data)

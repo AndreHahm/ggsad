@@ -58,6 +58,7 @@ def test_generated_config_yaml_is_schema_valid(tmp_path: Path) -> None:
     assert validate_against_schema(data=data, schema=schema, file_label="config.yaml") == []
 
     config = ProjectConfig.model_validate(data)
+    assert config.method.version == "1.3"
     assert config.project.operating_mode == "stand-alone"
     assert config.integrations == []
 

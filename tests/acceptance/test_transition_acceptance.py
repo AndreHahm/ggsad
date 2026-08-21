@@ -16,7 +16,9 @@ runner = CliRunner()
 
 
 def _new_change(target: Path, change_id: str = "CHG-002", slug: str = "example-change") -> Path:
-    manifest = build_change_manifest(target, change_id=change_id, slug=slug, title="Example")
+    manifest = build_change_manifest(
+        target, change_id=change_id, slug=slug, title="Example", goal="Ship it"
+    )
     write_manifest(manifest)
     return target / "specs" / f"{change_id}-{slug}"
 

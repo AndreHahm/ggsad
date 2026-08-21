@@ -33,7 +33,6 @@ _PHASES = (
     "decide",
     "specify",
     "plan",
-    "design",
     "build",
     "verify",
     "release",
@@ -83,7 +82,7 @@ def test_only_specify_draft_transitions_all_others_preserve_bytes(phase: str, st
         target = Path(raw_dir)
         initialize_project(target)
         manifest = build_change_manifest(
-            target, change_id="CHG-002", slug="example-change", title="Example"
+            target, change_id="CHG-002", slug="example-change", title="Example", goal="Ship it"
         )
         write_manifest(manifest)
         change_dir = target / "specs" / "CHG-002-example-change"
