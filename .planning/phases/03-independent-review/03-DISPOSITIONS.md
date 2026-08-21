@@ -11,7 +11,7 @@ Status: Closed. All findings are accepted, implemented, owner-approved, and inde
 - Owner decision date: 2026-08-20
 - Remedy: Give the `complete` action distinct gate sequences: `draft` to `ready` evaluates DoF → DoW → current-phase DoR; `active` to local `done` and possible advancement evaluates DoF → DoW → current-phase DoD → next-phase DoR. Section 8.5 will explicitly order current-phase DoR while retaining applicability, `not_applicable`, and short-circuit rules.
 - Affected sections: 8.3, 8.5
-- Implementation status: Applied in commit `6a13257`; approved in corrected revision `f26019607dc874fb9d239f241ea9a42007a4521a`.
+- Implementation status: Applied in commit `cf0f7c2`; approved in corrected revision `c5347abb431e463dbe43b23c3ad765c28a03af17`.
 - Follow-up review status: Verified resolved in `03-FOLLOW-UP-REVIEW.md`.
 
 ### PR-02 — Named-flow omission record
@@ -21,7 +21,7 @@ Status: Closed. All findings are accepted, implemented, owner-approved, and inde
 - Owner decision date: 2026-08-20
 - Remedy: Treat selection of a named Section 7.1 flow as one authorized decision with one compact record covering all phases omitted by that flow. The named flow supplies the authorizing rule and omitted-phase list; the record still supplies approver, rationale, approval timestamp, and replacement evidence. Class S may store the record inline with its minimal specification.
 - Affected sections: 5.5
-- Implementation status: Applied in commits `9bb9cb3` and `f260196`; approved in corrected revision `f26019607dc874fb9d239f241ea9a42007a4521a`.
+- Implementation status: Applied in commits `b273006` and `c5347ab`; approved in corrected revision `c5347abb431e463dbe43b23c3ad765c28a03af17`.
 - Follow-up review status: Verified resolved in `03-FOLLOW-UP-REVIEW.md`.
 
 ### PR-03 — SF-06 evidence reference
@@ -36,14 +36,14 @@ Status: Closed. All findings are accepted, implemented, owner-approved, and inde
 
 ## Exact-Diff Approval
 
-- Prior owner-approved revision: `936aa85d3ada744358c5a515248641767f7e33c5`
-- Corrected revision: `f26019607dc874fb9d239f241ea9a42007a4521a`
+- Prior owner-approved revision: `710ac3ba6b7702d208beaaa9c625da3e319ca25c`
+- Corrected revision: `c5347abb431e463dbe43b23c3ad765c28a03af17`
 - Owner approval: Approved
 - Approval timestamp: `2026-08-20T08:11:12Z`
 
 ## Independent Follow-up Review
 
 - Reviewer: Claude Code
-- Reviewed revision: `f26019607dc874fb9d239f241ea9a42007a4521a`
+- Reviewed revision: `c5347abb431e463dbe43b23c3ad765c28a03af17`
 - Result: Verified; PR-01, PR-02, and PR-03 resolved; no new findings
 - Blocking findings: None open

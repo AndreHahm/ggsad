@@ -17,9 +17,9 @@ behavior_unverified: 0
 | # | Truth | Status | Evidence |
 |---|---|---|---|
 | 1 | All eight review findings have traceable owner-approved dispositions. | ✓ VERIFIED | `02-DISPOSITIONS.md` contains exactly one accepted disposition for each `SF-01` through `SF-08`. |
-| 2 | The corrected normative specification implements every accepted remedy. | ✓ VERIFIED | Revisions `11fb156`, `d141e7d`, `2902a97`, and `936aa85` implement the remedies and preserve eight transition actions. |
-| 3 | The baseline-anchored product diff remains restricted to the English normative specification. | ✓ VERIFIED | From baseline `54f203668179d424395a237398ef06278ab0f5cd`, the only non-`.planning/` changed file is `docs/method/GG-SAD_normative_method_specification.md`. |
-| 4 | The repository owner explicitly approved the exact corrected revision. | ✓ VERIFIED | Owner approval recorded at `2026-08-19T07:46:59Z` for revision `936aa85d3ada744358c5a515248641767f7e33c5`. |
+| 2 | The corrected normative specification implements every accepted remedy. | ✓ VERIFIED | Revisions `ad2c924`, `676ed76`, `02e2836`, and `710ac3b` implement the remedies and preserve eight transition actions. |
+| 3 | The baseline-anchored product diff remains restricted to the English normative specification. | ✓ VERIFIED | From baseline `eaefb212a82e8d2e870d00bda052bc810949392e`, the only non-`.planning/` changed file is `docs/method/GG-SAD_normative_method_specification.md`. |
+| 4 | The repository owner explicitly approved the exact corrected revision. | ✓ VERIFIED | Owner approval recorded at `2026-08-19T07:46:59Z` for revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`. |
 
 **Score:** 4/4 truths verified
 
@@ -45,7 +45,7 @@ behavior_unverified: 0
 
 ## Human Verification
 
-Completed. The repository owner approved corrected revision `936aa85d3ada744358c5a515248641767f7e33c5` explicitly in the review checkpoint.
+Completed. The repository owner approved corrected revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c` explicitly in the review checkpoint.
 
 ## Gaps Summary
 

@@ -27,7 +27,7 @@ CHG-001 evidence.
 ## Scope
 
 The English normative specification, `src/ggsad/`, and `.ggsad/` are unchanged from Phase 4's
-starting revision `677b6f0`. Test changes are limited to the representative fixture and its one
+starting revision `6ee1f2f`. Test changes are limited to the representative fixture and its one
 integration module. Historical moves are all detected at 100% similarity.
 
 ## Verification Result

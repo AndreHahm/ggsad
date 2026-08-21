@@ -15,10 +15,10 @@ behavior_unverified: 0
 
 | # | Truth | Status | Evidence |
 |---|---|---|---|
-| 1 | PR-01 has deterministic status-specific gate ordering. | ✓ VERIFIED | Sections 8.3 and 8.5 at revision `f260196`; Claude follow-up PR-01 result. |
-| 2 | PR-02 has compact named-flow omission evidence without inferred authorization. | ✓ VERIFIED | Section 5.5 at revision `f260196`; Claude follow-up PR-02 result. |
+| 1 | PR-01 has deterministic status-specific gate ordering. | ✓ VERIFIED | Sections 8.3 and 8.5 at revision `c5347ab`; Claude follow-up PR-01 result. |
+| 2 | PR-02 has compact named-flow omission evidence without inferred authorization. | ✓ VERIFIED | Section 5.5 at revision `c5347ab`; Claude follow-up PR-02 result. |
 | 3 | PR-03 has an accurate evidence reference. | ✓ VERIFIED | `02-DISPOSITIONS.md` reads `1.1, 4, 5`; Claude follow-up PR-03 result. |
-| 4 | The exact corrected revision is owner-approved. | ✓ VERIFIED | `03-DISPOSITIONS.md` records approval of `f26019607dc874fb9d239f241ea9a42007a4521a` at `2026-08-20T08:11:12Z`. |
+| 4 | The exact corrected revision is owner-approved. | ✓ VERIFIED | `03-DISPOSITIONS.md` records approval of `c5347abb431e463dbe43b23c3ad765c28a03af17` at `2026-08-20T08:11:12Z`. |
 | 5 | Independent follow-up review leaves no blocking finding open. | ✓ VERIFIED | `03-FOLLOW-UP-REVIEW.md` reports no new findings and no open blocking findings. |
 
 **Score:** 5/5 truths verified

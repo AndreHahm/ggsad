@@ -13,7 +13,7 @@
   because the transition replaces GG-SAD development governance with GSD.
 - Design approval status: Approved
 - Final approval record: The repository owner explicitly approved reviewed design revision
-  `6ece3bf` in the Codex review session on 2026-08-18 after disposition of F-01 through F-07, and
+  `c3b0a30` in the Codex review session on 2026-08-18 after disposition of F-01 through F-07, and
   subsequently approved sequencing the GSD update and onboarding before the normative amendment
   so all substantive implementation work uses the selected development method.
 
@@ -225,7 +225,7 @@ Verification will include:
 
 ## Design review dispositions
 
-Claude Code reviewed commit `8377892df692ec6237fa6cadbf74377a99dbd94a`. The repository owner and
+Claude Code reviewed commit `800a004e7c8d7a565c34deab1b3aa61f9b1b6492`. The repository owner and
 Requestor dispositioned its findings as follows on 2026-08-18:
 
 | Finding | Disposition | Resulting action |

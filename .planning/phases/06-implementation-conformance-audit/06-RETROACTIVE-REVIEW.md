@@ -6,9 +6,9 @@
 - Reviewer role: Independent reviewer
 - Requestor: Codex (and/or the repository owner directly — exact authorship of these two commits
   was not confirmed with the requestor before this review; see PROC-01)
-- Reviewed artifacts: commits `4d70d89d3b3f44016a74ad1b51f18032f56a6c37` ("fix(review): resolve PR
+- Reviewed artifacts: commits `9122f62e65b02d3d32ade9a21c6e458abdfa9d7e` ("fix(review): resolve PR
   governance and tooling findings", 2026-08-21T08:29:28+02:00) and
-  `b76b76fd57d97425fb4e677612b5f3f9c003540f` ("fix review findings across normative contract",
+  `afe093279a03c9fde4e94cd62c6d6d1c2d34be04` ("fix review findings across normative contract",
   2026-08-21T09:28:34+02:00), evaluated together against the resulting `HEAD` state
 - Review date: 2026-08-21
 - Action: Retroactive review, requested after both commits already existed on the branch. No Phase 6
@@ -34,7 +34,7 @@ that gated every prior normative amendment in this project (Phases 1–3).
   Phase 6 not started` as of the time these commits were made — no Phase 6 directory, context, or
   plan existed.
 - `docs/method/GG-SAD_normative_method_specification.md` was substantively amended by
-  `b76b76f`: new Section 9.1/9.2 and 10.1/10.2 (`explore`/`decide` DoR/DoD), rewritten Gate Order
+  `afe0932`: new Section 9.1/9.2 and 10.1/10.2 (`explore`/`decide` DoR/DoD), rewritten Gate Order
   text for `start`, `wait`, `resume`, `fail`, `cancel`, `supersede`, and `reopen` in Section 8.3, a
   new release-approval bullet in Section 10.7, a restructured Pair Review evidence table in Section
   16.4, and a revision-date bump to `2026-08-21` — all without a recorded owner approval of the
@@ -57,7 +57,7 @@ that gated every prior normative amendment in this project (Phases 1–3).
 **Disposition requirement:** the repository owner must choose one of:
 
 1. Ratify this as the retroactive review, explicitly record approval of the exact resulting state
-   (`HEAD` at the time of this review, `b76b76f`) in this document, and treat Phase 6/7 as
+   (`HEAD` at the time of this review, `afe0932`) in this document, and treat Phase 6/7 as
    substantively complete-after-the-fact with this document as their audit trail; or
 2. Revert both commits and redo the work through a properly planned Phase 6 (audit, producing an
    evidenced gap list) and Phase 7 (remediation, implementing only that list), with the normative
@@ -67,10 +67,10 @@ that gated every prior normative amendment in this project (Phases 1–3).
 **Disposition: Option 1 — Ratified.**
 
 - Owner approval: Approved
-- Approved revision: `b76b76fd57d97425fb4e677612b5f3f9c003540f` (exact `HEAD` state reviewed above)
+- Approved revision: `afe093279a03c9fde4e94cd62c6d6d1c2d34be04` (exact `HEAD` state reviewed above)
 - Approval timestamp: `2026-08-21T07:41:19Z`
-- Effect: the repository owner explicitly approves the exact diff introduced by commits `4d70d89`
-  and `b76b76f`, retroactively satisfying the owner-approval-of-exact-diff requirement for the
+- Effect: the repository owner explicitly approves the exact diff introduced by commits `9122f62`
+  and `afe0932`, retroactively satisfying the owner-approval-of-exact-diff requirement for the
   normative amendment. This document's Technical assessment section, completed before this
   ratification, satisfies the independent-review requirement for the same diff. Phase 6 (audit) and
   Phase 7 (remediation) are treated as substantively complete-after-the-fact, evidenced by this
@@ -82,7 +82,7 @@ that gated every prior normative amendment in this project (Phases 1–3).
 
 Independent of PROC-01, the substance of both commits holds up under direct testing:
 
-- **`THIRD_PARTY_NOTICES.md` (commit `4d70d89`)** correctly and fully resolves the finding from the
+- **`THIRD_PARTY_NOTICES.md` (commit `9122f62`)** correctly and fully resolves the finding from the
   posted PR #3 review: "Installed Version" now reads `1.10.0` (matching `.claude/gsd-core/VERSION`),
   and the "Optional... companion" / "subordinate to GG-SAD" framing is replaced with an accurate
   description of GSD Core as this repository's sole development method.
@@ -100,8 +100,8 @@ Independent of PROC-01, the substance of both commits holds up under direct test
   scope rather than re-litigating the prior terminal outcome's gates. Both resolve real ambiguities.
 - **README.md's CLI quick-start example** (`uv run ggsad new CHG-002 example-change --goal "Desired
   outcome" --title "Change title" --class M`) matches the current CLI signature exactly — verified by
-  running it. (Reading commit `4d70d89`'s diff in isolation would have suggested this example was
-  broken, missing `--goal`; commit `b76b76f` added it back in the same line. Evaluating cumulative
+  running it. (Reading commit `9122f62`'s diff in isolation would have suggested this example was
+  broken, missing `--goal`; commit `afe0932` added it back in the same line. Evaluating cumulative
   `HEAD` state rather than each commit separately was necessary to avoid a false-positive finding
   here.)
 - **Full test suite**: 161 passed, 98.16% coverage (up from 150 tests / 98.58% at the end of Phase 5;
@@ -115,6 +115,6 @@ authorizes, both landing together) is exactly what happened here regardless of t
 ## Disposition
 
 Closed. PROC-01 ratified under Option 1 — see disposition record above. The repository owner
-approved the exact diff at `b76b76f` on 2026-08-21T07:41:19Z, retroactively satisfying both the
+approved the exact diff at `afe0932` on 2026-08-21T07:41:19Z, retroactively satisfying both the
 owner-approval and independent-review requirements for this normative amendment and its
 accompanying implementation change. This document is the evidence record for Phase 6 and Phase 7.

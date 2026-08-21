@@ -67,9 +67,9 @@ status: complete
 
 ## Task Commits
 
-1. **Record Phase 1 pre-execution baseline** — `513afd0`
-2. **Add Section 1.1 category map** — `57b2369`
-3. **Define canonical artifact model** — `d3e5d03`
+1. **Record Phase 1 pre-execution baseline** — `dbbbafe`
+2. **Add Section 1.1 category map** — `0af8076`
+3. **Define canonical artifact model** — `c33ed07`
 
 ## Files Created/Modified
 

@@ -6,9 +6,9 @@
 - Reviewer role: Independent reviewer (per the governing design's assignment)
 - Requestor: Codex
 - Reviewed artifact: `docs/superpowers/plans/2026-08-18-gsd-bootstrap-transition.md`
-- Reviewed artifact revision: `dd1aadd3c4f0fdc4a756c9574ba03020751887d7` (2026-08-18T11:57:40+02:00)
+- Reviewed artifact revision: `f070237eca7a9f6e9be15d7d1b87059f6a6eeb46` (2026-08-18T11:57:40+02:00)
 - Governing design artifact: `docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md`
-- Governing design revision: `4c5735b66fc6b3a54c5c066d28f9e5794bc69a1e` (2026-08-18T11:51:58+02:00,
+- Governing design revision: `5bdff9460a01bc6ff164c1b1b4a6e2b2e3b26eaf` (2026-08-18T11:51:58+02:00,
   Status: Approved)
 - Review date: 2026-08-18
 - Action: Verification of the bootstrap plan against the approved, current-revision design
@@ -20,7 +20,7 @@
 ## Method
 
 Read the plan in full and cross-checked it clause-by-clause against the design's *current* revision
-(the design was revised and approved after my earlier review of commit `8377892`, including
+(the design was revised and approved after my earlier review of commit `800a004`, including
 disposition of findings F-01 through F-07 and a resequencing of the transition steps — see
 `docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design-findings.md`).
 Also verified specific factual claims in the plan against live repository state: `git status`,

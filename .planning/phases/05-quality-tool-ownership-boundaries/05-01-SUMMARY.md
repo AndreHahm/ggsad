@@ -23,7 +23,7 @@ boundary, and all retained active command surfaces use the same locked baseline.
 
 ## Scope
 
-From Phase 5's starting revision `6f98eab`, non-planning changes are limited to `pyproject.toml`,
+From Phase 5's starting revision `c2268a3`, non-planning changes are limited to `pyproject.toml`,
 `AGENTS.md`, README, and `specs/examples/class-m/evidence.md`. The English normative specification,
 product source, tests, `.ggsad/`, `.claude/`, and archive are unchanged.
 

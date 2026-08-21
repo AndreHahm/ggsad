@@ -78,9 +78,9 @@ status: complete
 
 ## Task Commits
 
-1. **Define state transition contract** — `6ac9bfd`
-2. **Bound lean-profile self-approval** — `a389f98`
-3. **Define portable Pair Review evidence** — `af61efb`
+1. **Define state transition contract** — `33552c9`
+2. **Bound lean-profile self-approval** — `484ef1e`
+3. **Define portable Pair Review evidence** — `1d86d51`
 
 ## Files Created/Modified
 

@@ -8,7 +8,7 @@
 - Requestor: Codex
 - Reviewed artifact: `.planning/phases/03-independent-review/03-01-PLAN.md`
 - Reviewed against: `.planning/phases/03-independent-review/03-CONTEXT.md` (owner dispositions) and
-  `.planning/phases/03-independent-review/03-PAIR-REVIEW-FINDINGS.md` (findings commit `825d4d8`,
+  `.planning/phases/03-independent-review/03-PAIR-REVIEW-FINDINGS.md` (findings commit `9a82932`,
   confirmed correct)
 - Review date: 2026-08-20
 - Action: Plan-conformance check — does the plan correctly and completely implement the owner's
@@ -20,7 +20,7 @@
 
 Read `03-01-PLAN.md`, `03-CONTEXT.md`, and `03-PAIR-REVIEW-FINDINGS.md` in full and cross-checked
 each plan task against the owner's disposition text for the finding it claims to resolve. Verified
-the `825d4d8` findings-commit reference against `git log`. Checked the plan's constraints
+the `9a82932` findings-commit reference against `git log`. Checked the plan's constraints
 (version pinned at 1.3, scope limited to the English normative specification outside `.planning/`,
 approval-before-follow-up-review sequencing, eight-action vocabulary preserved) against
 `03-CONTEXT.md`'s constraint list.
@@ -29,7 +29,7 @@ approval-before-follow-up-review sequencing, eight-action vocabulary preserved) 
 
 - **Task 1 (PR-03)**: Corrects `02-DISPOSITIONS.md`'s SF-06 reference from `2.1, 4, 5` to
   `1.1, 4, 5`, exactly as dispositioned. Explicitly protects `03-PAIR-REVIEW-FINDINGS.md` from
-  modification, verified against commit `825d4d8` — confirmed to be the actual commit that recorded
+  modification, verified against commit `9a82932` — confirmed to be the actual commit that recorded
   that file.
 - **Task 2 (PR-01)**: Gives the `complete` action per-status-path gate sequences (`draft`:
   DoF→DoW→current-phase DoR; `active`: DoF→DoW→current-phase DoD→next-phase DoR) and extends

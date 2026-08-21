@@ -6,7 +6,7 @@
 - Reviewer role: Independent reviewer (as assigned by the reviewed document)
 - Requestor: Codex
 - Reviewed artifact: `docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md`
-- Reviewed artifact revision: `8377892df692ec6237fa6cadbf74377a99dbd94a` (2026-08-18T11:03:15+02:00)
+- Reviewed artifact revision: `800a004e7c8d7a565c34deab1b3aa61f9b1b6492` (2026-08-18T11:03:15+02:00)
 - Review date: 2026-08-18
 - Action: Review of design document prior to owner approval (transition sequence step 1)
 - Result: Not ready for owner sign-off as written; no blocking defect in the design's diagnosis or approach

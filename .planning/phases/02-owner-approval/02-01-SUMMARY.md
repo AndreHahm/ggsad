@@ -4,13 +4,13 @@ plan: 01
 status: complete
 requirements: [APPR-01, APPR-02]
 completed: 2026-08-19
-approved_revision: 936aa85d3ada744358c5a515248641767f7e33c5
+approved_revision: 710ac3ba6b7702d208beaaa9c625da3e319ca25c
 approval_timestamp: 2026-08-19T07:46:59Z
 ---
 
 # Phase 2 Plan 01 Summary
 
-The repository owner explicitly approved the exact corrected English normative specification diff from baseline `54f203668179d424395a237398ef06278ab0f5cd` through revision `936aa85d3ada744358c5a515248641767f7e33c5`.
+The repository owner explicitly approved the exact corrected English normative specification diff from baseline `eaefb212a82e8d2e870d00bda052bc810949392e` through revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`.
 
 ## Work Completed
 
@@ -37,4 +37,4 @@ Outside `.planning/`, the baseline-anchored diff changes only `docs/method/GG-SA
 
 ## Approval and Next Gate
 
-Owner approval was recorded at `2026-08-19T07:46:59Z` for corrected revision `936aa85d3ada744358c5a515248641767f7e33c5`. Phase 3 requires a structurally independent Claude Code re-review and does not start automatically.
+Owner approval was recorded at `2026-08-19T07:46:59Z` for corrected revision `710ac3ba6b7702d208beaaa9c625da3e319ca25c`. Phase 3 requires a structurally independent Claude Code re-review and does not start automatically.

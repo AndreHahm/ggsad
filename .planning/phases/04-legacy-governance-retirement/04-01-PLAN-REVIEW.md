@@ -7,7 +7,7 @@
 - Requestor: Codex
 - Reviewed artifact: `.planning/phases/04-legacy-governance-retirement/04-01-PLAN.md`
 - Reviewed against: `.planning/phases/04-legacy-governance-retirement/04-CONTEXT.md` (revision
-  `677b6f0`, which already incorporates both `04-CONTEXT-REVIEW.md` findings CR-01 and CR-02),
+  `6ee1f2f`, which already incorporates both `04-CONTEXT-REVIEW.md` findings CR-01 and CR-02),
   `.planning/phases/04-legacy-governance-retirement/04-CONTEXT-REVIEW.md`, and roadmap requirements
   RETIRE-01 through RETIRE-05
 - Review date: 2026-08-20
@@ -21,7 +21,7 @@
 
 ## Method
 
-Confirmed `04-CONTEXT.md` was updated (commit `677b6f0`, "incorporate phase 4 context review") to
+Confirmed `04-CONTEXT.md` was updated (commit `6ee1f2f`, "incorporate phase 4 context review") to
 directly incorporate both findings from `04-CONTEXT-REVIEW.md` before this plan was written — CR-01
 (README sections needing replacement, and where the replacement should point) and CR-02 (module
 docstring in scope for the test-fixture decoupling) are both now explicit in the context. Verified
@@ -81,7 +81,7 @@ repo-wide search for every archived path pattern outside `.planning/`, `docs/sup
   distinct from this repo's own governance), the normative specification's own Section 4.2 (same
   product-model distinction), a product example fixture, and product-behavior tests for `ggsad init`.
   Nothing outside the plan's declared `files_modified` needs touching.
-- Task 4's revision anchor `677b6f0` is a real commit ("incorporate phase 4 context review").
+- Task 4's revision anchor `6ee1f2f` is a real commit ("incorporate phase 4 context review").
 
 ## Finding
 
