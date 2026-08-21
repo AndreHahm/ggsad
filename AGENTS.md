@@ -27,7 +27,7 @@ Run the applicable baseline before completion:
 `uv sync --locked`
 `uv run ruff format --check .`
 `uv run ruff check .`
-`uv run ty check`
+`uv run ty check src tests`
 `uv run pytest`
 `uv build`
 

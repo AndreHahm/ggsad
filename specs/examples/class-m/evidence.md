@@ -49,10 +49,10 @@ Not applicable — no implementation was performed for this illustrative example
 
 | Gate | Command or Method | Result | Evidence | Notes |
 |---|---|---|---|---|
-| Environment / Dependency Sync | `uv sync` | Not Run | Not applicable | Illustrative example |
+| Environment / Dependency Sync | `uv sync --locked` | Not Run | Not applicable | Illustrative example |
 | Formatting | `uv run ruff format --check .` | Not Run | Not applicable | Illustrative example |
 | Linting | `uv run ruff check .` | Not Run | Not applicable | Illustrative example |
-| Type Checking | `uv run ty check` | Not Run | Not applicable | Illustrative example |
+| Type Checking | `uv run ty check src tests` | Not Run | Not applicable | Illustrative example |
 | Unit Tests | `uv run pytest` | Not Run | Not applicable | Illustrative example |
 | Build / Packaging | `uv build` | Not Run | Not applicable | Illustrative example |
 
