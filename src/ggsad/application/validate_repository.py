@@ -130,14 +130,55 @@ def validate_change(target: Path, change_dir: Path) -> list[ValidationIssue]:
     state_path = change_dir / "state.yaml"
     if state_path.exists():
         schema_path = target / ".ggsad" / "schemas" / "state.schema.json"
-        _, state_issues = _load_and_schema_validate(state_path, schema_path)
+        state_data, state_issues = _load_and_schema_validate(state_path, schema_path)
         issues += state_issues
+        if isinstance(state_data, dict):
+            issues += _validate_declared_artifacts(change_dir, state_data)
 
     for name in _PLACEHOLDER_CHECKED_ARTIFACTS:
         artifact_path = change_dir / name
         if artifact_path.exists():
             issues += validate_no_unresolved_placeholders(artifact_path)
 
+    return issues
+
+
+def _validate_declared_artifacts(
+    change_dir: Path, state_data: dict[str, Any]
+) -> list[ValidationIssue]:
+    """Validate non-null `state.yaml` artifact references and containment."""
+    issues: list[ValidationIssue] = []
+    artifacts = state_data.get("artifacts")
+    if not isinstance(artifacts, dict):
+        return issues
+
+    resolved_change_dir = change_dir.resolve()
+    for name, reference in artifacts.items():
+        if not isinstance(reference, str):
+            continue
+        artifact_path = (resolved_change_dir / reference).resolve()
+        field = f"artifacts/{name}"
+        if not artifact_path.is_relative_to(resolved_change_dir):
+            reason = f"Declared artifact path resolves outside the change directory: {reference}"
+            issues.append(
+                ValidationIssue(
+                    category=IssueCategory.PATH_SAFETY,
+                    file=str(change_dir / "state.yaml"),
+                    field=field,
+                    reason=reason,
+                    remediation="Use a path contained within the change directory.",
+                )
+            )
+        elif not artifact_path.is_file():
+            issues.append(
+                ValidationIssue(
+                    category=IssueCategory.MISSING_ARTIFACT,
+                    file=str(change_dir / "state.yaml"),
+                    field=field,
+                    reason=f"Declared artifact does not exist: {reference}",
+                    remediation=f"Create {artifact_path} or remove the optional reference.",
+                )
+            )
     return issues
 
 

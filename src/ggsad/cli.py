@@ -27,6 +27,34 @@ app = typer.Typer(
 )
 
 
+def _result_envelope(  # noqa: PLR0913
+    operation: str,
+    result: str,
+    *,
+    changed: bool,
+    issues: list[dict[str, str]] | None = None,
+    state: dict[str, str] | None = None,
+    data: dict[str, object] | None = None,
+) -> dict[str, object]:
+    """Build the shared observable result for every contract operation."""
+    envelope: dict[str, object] = {
+        "operation": operation,
+        "result": result,
+        "changed": changed,
+    }
+    if state is not None:
+        envelope["state"] = state
+    if issues is not None:
+        envelope["issues"] = issues
+    if data is not None:
+        envelope["data"] = data
+    return envelope
+
+
+def _emit_envelope(envelope: dict[str, object]) -> None:
+    typer.echo(f"Result: {json.dumps(envelope, sort_keys=True)}")
+
+
 @app.callback(invoke_without_command=True)
 def main(
     version: Annotated[
@@ -78,15 +106,37 @@ def init_command(
     _echo_manifest_result(result, operation="Initialization")
 
     if not result.ok:
+        _emit_envelope(
+            _result_envelope(
+                "initialize",
+                "rejected",
+                changed=False,
+                issues=[
+                    {"code": "path_conflict", "message": str(path)} for path in result.conflicts
+                ],
+            )
+        )
         raise typer.Exit(code=1)
 
     typer.echo(f"GG-SAD project initialized at {target.resolve()}")
+    _emit_envelope(
+        _result_envelope(
+            "initialize",
+            "success",
+            changed=bool(result.created),
+            data={"message": f"GG-SAD project initialized at {target.resolve()}"},
+        )
+    )
 
 
 @app.command("new")
-def new_command(
+def new_command(  # noqa: PLR0913, PLR0917
     change_id: Annotated[str, typer.Argument(help="Change ID, e.g. CHG-002.")],
     slug: Annotated[str, typer.Argument(help="Lowercase, hyphenated slug, e.g. example-change.")],
+    goal: Annotated[
+        str | None,
+        typer.Option("--goal", help="Required goal summary that binds the new change."),
+    ] = None,
     change_class: Annotated[
         str,
         typer.Option("--class", help="Change class. CHG-001 only implements Class M."),
@@ -116,19 +166,48 @@ def new_command(
             change_id=change_id,
             slug=slug,
             title=resolved_title,
+            goal=goal or "",
             change_class=change_class,
         )
     except ChangeCreationError as exc:
         typer.echo(f"Change creation rejected: {exc}")
+        _emit_envelope(
+            _result_envelope(
+                "create_change",
+                "rejected",
+                changed=False,
+                issues=[{"code": "invalid_change", "message": str(exc)}],
+            )
+        )
         raise typer.Exit(code=1) from exc
 
     result = write_manifest(manifest)
     _echo_manifest_result(result, operation="Change creation")
 
     if not result.ok:
+        _emit_envelope(
+            _result_envelope(
+                "create_change",
+                "rejected",
+                changed=False,
+                issues=[
+                    {"code": "path_conflict", "message": str(path)} for path in result.conflicts
+                ],
+            )
+        )
         raise typer.Exit(code=1)
 
-    typer.echo(f"Class {change_class} change {change_id} created at specs/{change_id}-{slug}/")
+    message = f"Class {change_class} change {change_id} created at specs/{change_id}-{slug}/"
+    typer.echo(message)
+    _emit_envelope(
+        _result_envelope(
+            "create_change",
+            "success",
+            changed=True,
+            state={"phase": "specify", "status": "draft"},
+            data={"message": message},
+        )
+    )
 
 
 @app.command("validate")
@@ -150,13 +229,32 @@ def validate_command(
     (never `specs/examples/`, which is never active project state).
     """
     if output_format not in ("text", "json"):
-        typer.echo(f"Invalid --format {output_format!r}: must be 'text' or 'json'.")
+        message = f"Invalid --format {output_format!r}: must be 'text' or 'json'."
+        typer.echo(message)
+        _emit_envelope(
+            _result_envelope(
+                "validate",
+                "rejected",
+                changed=False,
+                issues=[{"code": "invalid_format", "message": message}],
+            )
+        )
         raise typer.Exit(code=1)
 
     issues = validate_repository(target, change_id=change)
 
+    issue_data = [{"code": issue.category.value, "message": str(issue)} for issue in issues]
+    envelope = _result_envelope(
+        "validate",
+        "rejected" if issues else "success",
+        changed=False,
+        issues=issue_data if issues else None,
+        data={"message": f"{len(issues)} validation issue(s) found."}
+        if issues
+        else {"message": "Validation passed."},
+    )
     if output_format == "json":
-        typer.echo(json.dumps([issue.model_dump(mode="json") for issue in issues], indent=2))
+        typer.echo(json.dumps(envelope, indent=2))
     else:
         for issue in issues:
             typer.echo(str(issue))
@@ -164,6 +262,7 @@ def validate_command(
             typer.echo(f"{len(issues)} validation issue(s) found.")
         else:
             typer.echo(f"OK: no validation issues found under {target.resolve()}")
+        _emit_envelope(envelope)
 
     if issues:
         raise typer.Exit(code=1)
@@ -189,9 +288,18 @@ def transition_command(
     modifies `state.yaml` (R-012).
     """
     if target_status != SUPPORTED_TARGET_STATUS:
-        typer.echo(
+        message = (
             f"Unsupported target status {target_status!r}: "
             f"CHG-001 only supports {SUPPORTED_TARGET_STATUS!r}."
+        )
+        typer.echo(message)
+        _emit_envelope(
+            _result_envelope(
+                "transition",
+                "rejected",
+                changed=False,
+                issues=[{"code": "unsupported_transition", "message": message}],
+            )
         )
         raise typer.Exit(code=1)
 
@@ -199,12 +307,38 @@ def transition_command(
         result = perform_transition(target, change_id, actor=actor)
     except StateWriteError as exc:
         typer.echo(f"Transition failed during write: {exc}")
+        _emit_envelope(
+            _result_envelope(
+                "transition",
+                "error",
+                changed=False,
+                issues=[{"code": "state_write_error", "message": str(exc)}],
+            )
+        )
         raise typer.Exit(code=1) from exc
 
     if result.rejected:
         typer.echo("Transition rejected:")
         for issue in result.issues:
             typer.echo(f"  {issue}")
+        _emit_envelope(
+            _result_envelope(
+                "transition",
+                "rejected",
+                changed=False,
+                issues=[
+                    {"code": issue.category.value, "message": str(issue)} for issue in result.issues
+                ],
+            )
+        )
         raise typer.Exit(code=1)
 
     typer.echo(f"{change_id}: specify/draft -> specify/{result.new_status}")
+    _emit_envelope(
+        _result_envelope(
+            "transition",
+            "success",
+            changed=True,
+            state={"phase": "specify", "status": str(result.new_status)},
+        )
+    )

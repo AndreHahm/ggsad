@@ -16,11 +16,13 @@ runner = CliRunner()
 
 def test_e003_create_a_valid_class_m_change(tmp_path: Path) -> None:
     """E-003: given a valid initialized project, `ggsad new` creates
-    `specs/CHG-002-example-change/` with all five required artifacts, and
+    `specs/CHG-002-example-change/` with the complete reference scaffold, and
     `state.yaml` identifies Class M, phase `specify`, status `draft`."""
     initialize_project(tmp_path)
 
-    result = runner.invoke(app, ["new", "CHG-002", "example-change", "--target", str(tmp_path)])
+    result = runner.invoke(
+        app, ["new", "CHG-002", "example-change", "--goal", "Ship it", "--target", str(tmp_path)]
+    )
 
     assert result.exit_code == 0
 
@@ -33,6 +35,7 @@ def test_e003_create_a_valid_class_m_change(tmp_path: Path) -> None:
     assert state.change.change_class == "M"
     assert state.flow.phase == "specify"
     assert state.flow.status == "draft"
+    assert state.goal.summary == "Ship it"
 
 
 def test_e004_reject_an_invalid_change_identifier(tmp_path: Path) -> None:
@@ -41,7 +44,10 @@ def test_e004_reject_an_invalid_change_identifier(tmp_path: Path) -> None:
     outside or inside the intended change directory."""
     initialize_project(tmp_path)
 
-    result = runner.invoke(app, ["new", "change/../../002", "example", "--target", str(tmp_path)])
+    result = runner.invoke(
+        app,
+        ["new", "change/../../002", "example", "--goal", "Ship it", "--target", str(tmp_path)],
+    )
 
     assert result.exit_code != 0
     assert "change/../../002" in result.output

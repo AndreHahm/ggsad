@@ -28,7 +28,7 @@ retained Python implementation must be proven to conform to the *clarified* cont
 through explicit audit and verification evidence — not assumed to conform because prior
 GG-SAD/CHG-001 completion evidence claims it does.
 
-**Current focus:** Phase 1 — Normative Clarification
+**Current focus:** Phase 6 — Implementation Conformance Audit
 
 ## Current Position
 

@@ -121,7 +121,6 @@
             "decide",
             "specify",
             "plan",
-            "design",
             "build",
             "verify",
             "release",
@@ -462,7 +461,6 @@
             "decide",
             "specify",
             "plan",
-            "design",
             "build",
             "verify",
             "release",
@@ -603,6 +601,54 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "phase": {
+                "const": "closed"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "status": {
+                "enum": ["done", "failed", "cancelled", "superseded"]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "status": {
+                "enum": ["failed", "cancelled", "superseded"]
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "flow": {
+            "properties": {
+              "phase": {
+                "const": "closed"
+              }
+            }
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {

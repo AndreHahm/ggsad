@@ -88,7 +88,7 @@ def test_full_workflow_succeeds_stand_alone_with_no_integrations(tmp_path: Path)
     assert validate_result.exit_code == 0
 
     manifest = build_change_manifest(
-        tmp_path, change_id="CHG-002", slug="example-change", title="Example"
+        tmp_path, change_id="CHG-002", slug="example-change", title="Example", goal="Ship it"
     )
     write_result = write_manifest(manifest)
     assert write_result.ok

@@ -96,9 +96,9 @@ def test_resolve_change_directory_stays_under_specs(tmp_path: Path) -> None:
 # --- manifest building (T-042) ------------------------------------------------------
 
 
-def test_manifest_contains_five_required_artifacts(tmp_path: Path) -> None:
+def test_manifest_contains_complete_reference_scaffold(tmp_path: Path) -> None:
     manifest = build_change_manifest(
-        tmp_path, change_id="CHG-002", slug="example-change", title="Example Change"
+        tmp_path, change_id="CHG-002", slug="example-change", title="Example Change", goal="Ship it"
     )
 
     change_dir = tmp_path / "specs" / "CHG-002-example-change"
@@ -115,7 +115,7 @@ def test_manifest_contains_five_required_artifacts(tmp_path: Path) -> None:
 
 def test_generated_state_yaml_is_schema_valid_and_identifies_the_change(tmp_path: Path) -> None:
     manifest = build_change_manifest(
-        tmp_path, change_id="CHG-002", slug="example-change", title="Example Change"
+        tmp_path, change_id="CHG-002", slug="example-change", title="Example Change", goal="Ship it"
     )
     change_dir = tmp_path / "specs" / "CHG-002-example-change"
     content = manifest[change_dir / "state.yaml"].decode("utf-8")
@@ -141,6 +141,7 @@ def test_unsupported_change_class_is_rejected(tmp_path: Path) -> None:
             change_id="CHG-002",
             slug="example-change",
             title="Example",
+            goal="Ship it",
             change_class="L",
         )
 
@@ -150,7 +151,7 @@ def test_build_change_manifest_rejects_invalid_id_before_touching_filesystem(
 ) -> None:
     with pytest.raises(InvalidChangeIdentifierError):
         build_change_manifest(
-            tmp_path, change_id="change/../../002", slug="example", title="Example"
+            tmp_path, change_id="change/../../002", slug="example", title="Example", goal="Ship it"
         )
 
     assert not (tmp_path / "specs").exists()
@@ -161,4 +162,6 @@ def test_build_change_manifest_rejects_existing_change_directory(tmp_path: Path)
     change_dir.mkdir(parents=True)
 
     with pytest.raises(ChangeAlreadyExistsError, match="already exists"):
-        build_change_manifest(tmp_path, change_id="CHG-002", slug="example-change", title="Example")
+        build_change_manifest(
+            tmp_path, change_id="CHG-002", slug="example-change", title="Example", goal="Ship it"
+        )

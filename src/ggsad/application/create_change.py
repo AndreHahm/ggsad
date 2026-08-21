@@ -1,6 +1,6 @@
 """Class M change creation (R-003, R-004, R-008, R-012).
 
-`build_change_manifest` renders the five required artifacts for a new
+`build_change_manifest` renders the complete reference scaffold for a new
 change under `specs/<change-id>-<slug>/`: `state.yaml` is constructed
 through the typed `ChangeState` model from Slice 2 (so it's correct by
 construction against `state.schema.json`, not hand-formatted YAML), and
@@ -106,13 +106,15 @@ def resolve_change_directory(target: Path, change_id: str, slug: str) -> Path:
     return change_dir
 
 
-def _render_state_yaml(*, change_id: str, slug: str, title: str, change_class: str) -> bytes:
+def _render_state_yaml(
+    *, change_id: str, slug: str, title: str, goal: str, change_class: str
+) -> bytes:
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
     state = ChangeState(
         schema_version="0.1",
         change=ChangeIdentity(id=change_id, slug=slug, title=title, change_class=change_class),
         flow=FlowState(profile="standard", phase="specify", status="draft"),
-        goal=GoalSummary(summary=f"<Describe the desired outcome for {change_id}.>"),
+        goal=GoalSummary(summary=goal),
         artifacts=ArtifactPaths(
             spec="spec.md", plan="plan.md", tasks="tasks.md", evidence="evidence.md"
         ),
@@ -124,12 +126,13 @@ def _render_state_yaml(*, change_id: str, slug: str, title: str, change_class: s
     return dump_yaml_bytes(dump_change_state(state))
 
 
-def build_change_manifest(
+def build_change_manifest(  # noqa: PLR0913
     target: Path,
     *,
     change_id: str,
     slug: str,
     title: str,
+    goal: str,
     change_class: str = SUPPORTED_CHANGE_CLASS,
 ) -> dict[Path, bytes]:
     """Build the manifest for a new Class M change: absolute path -> desired content.
@@ -141,6 +144,9 @@ def build_change_manifest(
     """
     validate_change_id(change_id)
     validate_slug(slug)
+    if not goal.strip():
+        msg = "A non-empty goal is required to create a goal-bound change."
+        raise InvalidChangeIdentifierError(msg)
     if change_class != SUPPORTED_CHANGE_CLASS:
         msg = f"Unsupported change class {change_class!r}: CHG-001 only implements Class M."
         raise InvalidChangeIdentifierError(msg)
@@ -156,7 +162,11 @@ def build_change_manifest(
 
     manifest: dict[Path, bytes] = {
         change_dir / "state.yaml": _render_state_yaml(
-            change_id=change_id, slug=slug, title=title, change_class=change_class
+            change_id=change_id,
+            slug=slug,
+            title=title,
+            goal=goal.strip(),
+            change_class=change_class,
         )
     }
 

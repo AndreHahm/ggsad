@@ -79,7 +79,7 @@ def _default_config_yaml(project_id: str) -> bytes:
         },
         "method": {
             "name": "Goal-Gated Spec-Anchored Development",
-            "version": "1.2",
+            "version": "1.3",
         },
         "workflow": {
             "default_change_class": "M",
