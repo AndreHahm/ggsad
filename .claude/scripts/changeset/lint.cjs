@@ -72,6 +72,11 @@ function evaluateLint({ changedFiles, labels, fragmentFailures = [] }) {
 const { ExitError, runMain } = require('../lib/cli-exit.cjs');
 const { parseFragment } = require('./parse.cjs');
 
+/**
+ * Read the pull-request context, evaluate the changeset policy, and print its verdict.
+ *
+ * @returns {number} Process exit code: zero when the policy passes, otherwise one.
+ */
 function main() {
   const fs = require('node:fs');
   const cp = require('node:child_process');

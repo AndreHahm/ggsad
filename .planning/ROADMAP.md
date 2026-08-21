@@ -189,7 +189,7 @@ that explicitly and close without code changes.
 ### Phase 8: Full Verification
 
 **Goal**: Run the complete verification baseline (`uv sync --locked`,
-`uv run ruff format --check .`, `uv run ruff check .`, `uv run ty check`, `uv run pytest`,
+`uv run ruff format --check .`, `uv run ruff check .`, `uv run ty check src tests`, `uv run pytest`,
 `uv build`) clean, capture its output as evidence, and record GSD verification results for
 this milestone.
 **Depends on**: Phase 7
@@ -197,7 +197,7 @@ this milestone.
 **Success Criteria** (what must be TRUE):
 
   1. `uv sync --locked` runs clean (VERIFY-01)
-  2. `uv run ruff format --check .`, `uv run ruff check .`, and `uv run ty check` all run clean (VERIFY-01)
+  2. `uv run ruff format --check .`, `uv run ruff check .`, and `uv run ty check src tests` all run clean (VERIFY-01)
   3. `uv run pytest` and `uv build` both run clean (VERIFY-01)
   4. The full command output is captured as evidence, and GSD verification results for this milestone are recorded per GSD's own evidence conventions — not a GG-SAD `evidence.md` (VERIFY-02)
 
