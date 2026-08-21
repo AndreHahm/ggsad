@@ -34,7 +34,7 @@ MUST NOT be bundled with any other phase's work and MUST NOT be skipped or merge
 - [x] **Phase 2: Owner Approval** - Repository owner reviews and explicitly approves (or requests changes to) the exact Phase 1 diff — hard gate (completed 2026-08-19)
 - [x] **Phase 3: Independent Review** - Structurally independent Claude Code review evaluates the owner-approved diff; blocking findings resolved — hard gate (completed 2026-08-20)
 - [x] **Phase 4: Legacy Governance Retirement** - Classify and disposition every legacy development-governance artifact; retire/relocate without silent deletion (completed 2026-08-20)
-- [ ] **Phase 5: Quality-Tool Ownership Boundaries** - Scope product quality tooling correctly and standardize commands/type-checker across retained docs
+- [x] **Phase 5: Quality-Tool Ownership Boundaries** - Scope product quality tooling correctly and standardize commands/type-checker across retained docs (completed 2026-08-21)
 - [ ] **Phase 6: Implementation Conformance Audit** - Audit `src/ggsad/` against the clarified contract and produce an evidenced gap list
 - [ ] **Phase 7: Gap Remediation** - Implement only evidenced conformance gaps, each with test coverage
 - [ ] **Phase 8: Full Verification** - Run the complete verification baseline clean and record evidence
@@ -152,7 +152,7 @@ document.
 
 Plans:
 
-- [ ] 05-01-PLAN.md — Align quality-tool ownership configuration, synchronize active baseline commands, and verify TOOL-01 through TOOL-04
+- [x] 05-01-PLAN.md — Align quality-tool ownership configuration, synchronize active baseline commands, and verify TOOL-01 through TOOL-04
 
 ### Phase 6: Implementation Conformance Audit
 
@@ -216,7 +216,7 @@ no autonomous or parallel execution.
 | 2. Owner Approval | 1/1 | Complete    | 2026-08-19 |
 | 3. Independent Review | 1/1 | Complete    | 2026-08-20 |
 | 4. Legacy Governance Retirement | 1/1 | Complete    | 2026-08-20 |
-| 5. Quality-Tool Ownership Boundaries | 0/TBD | Not started | - |
+| 5. Quality-Tool Ownership Boundaries | 1/1 | Complete    | 2026-08-21 |
 | 6. Implementation Conformance Audit | 0/TBD | Not started | - |
 | 7. Gap Remediation | 0/TBD | Not started | - |
 | 8. Full Verification | 0/TBD | Not started | - |
