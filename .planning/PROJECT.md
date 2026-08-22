@@ -23,20 +23,19 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ### Validated
 
 - ✓ GSD Core 1.10.0 pinned as the sole development method for this repository — transition steps 1–5 (design approval, bootstrap plan, GSD pin, AGENTS.md/CLAUDE.md replacement, GSD onboarding), evidenced by commits `800a004`…`8642fbb`
+- ✓ Normative specification clarified without changing intended implementation behavior — v1.0
+- ✓ Exact normative diff approved by the repository owner — v1.0
+- ✓ Independent Claude Code review completed and blocking findings resolved — v1.0
+- ✓ Conflicting legacy development-governance artifacts classified and retired or archived — v1.0
+- ✓ Product quality-tool ownership boundaries corrected — v1.0
+- ✓ Retained implementation audited against the clarified normative contract — v1.0
+- ✓ Evidenced conformance gaps remediated with automated coverage — v1.0
+- ✓ Complete verification baseline and GSD evidence recorded — v1.0
 
 ### Active
 
-See `.planning/REQUIREMENTS.md` for the full v1 requirement set (NORM, APPR, REVIEW,
-RETIRE, TOOL, AUDIT, GAP, VERIFY categories — one per roadmap phase).
-
-- [ ] Clarify the normative specification without changing implementation behavior
-- [ ] Obtain explicit repository-owner approval of the exact normative diff
-- [ ] Obtain independent Claude Code review and resolve blocking findings
-- [ ] Classify and retire/relocate remaining conflicting legacy development-governance artifacts
-- [ ] Correct quality-tool ownership boundaries (product code vs. installer-owned GSD tooling)
-- [ ] Audit the retained implementation against the clarified normative contract
-- [ ] Implement only evidenced conformance gaps
-- [ ] Run the complete verification baseline and record GSD verification results
+None. The next milestone will define a fresh active requirement set. The shipped v1.0 requirements
+are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -56,33 +55,33 @@ RETIRE, TOOL, AUDIT, GAP, VERIFY categories — one per roadmap phase).
 
 - **Governing documents for this ingest (binding precedence):** `docs/superpowers/specs/2026-08-18-normative-baseline-and-gsd-transition-design.md` (precedence 1, governs the transition process) and `docs/method/GG-SAD_normative_method_specification.md` (precedence 0, governs GG-SAD method semantics and remains superior in the hierarchy it itself defines). No content contradiction exists between them — the design document explicitly subordinates itself to the normative specification.
 - **Derived context available:** `.planning/codebase/` (ARCHITECTURE.md, STACK.md, STRUCTURE.md, CONVENTIONS.md, INTEGRATIONS.md, TESTING.md, CONCERNS.md — codebase map dated 2026-08-18) and `.planning/intel/` (SYNTHESIS.md, constraints.md, context.md, decisions.md, requirements.md, `INGEST-CONFLICTS.md` — doc-ingest synthesis of 31 classified documents, 0 blockers / 2 warnings / 3 auto-resolved info). Both are derived/reference context, not governance documents themselves.
-- **Existing implementation:** `src/ggsad/` (Python 3.13, Typer CLI, Pydantic v2 models, JSON Schema validators, ruamel.yaml-based state engine) delivers `init`/`new`/`validate`/`transition` per the CHG-001 change (evidenced complete 2026-08-04). Per the retain-versus-rewrite rule, this is retained *pending* audit against the clarified contract in this milestone — prior completion evidence is historical context, not proof of conformance.
+- **Current implementation:** `src/ggsad/` (Python 3.13, Typer CLI, Pydantic v2 models, JSON Schema validators, ruamel.yaml-based state engine) delivers `init`/`new`/`validate`/`transition`. Milestone v1.0 audited it against the clarified normative contract, remediated evidenced gaps, and independently reproduced the full baseline: 164 tests passed with 98.19% coverage.
 - **Known concerns already catalogued** (`.planning/codebase/CONCERNS.md`): a resolved-but-notable type-checker substitution (mypy→ty) that required amending multiple documents; two previously-found and fixed security/validation gaps (path traversal in schema-declared paths, unenforced schema-version pinning); several intentional scope gaps (phase-transition engine limited to `specify/draft`→`specify/ready`, no profile content, single GSD mapping only, limited Pair Review coverage) documented as future roadmap work, not defects of this milestone's scope.
-- **Two pairs of unresolved near-duplicate legacy documents** (from `INGEST-CONFLICTS.md`, relevant to the retirement/classification phase): `docs/architecture.md` vs. `docs/architecture-reference.md` (competing reference-architecture docs); `docs/implementation-roadmap.md` vs. `docs/roadmap.md` (competing "GG-SAD Implementation Roadmap" docs, the latter carrying live delivery-status content). Neither pair declares one canonical over the other — the retirement/classification phase must produce an explicit disposition for each.
+- **Legacy governance retirement complete:** milestone v1.0 dispositioned the duplicate architecture and roadmap pairs and moved retired material outside active development governance with an explicit archive manifest.
 - **Quality/verification baseline commands:** `uv sync --locked`, `uv run ruff format --check .`, `uv run ruff check .`, `uv run ty check src tests`, `uv run pytest`, `uv build` (per `AGENTS.md` and the transition SPEC; supersedes the bare `uv sync` and `mypy` framing still present in some DOC-classified legacy sources).
 
 ## Constraints
 
 - **Method:** GSD Core 1.10.0 (pinned) is the sole development method for this repository. GG-SAD MUST NOT be used to govern this repository's own development.
 - **Normative spec changes:** Require explicit repository-owner approval of the exact diff, plus independent Claude Code review. A fresh context or subagent of the Requestor does not satisfy independence.
-- **Product/normative files:** Not modified by this initialization — `.planning/` artifacts only, per explicit instruction.
+- **Milestone state:** v1.0 is shipped and archived. New product or normative changes require a new GSD milestone and the applicable approval/review gates.
 - **Evidence:** Prior GG-SAD/CHG-001 completion evidence and `specs/CHG-*` state are historical context, not proof of current conformance. Retained code is retained only when it conforms to the clarified product contract and passes verification.
 - **Scope:** No profile resolution, gate engine, memory, MCP, web UI, CI integration, or multi-agent orchestration in this milestone (see Out of Scope).
 - **Tech stack (baseline, unchanged by this milestone):** Python 3.13, `uv`, Typer 0.27, Pydantic 2.13 (frozen models), `ruamel.yaml`, JSON Schema (Draft 2020-12), pytest 9.1 / pytest-cov / Hypothesis, Ruff 0.16, `ty` 0.0.65 (strict).
 - **Execution mode:** Manual phase advancement with explicit confirmation at each gate; sequential (non-parallel, non-autonomous) execution; model tier inherited from the active session rather than pinned.
-- **Commit discipline for this bootstrap:** `.planning/` artifacts are not committed during initialization. Per the approved plan, they land in a single Task 4 onboarding commit after external (independent) verification.
+- **Planning history:** completed v1.0 phase artifacts and requirements are archived under `.planning/milestones/`; active requirements are created afresh for the next milestone.
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
 | GSD Core 1.10.0 pinned as sole development method | Owner-confirmed governing decision in the approved transition design | ✓ Good — committed (steps 1–5) |
-| Eight fine-grained phases with owner approval and independent review as separate hard gates | Selected during onboarding from the owner-approved bootstrap plan and its hard approval/independent-review boundaries; approval/review must not be bundled with other work — each is an independent checkpoint | — Pending |
-| Horizontal Layers project structure mode | Sequential governance/audit process with hard gates, not iterative user-facing feature slices | — Pending |
-| Manual phase advancement, sequential execution, no autonomous/parallel implementation | Minimal-automation prototype; explicit confirmation required at each gate | — Pending |
-| Research only when a phase has a genuine unresolved external fact (not blanket upfront research) | Most phases are internal governance/audit work already grounded in derived intel and codebase context | — Pending |
-| Model tier inherited from configured session rather than hard-pinned | User preference | — Pending |
-| `.planning/` artifacts tracked in Git, but not committed during this initialization | Approved plan requires a single Task 4 onboarding commit after external verification | — Pending |
+| Eight fine-grained phases with owner approval and independent review as separate hard gates | Selected during onboarding from the owner-approved bootstrap plan and its hard approval/independent-review boundaries; approval/review must not be bundled with other work — each is an independent checkpoint | ✓ Good — v1.0 completed all gates |
+| Horizontal Layers project structure mode | Sequential governance/audit process with hard gates, not iterative user-facing feature slices | ✓ Good — matched v1.0's transition work |
+| Manual phase advancement, sequential execution, no autonomous/parallel implementation | Minimal-automation prototype; explicit confirmation required at each gate | ✓ Good — preserved owner control |
+| Research only when a phase has a genuine unresolved external fact (not blanket upfront research) | Most phases are internal governance/audit work already grounded in derived intel and codebase context | ✓ Good — targeted TLS investigation resolved the only external blocker |
+| Model tier inherited from configured session rather than hard-pinned | User preference | ✓ Good — no repository model coupling introduced |
+| `.planning/` artifacts tracked in Git, but not committed during initialization | Approved plan required a single onboarding commit after external verification | ✓ Good — completed as planned |
 
 ## Evolution
 
@@ -102,4 +101,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-18 after initialization*
+*Last updated: 2026-08-22 after v1.0 milestone*
