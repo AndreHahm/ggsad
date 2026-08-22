@@ -91,11 +91,12 @@ None.
 
 ## Deferred Items
 
-Items acknowledged and carried forward from previous milestone close:
+Items acknowledged at v1.0 milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| verification_override | Phase 6: Implementation Conformance Audit | Canonical readiness cannot mark a zero-plan phase complete; owner-ratified `06-RETROACTIVE-REVIEW.md` is the substantive audit and closure evidence | v1.0 |
+| verification_override | Phase 7: Gap Remediation | Canonical readiness cannot mark a zero-plan phase complete; owner-ratified `06-RETROACTIVE-REVIEW.md` plus `07-RETROACTIVE-CLOSURE.md` are the substantive remediation and closure evidence | v1.0 |
 
 ## Session Continuity
 
