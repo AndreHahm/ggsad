@@ -4,6 +4,12 @@
 
 **Phases completed:** 8 phases, 8 plans, 29 tasks
 
+**Closeout type:** Override closeout
+
+**Known verification overrides:** 2 readiness-projection overrides for the owner-ratified,
+evidence-only Phase 6 and Phase 7 closures (see `.planning/STATE.md` Deferred Items). These are GSD
+plan-count projection exceptions, not unresolved product or verification failures.
+
 **Key accomplishments:**
 
 - A durable phase baseline, a complete specification-category map, and an explicit canonical artifact model now form the first provisional normative slice.
