@@ -20,7 +20,7 @@ current_phase_name: Full Verification
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-18)
+See: .planning/PROJECT.md (updated 2026-08-22)
 
 **Core value:** `docs/method/GG-SAD_normative_method_specification.md` is the single
 leading authority for GG-SAD method semantics and reference-implementation behavior; the
