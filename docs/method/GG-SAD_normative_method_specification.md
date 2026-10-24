@@ -4390,7 +4390,7 @@ The content hash of a binary file is the hash string of the bytes of the file, e
 
 Whether a file is text or binary is decided by the implementation. The decision MUST depend only on the bytes of the file, so that the same bytes are always classified in the same way, and an implementation SHOULD classify a file as text only when its bytes are valid UTF-8 and hold no zero byte. The hash string does not state which kind was applied. A content hash is therefore comparable only with a content hash that an implementation computed with the same decision, and a content hash that differs from the recorded one is a difference. See AE-198.
 
-The content hash of a parsed definition, such as the gate definitions of a change (Section 24.1), is the hash string of the canonical bytes of the parsed value (Section 25.1) and not of the text of the file. A YAML document is read as YAML 1.2 with its core schema, and an alias is replaced by the value it refers to. Comments, layout, the order of the keys of a mapping, and the quoting of a scalar that reads as the same value therefore have no effect, and the order of the elements of a sequence has an effect. A parsed value that is outside the domain of Section 25.1 has no content hash: this holds for a floating-point number, a timestamp, a mapping key that is not a string, a mapping that repeats a key, and a scalar that the core schema reads as a type that the domain does not hold. An operation that needs the content hash of such a definition MUST be rejected, and its issue states which value is outside the domain. See AE-199, AE-200.
+The content hash of a parsed definition, such as the gate definitions of a change (Section 24.1), is the hash string of the canonical bytes of the parsed value (Section 25.1) and not of the text of the file. A YAML document is read as YAML 1.2 with its core schema, and an alias is replaced by the value it refers to. Comments, layout, the order of the keys of a mapping, and the quoting of a scalar that reads as the same value therefore have no effect, and the order of the elements of a sequence has an effect. A parsed value that is outside the domain of Section 25.1 has no content hash: this holds for a floating-point number, a mapping key that is not a string, a mapping that repeats a key, and a scalar that the core schema reads as a type that the domain does not hold. An operation that needs the content hash of such a definition MUST be rejected, and its issue states which value is outside the domain. See AE-199, AE-200.
 
 The content hash of a set of files is the hash string of the canonical bytes of an object that maps the path of each file to its content hash. A path is written relative to the root of the repository, with `/` as the separator (Section 24.5). The order in which the files are listed has no effect. See AE-201.
 
@@ -4408,7 +4408,7 @@ Then the two content hashes are equal
 
 - Covers: Section 25.2
 
-Given two binary files that differ only in that the first holds the bytes 0D 0A where the second holds the byte 0A, and a file whose bytes are not valid UTF-8  
+Given two files that each hold the byte 00 and differ only in that the first holds the bytes 0D 0A where the second holds the byte 0A, and a file whose bytes are not valid UTF-8  
 When the content hash of each file is computed  
 Then the content hashes of the two files differ, the file whose bytes are not valid UTF-8 is hashed on its exact bytes, and the same bytes give the same content hash each time
 
@@ -4452,7 +4452,7 @@ The value of `schema_version` is a string of two non-negative integers that are 
 
 An implementation supports one or more versions of each kind of file: it reads and writes a file of a supported version as it is. It MAY also hold migration steps, and each step converts a file from one version to the next higher version. A version is migratable when it is not supported, when it is lower than the highest supported version, and when a chain of steps leads from it to a supported version. See AE-208.
 
-Before an implementation uses a governed file for an operation, it MUST check the `schema_version` of the file:
+Before an implementation uses a governed file for an operation, it MUST check the `schema_version` of the file. For a state document, the comparison with the latest recorded version that is described below is made first, and only a document that matches it is checked against the supported versions:
 
 - a version that equals a supported version is accepted;
 - a migratable version is refused until the file is migrated explicitly: the operation answers `rejected` with the stable issue code `migration-required`;
@@ -4464,7 +4464,7 @@ The `migrate` operation (Section 22.1) is the only way to change the version of 
 
 A migration of the state document appends one entry to the history for each step. The body of the entry has the action `migrate` and the result `success`, and in addition to the fields of Section 25.1 it holds `source_version`, the version before the step, `target_version`, the version after the step, and `source_hash`, the source content hash, which is the content hash (Section 25.2) of the state document before the step, taken as a parsed value for a state document written in JSON and as a text file for a state document written in YAML. The `after` record of the entry holds the target version in `schema_version`, and the field `schema_version` of the state document is set to the version after the last step. The entries that the history already holds are kept as they are: a migration appends to the history and MUST NOT rewrite an entry, and the `n`, `prev`, `body`, and `hash` of every earlier entry are unchanged. See AE-209, AE-210.
 
-The version of the state document MUST equal the latest recorded version, which is the `schema_version` of the `after` record of the last entry. A state document whose version differs from it, whether lower or higher, is not consistent in the sense of Section 24.4. An implementation MUST NOT act on it, and its result is `rejected` with the stable issue code `schema-version-mismatch`. This detects a state document whose version was lowered by hand in order to run a migration again, or to make a refusal disappear. See AE-211.
+The version of the state document MUST equal the latest recorded version, which is the `schema_version` of the `after` record of the last entry. A state document whose version differs from it, whether lower or higher, is not consistent in the sense of Section 24.4. An implementation MUST NOT act on it, and its result is `rejected` with the stable issue code `schema-version-mismatch`. This detects a state document whose version was lowered by hand in order to run a migration again, or to make a refusal disappear. Because the comparison is made first, such a document is refused with `schema-version-mismatch` even when the lowered version is a migratable one. See AE-211.
 
 A project-level artifact, that is, the project configuration or the integration mappings, is migrated inside a change: the `migrate` operation names a change that is not `closed`, and the migration is recorded in the history of that change, in an entry whose `files` field maps the path of the artifact to its content hash after the step, and whose `source_hash` is its content hash before the step. The change definition and the state document of a change are migrated as part of that change. A migration that changes the parsed gate definitions of a change makes them differ from the approved ones, and Section 24.1 then requires that a human approves them again. The `migrate` operation does not change the state or the outcome of a change. Applied to the state document or the change definition of a change, it is therefore legal from every state of that change, and it is not a row of a transition table. See AE-212, AE-213.
 
@@ -4538,9 +4538,9 @@ Then the entries 1 to 6 have the same `prev`, `body`, and `hash` as before, the 
 
 - Covers: Section 25.3
 
-Given a state document whose last entry records the version `"1.1"`, and a hand edit that sets the field `schema_version` of the document to `"1.0"`  
+Given an implementation that supports only the version `1.1` and holds a step from `1.0` to `1.1`, and a state document whose last entry records the version `"1.1"`, and a hand edit that sets the field `schema_version` of the document to `"1.0"`  
 When any operation is requested for the change  
-Then the result is `rejected` with the issue code `schema-version-mismatch`, nothing is written, and the implementation does not act on the change
+Then the result is `rejected` with the issue code `schema-version-mismatch` and not `migration-required`, nothing is written, and the implementation does not act on the change
 
 **AE-212 — A project-level artifact is migrated inside a change and recorded in it**
 
