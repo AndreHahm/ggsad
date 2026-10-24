@@ -57,6 +57,7 @@ A GG-SAD implementation MAY be developed using another development method. That 
 | 20. Completion Criteria for a Change | Method Semantics |
 | 21. Quick Reference | Method Semantics |
 | 22. Minimal Automation Contract | Reference-Implementation Requirements |
+| 23. The `core` Profile | Method Semantics |
 
 ---
 
@@ -1505,3 +1506,563 @@ A goal summary, specification anchor, gate outcome, evidence references, and tim
 An invalid operation MUST be rejected without any partial mutation of persisted state. Its `result` MUST be `rejected` or `error`, and `changed` MUST be `false`.
 
 For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the Section 8 Transition Table and Section 15 Evidence Model.
+
+---
+
+## 23. The `core` Profile
+
+This section specifies the `core` method profile (Section 5.6). The protections of Section 24 and the state definitions of Section 25 apply to a `core` change as those sections state. Sections 1 to 22 apply to a `core` change as Section 5.6 states.
+
+### 23.1 Change Definition and Documents
+
+A `core` change consists of three documents in its change directory (Section 4.3):
+
+```text
+specs/<change-id>/
+├── change.yaml
+├── spec.md
+└── state.json
+```
+
+- `change.yaml` is the change definition, a human-owned YAML document.
+- `spec.md` is the specification of the change. A human writes it, and the `approve` action approves it (Section 23.4). Section 3.9 applies to its requirements.
+- `state.json` is the state document. The implementation owns it, and Section 25.1 defines it.
+
+The change definition MUST contain these fields:
+
+- `id`: the identifier of the change, unique among the changes of the project;
+- `method_profile`: the method profile of the change, which is `core` (Section 5.6);
+- `compliance_profile`: the compliance profile of the change (Section 5.1);
+- `author` and `owner`: the participant that wrote the change and the participant responsible for it;
+- `goal`: with `problem`, `done_when`, and `non_goals`, as Section 3.1 requires;
+- `scope`: with `allow`, the list of path patterns the change MAY touch (Section 24.5);
+- `requirements`: the requirements of the change, each with text, examples, and evidence commands (Section 24.9);
+- `gates`: with the three lists `fail`, `wait`, and `done` (Section 23.3).
+
+The change definition MAY contain `follows`, the identifier of one earlier change that this change continues. The change named in `follows` MUST exist and MUST be in the state `closed`. The field is a reference only: it never changes the state or the outcome of the named change. See AE-09, AE-11, AE-12.
+
+A `core` change has no size class (Section 6), no phase (Section 7), no Definition of Ready or Definition of Done per phase (Sections 9 and 10), and no ranking of change documents (Section 4.1). The invariant core of Section 3.7 applies to it: the goal is `goal`, the specification anchor is `spec.md`, gate evaluation is Section 23.6, evidence is the requirement evidence of Section 24.9, controlled wait and fail behavior are Sections 23.5 and 24.7, and the traceable final status is the outcome of Section 23.2. See AE-59.
+
+A human MUST NOT edit the state document by hand. An implementation MUST detect a state document that does not match the recorded history of the change and MUST NOT act on it (Section 24.4). See AE-10.
+
+**AE-09 — Accept a complete change definition**
+
+- Covers: Section 23.1
+
+Given a change definition with the fields `id`, `method_profile` set to `core`, `compliance_profile`, `author`, `owner`, `goal`, `scope`, `requirements`, and `gates`  
+When the `new` action receives it  
+Then the change exists with the documents `change.yaml`, `spec.md`, and `state.json`
+
+**AE-10 — Refuse a state document edited by hand**
+
+- Covers: Section 23.1
+
+Given a `core` change whose `state.json` was edited by hand after the last recorded action  
+When any action that changes state is requested  
+Then the implementation detects that the state document does not match the recorded history and refuses to act
+
+**AE-11 — Follow a closed change**
+
+- Covers: Section 23.1
+
+Given a `core` change A that is closed with the outcome `failed`  
+When a new change B is created with `follows` naming change A  
+Then change B is created, and change A keeps its state `closed` and its outcome `failed`
+
+**AE-12 — Reject following a change that has not ended**
+
+- Covers: Section 23.1
+
+Given a `core` change A in the state `active`  
+When a new change B is created with `follows` naming change A  
+Then the creation is rejected, because change A is not closed, and no change B exists
+
+**AE-59 — A `core` change has no size class**
+
+- Covers: Section 23.1
+
+Given a `core` change whose scope would be a Class L initiative under Section 6  
+When the change is created  
+Then Section 6 does not apply, the change is one `core` change, and no decomposition into several changes is required
+
+### 23.2 States and Outcomes
+
+A `core` change is always in exactly one of four states:
+
+- `open`: the change exists and has not started;
+- `active`: the change has started and work is in progress;
+- `waiting`: the change is paused by a wait record (Section 23.5);
+- `closed`: the change has ended.
+
+A `closed` change has exactly one of three outcomes:
+
+- `done`: the change was completed successfully by the `close` action;
+- `failed`: the change ended unsuccessfully, because a hard fail condition was active or because a human disposed of a soft fail condition with the `fail` action (Section 24.7);
+- `cancelled`: the change was ended by the `cancel` or `supersede` action.
+
+The state document records the state in the field `state` and the outcome in the field `outcome` (Section 25.1). An outcome exists only when the state is `closed`; in every other state the outcome is `null`. An outcome of `failed` MUST carry a reason text. The final status codes of Section 12.2 apply to `full` only. See AE-14, AE-39, AE-41.
+
+When a change is created, its record MUST show the state `open`, the outcome `null`, no approval, no question, no wait record, and no base revision. See AE-13.
+
+A `closed` change is final: no action changes its state or its outcome. Follow-up work is a new change that names the closed change in `follows` (Section 23.1). See AE-15.
+
+**AE-13 — Initial record of a new change**
+
+- Covers: Section 23.2
+
+Given a valid change definition  
+When the change is created  
+Then the record shows the state `open`, the outcome `null`, no approval, no question, no wait record, and no base revision
+
+**AE-14 — The outcome exists only when closed**
+
+- Covers: Section 23.2
+
+Given an `active` change whose outcome is `null`  
+When the `close` action succeeds  
+Then the state is `closed` and the outcome is `done`, and no change in any other state has an outcome
+
+**AE-15 — A closed change is final**
+
+- Covers: Section 23.2
+
+Given a `core` change that is `closed` with the outcome `cancelled`  
+When the `start` action is requested for it  
+Then the request is rejected, and the state and the outcome do not change
+
+### 23.3 Gates
+
+The field `gates` of a `core` change holds three lists:
+
+- `fail`: fail gates, each stating a condition under which the change has failed;
+- `wait`: wait gates, each stating a condition under which the change pauses: while the condition is active, the change does not start, resume, or close;
+- `done`: done gates, each stating a condition that MUST be satisfied before the change closes with the outcome `done`.
+
+There is no ready gate. Readiness to start is a precondition of the `start` action (Section 23.4).
+
+Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate and a wait gate are predicate gates: each evaluates a condition to one of the three results of Section 24.2. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `review`, satisfied by a recorded review result from a participant other than the participant that requested the reviewed work (Section 3.10); or `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3). A change definition with a duplicate gate identifier, a gate without a kind, a gate with more than one kind, or a fail gate without a severity MUST be rejected. See AE-16, AE-17, AE-18.
+
+**AE-16 — Reject a duplicate gate identifier**
+
+- Covers: Section 23.3
+
+Given a change definition with two gates that both have the `id` `tests-pass`  
+When the `new` action receives it  
+Then the definition is rejected, and no change is created
+
+**AE-17 — Reject a fail gate without a severity**
+
+- Covers: Section 23.3
+
+Given a change definition whose fail gate `no-secrets` has no `severity`  
+When the `new` action receives it  
+Then the definition is rejected, because a fail gate without a severity is invalid
+
+**AE-18 — Reject a done gate with two kinds**
+
+- Covers: Section 23.3
+
+Given a change definition whose done gate `release-ok` is both a `check` and a `sign-off`  
+When the `new` action receives it  
+Then the definition is rejected, because a done gate has exactly one kind
+
+### 23.4 Actions and Transition Table
+
+A `core` change changes state only through the actions of the table below. An action requested from a state that the table does not list under Legal From MUST be rejected (Section 22.3). If a precondition of a row is not met, the transition of that row does not occur.
+
+| Action | Legal From | Precondition | Resulting State |
+|---|---|---|---|
+| `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2. See AE-19, AE-20. |
+| `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8). For `gates`, the gate definitions are valid under Section 23.3. For `all`, both conditions hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-21, AE-22, AE-23, AE-24. |
+| `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), and the evaluation of Section 23.6 finds no fail gate and no wait gate active. | The state `active`, with the base revision recorded. See AE-25, AE-26. |
+| `wait` | `active` | A reason, an owner, and a resume condition are given. | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action gives a question (Section 23.5). See AE-27, AE-28, AE-29. |
+| `ask` | `open`, `active` | The question has a text and an owner, which defaults to the owner of the change. A structured question has at least two distinct options. | The state does not change, and an unanswered question with the next identifier is recorded (Section 24.8). See AE-30, AE-31. |
+| `answer` | Any state except `closed` | The question exists and is unanswered. The answer comes from the owner of the question. A structured question receives one of its options, and a free-text question receives a text. | The state does not change, and the question is recorded as answered. An answer does not resume a waiting change. See AE-32, AE-33, AE-34. |
+| `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. See AE-35, AE-36. |
+| `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
+| `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-39, AE-40, AE-41. |
+| `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
+| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45. |
+| `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
+
+The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant, An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
+
+The actions `check`, `review`, and `guard` are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table. See AE-49.
+
+The method profile `core` has no `reopen` action. A change in the state `closed` is final, and follow-up work is a new change that names the closed change in `follows` (Section 23.1). See AE-48.
+
+**AE-19 — Create a change**
+
+- Covers: Section 23.4 (`new`)
+
+Given a valid change definition whose identifier `c-1` is not used  
+When the `new` action receives it  
+Then the change `c-1` exists in the state `open` with the outcome `null`
+
+**AE-20 — Reject a duplicate change identifier**
+
+- Covers: Section 23.4 (`new`)
+
+Given an existing change `c-1`  
+When the `new` action receives a valid change definition with the `id` `c-1`  
+Then the action is rejected, and the existing change `c-1` does not change
+
+**AE-21 — Approve the specification and the gates together**
+
+- Covers: Section 23.4 (`approve`)
+
+Given an `open` change with valid gate definitions and no unanswered question  
+When a human approves the target `all`  
+Then the approvals of the specification and of the gates are recorded, and the state remains `open`
+
+**AE-22 — Reject the approval of a specification with an unanswered question**
+
+- Covers: Section 23.4 (`approve`)
+
+Given an `open` change with the unanswered question Q1  
+When a human approves the target `spec`  
+Then the action is rejected, no approval is recorded, and Q1 remains unanswered
+
+**AE-23 — Reject an override when no soft fail condition awaits disposition**
+
+- Covers: Section 23.4 (`approve`)
+
+Given an `active` change with no soft fail condition awaiting disposition  
+When a human approves the target `override` with a reason and two further attempts  
+Then the action is rejected, and no override is recorded
+
+**AE-24 — Reject the approval of a sign-off gate by an agent**
+
+- Covers: Section 23.4 (`approve`)
+
+Given an `active` change with the `sign-off` done gate `legal-ok`  
+When an AI agent requests the approval of the gate `legal-ok`  
+Then the action is rejected, because an approval MUST be performed by a human, and the gate remains unsatisfied
+
+**AE-25 — Start a change**
+
+- Covers: Section 23.4 (`start`)
+
+Given an `open` change with approved and unchanged gate definitions, an approved specification, and no fail gate or wait gate active  
+When the `start` action is requested  
+Then the state is `active`, and the base revision is recorded
+
+**AE-26 — Reject the start of a change whose gates are not approved**
+
+- Covers: Section 23.4 (`start`)
+
+Given an `open` change whose gate definitions are not approved  
+When the `start` action is requested  
+Then the action is rejected, and the change remains `open` with no base revision
+
+**AE-27 — Wait for a person outside the change**
+
+- Covers: Section 23.4 (`wait`)
+
+Given an `active` change  
+When the `wait` action gives the reason `vendor reply needed`, the owner `vendor`, and the resume condition `vendor reply recorded`  
+Then the state is `waiting`, and the wait record has the kind `manual`
+
+**AE-28 — Reject a wait from a change that has not started**
+
+- Covers: Section 23.4 (`wait`)
+
+Given an `open` change  
+When the `wait` action gives a reason, an owner, and a resume condition  
+Then the action is rejected, and the change remains `open` with no wait record
+
+**AE-29 — Wait for the answer to a question**
+
+- Covers: Section 23.4 (`wait`)
+
+Given an `active` change with the unanswered question Q1  
+When the `wait` action names Q1, the owner of Q1, and the resume condition `Q1 answered`  
+Then the state is `waiting`, and the wait record has the kind `question` and names Q1
+
+**AE-30 — Ask a structured question**
+
+- Covers: Section 23.4 (`ask`)
+
+Given an `active` change  
+When the `ask` action records a question with the options `keep` and `drop`  
+Then an unanswered question Q1 is recorded, and the state remains `active`
+
+**AE-31 — Reject a structured question with one option**
+
+- Covers: Section 23.4 (`ask`)
+
+Given an `active` change  
+When the `ask` action records a structured question with the single option `keep`  
+Then the action is rejected, because a structured question has at least two distinct options, and no question is recorded
+
+**AE-32 — Answer a structured question**
+
+- Covers: Section 23.4 (`answer`)
+
+Given an `active` change with the unanswered structured question Q1 whose options are `keep` and `drop` and whose owner is a human  
+When that human answers Q1 with `keep`  
+Then Q1 is recorded as answered with `keep`, and the state remains `active`
+
+**AE-33 — Reject an answer that is not an option**
+
+- Covers: Section 23.4 (`answer`)
+
+Given the unanswered structured question Q1 whose options are `keep` and `drop`  
+When Q1 is answered with `merge`  
+Then the action is rejected, and Q1 remains unanswered
+
+**AE-34 — Reject a second answer**
+
+- Covers: Section 23.4 (`answer`)
+
+Given the question Q1 that is already answered with `keep`  
+When Q1 is answered again with `drop`  
+Then the action is rejected, and Q1 keeps the answer `keep`
+
+**AE-35 — Resume after the awaited question is answered**
+
+- Covers: Section 23.4 (`resume`)
+
+Given a `waiting` change with a wait record of kind `question` for Q1, and Q1 is now answered, and no gate decides otherwise  
+When the `resume` action is requested  
+Then the state is `active`
+
+**AE-36 — Stay waiting while the resume condition is not satisfied**
+
+- Covers: Section 23.4 (`resume`)
+
+Given a `waiting` change with a wait record of kind `question` for Q1, and Q1 is unanswered  
+When the `resume` action is requested  
+Then the change remains `waiting`
+
+**AE-37 — Close a completed change**
+
+- Covers: Section 23.4 (`close`)
+
+Given an `active` change with every done gate satisfied and no fail gate or wait gate active  
+When the `close` action is requested  
+Then the state is `closed` and the outcome is `done`
+
+**AE-38 — Do not close with an unsatisfied done gate**
+
+- Covers: Section 23.4 (`close`)
+
+Given an `active` change with one done gate that is not satisfied  
+When the `close` action is requested  
+Then the change does not close, remains `active`, and has the outcome `null`
+
+**AE-39 — Fail a change that awaits disposition of a soft fail**
+
+- Covers: Section 23.4 (`fail`)
+
+Given a `waiting` change with a wait record of kind `fail-gate` for a soft fail condition  
+When a human performs the `fail` action with the reason `retry limit reached`  
+Then the state is `closed`, the outcome is `failed`, and the reason `retry limit reached` is recorded
+
+**AE-40 — Reject fail when no soft fail condition awaits disposition**
+
+- Covers: Section 23.4 (`fail`)
+
+Given an `active` change with no soft fail condition awaiting disposition  
+When a human performs the `fail` action with a reason  
+Then the action is rejected, and the change remains `active`
+
+**AE-41 — Reject fail without a reason**
+
+- Covers: Section 23.4 (`fail`)
+
+Given a `waiting` change with a wait record of kind `fail-gate` for a soft fail condition  
+When a human performs the `fail` action with no reason  
+Then the action is rejected, and the change remains `waiting`
+
+**AE-42 — Cancel a waiting change**
+
+- Covers: Section 23.4 (`cancel`)
+
+Given a `waiting` change  
+When a human performs the `cancel` action  
+Then the state is `closed` and the outcome is `cancelled`, although a wait was active
+
+**AE-43 — Cancel with a hard fail condition active**
+
+- Covers: Section 23.4 (`cancel`)
+
+Given an `active` change with a hard fail condition active  
+When a human performs the `cancel` action  
+Then the state is `closed` and the outcome is `failed`, not `cancelled`
+
+**AE-44 — Supersede a change**
+
+- Covers: Section 23.4 (`supersede`)
+
+Given an `active` change A and an existing change B  
+When a human performs the `supersede` action on change A with `replaced_by` naming change B  
+Then change A is `closed` with the outcome `cancelled` and `replaced_by` naming change B
+
+**AE-45 — Reject supersede without a replacement**
+
+- Covers: Section 23.4 (`supersede`)
+
+Given an `active` change A  
+When a human performs the `supersede` action on change A and gives no `replaced_by`  
+Then the action is rejected, and change A remains `active`
+
+**AE-46 — Adopt an unanchored history**
+
+- Covers: Section 23.4 (`adopt`)
+
+Given a change whose history has no anchor  
+When a human performs the `adopt` action  
+Then the anchor is created from the history as it is, and the state and the outcome do not change
+
+**AE-47 — Reject adopt when an anchor exists**
+
+- Covers: Section 23.4 (`adopt`)
+
+Given a change whose history already has an anchor  
+When a human performs the `adopt` action  
+Then the action is rejected, and the existing anchor is not replaced
+
+**AE-48 — A closed change cannot be reopened**
+
+- Covers: Section 23.4
+
+Given a `core` change that is `closed` with the outcome `done`  
+When a `reopen` action is requested for it  
+Then the request is rejected, because `core` has no `reopen` action, and follow-up work is a new change that names this change in `follows`
+
+**AE-49 — A read-only action changes nothing**
+
+- Covers: Section 23.4
+
+Given a `closed` change  
+When the `check` action is requested for it  
+Then the action reports on the change, and the state, the outcome, and the history do not change
+
+### 23.5 Wait Records
+
+A `core` change has at most one wait record, and the wait record exists exactly while the state is `waiting`. A wait record contains:
+
+- `kind`: one of `question`, `manual`, `fail-gate`, and `external`;
+- `reason`: why the change waits;
+- `owner`: the participant or source expected to act;
+- `resume_when`: the condition under which the `resume` action is legal;
+- `expires`: OPTIONAL, an instant after which the wait is overdue;
+- `question`: the identifier of the awaited question, present when the kind is `question`.
+
+The kind of a wait record depends on how it came to exist:
+
+- `question`: the `wait` action gave a question (Section 24.8);
+- `manual`: the `wait` action gave no question;
+- `fail-gate`: the evaluation of Section 23.6 found a soft fail condition (Section 24.7);
+- `external`: the evaluation of Section 23.6 found a gate that could not be evaluated (Section 24.2).
+
+The resume condition is satisfied as follows. For the kind `question`, the awaited question is answered. For the kind `fail-gate`, a human has recorded an override for the soft fail condition. For the kind `external`, the gate can be evaluated. For the kind `manual`, the owner of the wait states in the `resume` action that the condition holds.
+
+A `core` wait record has no safe current state and no next action. Those two items of Section 11.2 apply to `full` only. An overdue wait remains a wait until the change leaves the state `waiting`.
+
+Each kind corresponds to one wait category of Section 11.1:
+
+| Wait Kind | Wait Category |
+|---|---|
+| `question` | `WAIT_USER_INPUT` |
+| `manual` | `WAIT_PROCESS` |
+| `fail-gate` | `WAIT_DECISION` |
+| `external` | `WAIT_EXTERNAL_SYSTEM` |
+
+The categories `WAIT_DEPENDENCY` and `WAIT_APPROVAL` have no kind of their own in `core`. See AE-50, AE-51, AE-52.
+
+**AE-50 — A wait record needs no safe state and no next action**
+
+- Covers: Section 23.5
+
+Given an `active` change  
+When the `wait` action gives the reason `vendor reply needed`, the owner `vendor`, and the resume condition `vendor reply recorded`, and gives no safe state and no next action  
+Then the wait record is valid
+
+**AE-51 — Reject a wait without an owner**
+
+- Covers: Section 23.5
+
+Given an `active` change  
+When the `wait` action gives a reason and a resume condition but no owner  
+Then the action is rejected, and the change remains `active` with no wait record
+
+**AE-52 — A wait kind corresponds to a wait category**
+
+- Covers: Section 23.5
+
+Given a `waiting` change whose wait record has the kind `fail-gate`  
+When the wait record is reported in the wait categories of Section 11.1  
+Then the category is `WAIT_DECISION`
+
+### 23.6 Evaluation Order
+
+The gates of a `core` change MUST be evaluated in this order, and the evaluation MUST stop as soon as a gate decides the requested action:
+
+1. A fail gate with the severity `hard` that is active decides: the change becomes `closed` with the outcome `failed`.
+2. A gate whose condition could not be evaluated decides: the change becomes `waiting` with a wait record of kind `external` (Section 24.2). A condition that could not be evaluated is never a failure.
+3. A fail gate with the severity `soft` that is active decides: the change becomes `waiting` with a wait record of kind `fail-gate` until a human disposes of it (Section 24.7).
+4. A wait gate that is active decides: the change does not start, resume, or close.
+5. For the `close` action only, a done gate that is not satisfied decides: the change does not close.
+
+If no gate decides, the requested action takes effect. The actions `close` and `resume` apply steps 1 to 4, and `close` also applies step 5. The action `start` requires that none of the steps 1 to 4 would decide. Sections 24.2 and 24.7 refine steps 2 and 3. A satisfied done gate does not override a fail gate or a wait gate that is active. A gate that does not apply to the requested action is not evaluated and, when gate results are recorded, is recorded as `not_applicable`. See AE-53, AE-54, AE-55.
+
+**AE-53 — A hard fail decides before the done gates**
+
+- Covers: Section 23.6
+
+Given an `active` change with every done gate satisfied and a fail gate with the severity `hard` active  
+When the `close` action is requested  
+Then the state is `closed` and the outcome is `failed`, not `done`
+
+**AE-54 — A condition that cannot be evaluated is a wait, not a failure**
+
+- Covers: Section 23.6
+
+Given an `active` change with a `check` done gate whose command cannot start because its program is missing  
+When the `close` action is requested  
+Then the change is `waiting` with a wait record of kind `external`, and no failure is recorded
+
+**AE-55 — A satisfied done gate does not override an active wait gate**
+
+- Covers: Section 23.6
+
+Given an `active` change with every done gate satisfied and a wait gate active  
+When the `close` action is requested  
+Then the change does not close and remains `active`
+
+### 23.7 Base Gates
+
+Every `core` change has four base gates in addition to the gates in its change definition:
+
+- the scope violation gate, a fail gate with the severity `hard`, which is active when a path changed since the base revision lies outside `scope.allow` (Section 24.5);
+- the unanswered question gate, a wait gate, which is active while any question is unanswered (Section 24.8);
+- the stale specification approval gate, a wait gate, which is active while `spec.md` differs from the version that was approved (Section 24.3);
+- the incomplete evidence gate, a done gate, which is not satisfied until the evidence of every requirement is complete (Section 24.9).
+
+The base gates belong to the `core` method profile. They apply to every `core` change without being listed in its change definition, they MUST NOT be removed, and a lower layer of Section 5.3 MUST NOT weaken or alter them. See AE-56, AE-57, AE-58.
+
+**AE-56 — The scope violation gate applies without being listed**
+
+- Covers: Section 23.7
+
+Given an `active` change whose definition lists no gates and whose `scope.allow` is `lib/**`, and a file under `docs/` changed since the base revision  
+When the `close` action is requested  
+Then the state is `closed` and the outcome is `failed`, because the scope violation gate is a hard fail gate
+
+**AE-57 — A changed specification makes its approval stale**
+
+- Covers: Section 23.7
+
+Given an `active` change whose `spec.md` was approved and then edited  
+When the `close` action is requested  
+Then the change does not close, because the stale specification approval gate is active, and it can close after a human approves `spec` again
+
+**AE-58 — Incomplete evidence prevents closure**
+
+- Covers: Section 23.7
+
+Given an `active` change with a requirement that has no evidence command  
+When the `close` action is requested  
+Then the change does not close, because the incomplete evidence gate is not satisfied
