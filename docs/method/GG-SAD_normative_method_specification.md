@@ -201,6 +201,16 @@ In case of conflict, the following priority applies:
 
 A change MUST NOT silently override a higher-ranking document.
 
+See AE-229.
+
+**AE-229 — A higher-ranking document wins over a lower one**
+
+- Covers: Section 4.1
+
+Given a `full` change whose approved `spec.md` requires a library that an accepted ADR under `docs/adr/` prohibits, and a `plan.md` whose scope differs from the approved `spec.md`  
+When the plan of the change is prepared  
+Then the ADR takes precedence over the specification, the conflict is documented and returned to the requestor, and the approved `spec.md` takes precedence over the `plan.md`, so that the change does not silently override either higher-ranking document
+
 ### 4.2 Project-Wide Documents
 
 ```text
@@ -491,6 +501,16 @@ Selecting a named flow from Section 7.1 is one authorized flow-selection decisio
 
 Replacement evidence MUST cover the outcomes and gates that each omitted phase would normally establish or explain why each outcome or gate is not applicable. Omitting a phase MUST NOT remove an invariant-core obligation or bypass the Definition of Ready for the next phase.
 
+See AE-230.
+
+**AE-230 — A phase is omitted only with a record**
+
+- Covers: Section 5.5
+
+Given a `full` change on the Patch Flow with one compact omission record that names the flow, the approver, the rationale, the approval timestamp, and the replacement evidence for every phase the flow omits, and a second `full` change on which an agent omits the verify phase because the change is small, with no record  
+When both changes are checked  
+Then the first change is accepted with its one record, and the omission of the second change is rejected, because permission to omit a phase is not inferred from project size or from silence
+
 ### 5.6 Method Profiles
 
 GG-SAD defines two **method profiles**, `core` and `full`. A method profile fixes the model by which a change is carried out: its documents, states, gates, and actions.
@@ -605,6 +625,16 @@ Minimum content:
 
 The scope of a change is stated and measured as Section 24.5 states.
 
+See AE-231.
+
+**AE-231 — A Class S change meets its minimum content**
+
+- Covers: Section 6.1
+
+Given a Class S change with an inline specification that states the goal, the scope, the acceptance conditions, and the verification, and a second Class S change whose inline specification states no verification  
+When each inline specification is checked against the minimum content of Class S  
+Then the first meets the minimum content, and the second does not, and the missing verification is reported
+
 ### 6.2 Class M — Change
 
 Suitable for self-contained functional or technical changes.
@@ -619,11 +649,31 @@ Optional artifacts:
 - `tasks.md`
 - `evidence.md`
 
+See AE-232.
+
+**AE-232 — A Class M change needs `spec.md` and no other file**
+
+- Covers: Section 6.2
+
+Given a Class M change that has `spec.md` and no `plan.md`, `tasks.md`, or `evidence.md`, and a second Class M change that has no `spec.md`  
+When the mandatory artifact of each change is checked  
+Then the first change is valid, because the other three artifacts are optional, and the second lacks its mandatory artifact `spec.md`
+
 ### 6.3 Class L — Initiative
 
 Suitable for multiple independent or interdependent changes.
 
 An initiative MUST be decomposed into multiple change specifications. A short roadmap or dependency overview MAY be used. An epic is not required.
+
+See AE-233.
+
+**AE-233 — A Class L initiative is decomposed**
+
+- Covers: Section 6.3
+
+Given an initiative that is decomposed into three change specifications with a short dependency overview and no epic, and a second initiative that is recorded as one single change specification  
+When the decomposition of each initiative is checked  
+Then the first initiative is accepted, because an epic is not required, and the second is not accepted, because an initiative MUST be decomposed into multiple change specifications
 
 ---
 
@@ -673,17 +723,47 @@ Not every change MUST pass through every phase.
 specify → build → verify → closed
 ```
 
+See AE-234.
+
+**AE-234 — Patch Flow skips the plan and the release phase**
+
+- Covers: Section 7.1 (Patch Flow)
+
+Given a `full` change that follows the Patch Flow, in the specify phase with the status `done` and with the Definition of Ready of the build phase satisfied  
+When the `complete` action is requested, and later the same change in the verify phase is moved to the release phase  
+Then the first request advances the change to the build phase, and the move to the release phase is not permitted, because the Patch Flow is specify, build, verify, and closed
+
 #### Standard Flow
 
 ```text
 specify → plan → build → verify → closed
 ```
 
+See AE-235.
+
+**AE-235 — Standard Flow includes the plan phase**
+
+- Covers: Section 7.1 (Standard Flow)
+
+Given a `full` change that follows the Standard Flow, in the specify phase with the status `done` and with the Definition of Ready of the plan phase satisfied  
+When the `complete` action is requested, and later a move of the change from the specify phase directly to the build phase is requested  
+Then the first request advances the change to the plan phase, and the direct move to the build phase is not permitted, because the Standard Flow is specify, plan, build, verify, and closed
+
 #### Release Flow
 
 ```text
 specify → plan → build → verify → release → closed
 ```
+
+See AE-236.
+
+**AE-236 — Release Flow ends with the release phase**
+
+- Covers: Section 7.1 (Release Flow)
+
+Given a `full` change that follows the Release Flow, in the verify phase with the status `done` and with the Definition of Ready of the release phase satisfied  
+When the `complete` action is requested, and later a close of the change directly from the verify phase is requested  
+Then the first request advances the change to the release phase, and the direct close is not permitted, because the Release Flow is specify, plan, build, verify, release, and closed
 
 #### Exploration Flow
 
@@ -692,6 +772,16 @@ explore → decide → specify
 ```
 
 Exploration MUST NOT silently transition into production implementation.
+
+See AE-237.
+
+**AE-237 — Exploration does not become production implementation**
+
+- Covers: Section 7.1 (Exploration Flow)
+
+Given a `full` change that follows the Exploration Flow, in the decide phase with the status `done` and with the Definition of Ready of the specify phase satisfied  
+When the `complete` action is requested, and later a move of an exploration change from the decide phase to the build phase is requested  
+Then the first request advances the change to the specify phase, and the move to the build phase is not permitted, because exploration does not transition into production implementation
 
 ---
 
@@ -735,6 +825,16 @@ In the state document, `phase` and `status` are fields of the `after` record of 
 The statuses `draft`, `ready`, `active`, and `waiting` are legal at any non-closed phase. The status `done` is legal at any phase as that phase's local completion signal, gating advancement on the next phase's Definition of Ready. It represents the change's successful terminal outcome only when it occurs with the `closed` phase.
 
 The statuses `failed`, `cancelled`, and `superseded` are legal only with the `closed` phase. An action producing any of these outcomes MUST finalize the change into the `closed` phase in the same state mutation.
+
+See AE-238.
+
+**AE-238 — Legal combinations of phase and status**
+
+- Covers: Section 8.2
+
+Given a `full` change in the build phase  
+When the status `done` is recorded for the build phase, and then the status `failed` is requested for the build phase without the `closed` phase  
+Then the status `done` is legal as the local completion signal of the phase, and the status `failed` is not legal with a phase that is not `closed`, because an action that produces `failed` finalizes the change into the `closed` phase in the same state mutation
 
 ### 8.3 Transition Table
 
@@ -796,6 +896,72 @@ Given a `full` change whose phase has the status `ready` and a Definition of Wai
 When the `start` action is requested  
 Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
+See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246.
+
+**AE-239 — Start a ready phase**
+
+- Covers: Section 8.3 (`start`)
+
+Given a `full` change in the build phase with the status `ready`, an authorization to start, and no Definition of Fail or Definition of Wait condition active, and a second `full` change in the build phase with the status `draft`  
+When the `start` action is requested for each change  
+Then the first change has the status `active` in the same phase, and the request for the second change is rejected with `changed` false, because `draft` is not a legal source of `start`
+
+**AE-240 — Complete a phase, with and without the next Definition of Ready**
+
+- Covers: Section 8.3 (`complete`)
+
+Given a `full` change in the build phase with the status `active`, whose Definition of Done is satisfied and whose next-phase Definition of Ready is satisfied, and a second such change whose next-phase Definition of Ready is not satisfied  
+When the `complete` action is requested for each change  
+Then the first change advances to the verify phase with the status `ready`, and the second change stays in the build phase with the status `done` and the result `success`
+
+**AE-241 — Wait only while a Definition of Wait condition is active**
+
+- Covers: Section 8.3 (`wait`)
+
+Given a `full` change in the plan phase with the status `active` and an active Definition of Wait condition, and a second `full` change in the plan phase with the status `active` and no such condition  
+When the `wait` action is requested for each change  
+Then the first change has the status `waiting` in the same phase, and the request for the second change is rejected with `changed` false
+
+**AE-242 — Resume when the resume condition holds**
+
+- Covers: Section 8.3 (`resume`)
+
+Given a `full` change with the status `waiting` in the build phase whose resume condition is satisfied and whose resume-phase Definition of Ready is satisfied, and a second waiting change whose resume condition is not satisfied  
+When the `resume` action is requested for each change  
+Then the first change returns to the build phase with the status `active`, and the request for the second change is rejected with `changed` false, so that it remains `waiting`
+
+**AE-243 — Fail only while a Definition of Fail condition is active**
+
+- Covers: Section 8.3 (`fail`)
+
+Given a `full` change in the verify phase with an active Definition of Fail condition, and a second `full` change in the verify phase with no such condition  
+When the `fail` action is requested for each change  
+Then the first change is in the `closed` phase with the status `failed`, and the request for the second change is rejected with `changed` false
+
+**AE-244 — Cancel is not prevented by a wait, and a failure has priority**
+
+- Covers: Section 8.3 (`cancel`)
+
+Given a `full` change in the build phase with the status `waiting` because of an active Definition of Wait condition and an authorized cancellation decision, and a second such change that also has an active Definition of Fail condition  
+When the `cancel` action is requested for each change  
+Then the first change is in the `closed` phase with the status `cancelled`, and the second change is in the `closed` phase with the status `failed`, because the Definition of Fail has first priority
+
+**AE-245 — Supersede needs a later change**
+
+- Covers: Section 8.3 (`supersede`)
+
+Given a `full` change in the plan phase and a later change that is authorized to replace it, and a second `full` change for which no later change is authorized  
+When the `supersede` action is requested for each change  
+Then the first change is in the `closed` phase with the status `superseded`, and the request for the second change is rejected with `changed` false
+
+**AE-246 — Reopen a closed `full` change only from the `closed` phase**
+
+- Covers: Section 8.3 (`reopen`)
+
+Given a `full` change in the `closed` phase with the status `done` whose resume phase recorded at closure is the build phase, and a second `full` change in the build phase with the status `active`  
+When the `reopen` action is requested for each change, with a reason and a new goal-bound scope  
+Then the first change returns to the build phase with the status `active`, and the request for the second change is rejected with `changed` false, because that change is not in the `closed` phase
+
 ### 8.4 Cancellation, Supersession, Reopening, and Terminal Behavior
 
 `cancel` moves any non-closed phase/status to the `closed` phase with status `cancelled` when an authorized cancellation decision exists. `supersede` moves any non-closed phase/status to the `closed` phase with status `superseded` when a later change replaces this change's goal.
@@ -813,6 +979,8 @@ In the `full` method profile, `reopen` moves a change from the `closed` phase ba
 
 In the `full` method profile, once a change is in the `closed` phase, no further phase advancement is legal except through `reopen`. A `closed` `core` change is final.
 
+See AE-247.
+
 **AE-217 — Reopen a closed `full` change**
 
 - Covers: Section 8.4
@@ -820,6 +988,14 @@ In the `full` method profile, once a change is in the `closed` phase, no further
 Given a `full` change in the `closed` phase with the status `done`, whose resume phase recorded at closure is the build phase  
 When the `reopen` action is requested with a reason and a new goal-bound scope, and the Definition of Ready of the build phase is satisfied  
 Then the change is in the build phase with the status `active`, and the reason and the new scope are recorded in the history
+
+**AE-247 — A wait does not prevent cancellation and a closed change does not advance**
+
+- Covers: Section 8.4
+
+Given a `full` change in the plan phase with the status `waiting` for an active Definition of Wait condition and an authorized cancellation decision, and a `full` change in the `closed` phase with the status `done`  
+When the `cancel` action is requested for the first change, and the `complete` action is requested for the second  
+Then the first change is in the `closed` phase with the status `cancelled`, because an active Definition of Wait condition does not prevent an authorized cancellation, and the request for the second change is rejected, because no phase advancement is legal in the `closed` phase except through `reopen`
 
 ### 8.5 Evaluation Priority
 
@@ -836,6 +1012,16 @@ A satisfied DoD does not override a satisfied DoF or DoW.
 This order defines evaluation precedence. A gate that is not applicable to the requested action or current state is skipped and, when gate evidence is recorded, MUST be recorded as `not_applicable`. Evaluation MUST stop as soon as a gate determines the requested action's outcome.
 
 A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order.
+
+See AE-248.
+
+**AE-248 — The Definition of Fail is evaluated before the Definition of Wait and the Definition of Done**
+
+- Covers: Section 8.5
+
+Given a `full` change in the build phase with the status `active`, a satisfied Definition of Done, and an active Definition of Wait condition, and a second such change that also has an active Definition of Fail condition of the severity `hard`  
+When the `complete` action is requested for each change  
+Then the first request answers `blocked`, because the Definition of Wait decides before the Definition of Done and the later gates are not evaluated, and the second change is closed as failed, because the Definition of Fail decides first
 
 ---
 
@@ -2536,6 +2722,96 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 | The result `blocked` | 22.2 | The actions `close` and `resume` (Section 23.4) | The actions `complete` and `resume` (Section 8.3) |
 
 In `full`, the definitions that Section 24.1 fixes are the change specification with its Flow Gates (Section 16.1) and the project-wide definitions under `docs/definitions/` that are in effect when the change is approved. The parsed value of these gate definitions is an object with three members. The member `flow_gates` is an object with the members `ready`, `done`, `wait`, and `fail`. Each of them is the list of the texts of the conditions that stand under the Flow Gates heading of the same name (Additional Ready Conditions, Additional Done Conditions, Additional Wait Conditions, Additional Fail Conditions), in the order in which they are written. The text of a condition is the text of its list item without the list marker, with every run of white space replaced by one space. A list item that is only the marker `<optional>` is not a condition, and a heading without a list item gives an empty list. The member `scope` is the allowed path list. The member `definitions` is the content hash of the set of the files under `docs/definitions/` (Section 25.2). A change of a project-wide definition after the approval therefore makes the gate definitions differ from the approved ones (Section 24.1).
+
+See AE-249, AE-250, AE-251, AE-252, AE-253, AE-254, AE-255, AE-256, AE-257, AE-258, AE-259.
+
+**AE-249 — Full: changed Flow Gates or project-wide definitions are rejected**
+
+- Covers: Section 24.1 (full)
+
+Given a `full` change whose Flow Gates, allowed path list, and the project-wide definitions under `docs/definitions/` were approved, with nothing changed since  
+When `complete` is requested, then a condition is added under Additional Done Conditions and `complete` is requested again, then the condition is removed, a file under `docs/definitions/` is edited, and `complete` is requested a third time  
+Then the first request is evaluated, and the second and third requests are rejected with the issue code `gates-changed` and `changed` false, because the content hash of the parsed gate definitions differs from the approved hash
+
+**AE-250 — Full: a condition that cannot be evaluated is a wait**
+
+- Covers: Section 24.2 (full)
+
+Given a `full` change in the verify phase whose Definition of Done holds a check-command condition whose program does not exist, and a second change whose condition runs and exits with a status that the exit map assigns to `satisfied`  
+When `complete` is requested for each change  
+Then the first condition is `not_evaluable`, the result is `blocked`, the change is `waiting` with the category `WAIT_EXTERNAL_SYSTEM`, and no failure is recorded, and the second condition is `satisfied`
+
+**AE-251 — Full: the approval of the specification needs a human**
+
+- Covers: Section 24.3 (full)
+
+Given a `full` change whose specification awaits approval, the identity `agent:builder`, and the identity `human:ada` with a claim at the level that the project configuration requires  
+When each identity approves the specification  
+Then the approval by `agent:builder` is rejected, because an approval is performed by a human, and the approval by `human:ada` is recorded in the state file with the identity, the level, and the content hash of the specification
+
+**AE-252 — Full: the history is checked where a state file exists**
+
+- Covers: Section 24.4 (full)
+
+Given a `full` change whose state file has an entry that was altered after it was recorded, and a second `full` change that keeps its record inline in `spec.md`  
+When an operation that reads the history is requested for each change  
+Then the first operation is refused, because the history is not consistent, and for the second change the rules that read or write the history are not enforced mechanically and the implementation does not report them as enforced
+
+**AE-253 — Full: the allowed path list is measured**
+
+- Covers: Section 24.5 (full)
+
+Given a `full` change that has started and whose Scope lists the allowed path `src/billing/**`, and a second started `full` change whose specification states no allowed path list  
+When a file under `docs/` is found changed since the base revision of the first change, and the scope of the second change is measured  
+Then the first change has a scope violation, which is a hard failure naming the path, and the scope of the second change is `not_evaluable`, which is neither `satisfied` nor a violation
+
+**AE-254 — Full: a verification condition carries a baseline**
+
+- Covers: Section 24.6 (full)
+
+Given a `full` change whose Verify-Done condition names a check command with a baseline of two known failing tests  
+When the command fails exactly those two tests in one run, and those two and a third test in another run  
+Then the first run is `satisfied`, and the second run is `not_satisfied` and names the third test as a new failure
+
+**AE-255 — Full: hard and soft fail rules differ**
+
+- Covers: Section 24.7 (full)
+
+Given a `full` change with a fail rule of the severity `hard` that becomes active, and a second `full` change with a fail rule of the severity `soft` that becomes active  
+When `complete` is requested for each change  
+Then the first change is closed with the status `failed` without human action, and the second change is `waiting` with the category `WAIT_DECISION` until a human closes it with `fail` or records an override
+
+**AE-256 — Full: an unanswered question keeps a wait condition active**
+
+- Covers: Section 24.8 (full)
+
+Given a `full` change with an unanswered question Q1 in its state file whose owner is `human:ada`  
+When `complete` is requested, then `human:ada` answers Q1, and `complete` is requested again  
+Then the first request answers `blocked`, because a Definition of Wait condition is active while Q1 is unanswered, the answer is recorded as a human decision, and after it the condition is no longer active
+
+**AE-257 — Full: Verify-Done needs executable evidence for every requirement**
+
+- Covers: Section 24.9 (full)
+
+Given a `full` change in the verify phase with two requirements and an evidence command bound to the first requirement only  
+When `complete` is requested, then an evidence command is added for the second requirement, the gate definitions are approved again, both commands are `satisfied`, and `complete` is requested again  
+Then the first request answers `blocked`, because the evidence is not complete, and the second request is not blocked by the evidence
+
+**AE-258 — Full: a Flow Gates command runs without a shell**
+
+- Covers: Section 24.10 (full)
+
+Given a `full` change with a Flow Gates condition whose command is the argument list `@interpreter` and `checks/run.py` in a project whose configuration names an interpreter, and a second condition whose command is the single element `make test && make lint`  
+When both conditions are evaluated  
+Then the first command runs with the configured interpreter and no shell, and the second is run as one program name without a shell, which does not exist, so that the condition is `not_evaluable`
+
+**AE-259 — Full: only complete and resume answer blocked**
+
+- Covers: Section 22.2 (full)
+
+Given a `full` change in the build phase with the status `active` whose Definition of Done is not satisfied, and a `full` change in the plan phase with the status `ready` and an active Definition of Wait condition  
+When the `complete` action is requested for the first change, and the `start` action is requested for the second  
+Then the first result is `blocked` with `changed` true and the evaluation is recorded, and the second result is `rejected` with `changed` false, because in `full` only `complete` and `resume` answer `blocked`
 
 ### 24.1 Frozen Gate Definitions
 
