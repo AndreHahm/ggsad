@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: Executable Core
 current_phase: 1
 current_phase_name: milestone v1.1; phase numbering restarted at 1, so v1.0 Phases 1–8 are a different, archived set
-status: planning
+status: executing
 stopped_at: Phase 1 context gathered
-last_updated: "2026-10-24T11:57:09.482Z"
+last_updated: "2026-10-24T15:12:43.013Z"
 last_activity: 2026-10-24
 last_activity_desc: Roadmap created for milestone v1.1 (8 phases, 41/41 requirements mapped)
 progress:
   total_phases: 8
   completed_phases: 0
-  total_plans: 0
+  total_plans: 3
   completed_plans: 0
   percent: 0
 ---
@@ -35,7 +35,7 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 Phase: 1 of 8 (Decision Record) — milestone v1.1; phase numbering restarted at 1, so v1.0 Phases 1–8 are a different, archived set
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-10-24 — Roadmap created for milestone v1.1 (8 phases, 41/41 requirements mapped)
 
 Progress: [░░░░░░░░░░] 0%
