@@ -1765,6 +1765,7 @@ specs/<change-id>/
 
 The change definition MUST contain these fields:
 
+- `schema_version`: the version of the schema of the change definition (Section 25.3);
 - `id`: the identifier of the change, unique among the changes of the project;
 - `method_profile`: the method profile of the change, which is `core` (Section 5.6);
 - `compliance_profile`: the compliance profile of the change (Section 5.1);
@@ -1784,7 +1785,7 @@ A human MUST NOT edit the state document by hand. An implementation MUST detect 
 
 - Covers: Section 23.1
 
-Given a change definition with the fields `id`, `method_profile` set to `core`, `compliance_profile`, `author`, `owner`, `goal`, `scope`, `requirements`, and `gates`  
+Given a change definition with the fields `schema_version` set to a supported version, `id`, `method_profile` set to `core`, `compliance_profile`, `author`, `owner`, `goal`, `scope`, `requirements`, and `gates`  
 When the `new` action receives it  
 Then the change exists with the documents `change.yaml`, `spec.md`, and `state.json`
 
