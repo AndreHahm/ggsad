@@ -124,7 +124,7 @@ Plans:
   8. The diff specifies state as JSON (`state.json`) with a canonical hashing form, the six-layer profile resolution order with `core` implementing four layers, `reopen` for `full` only, and `schema_version` with explicit recorded migration (SPEC-15, SPEC-16, SPEC-17, SPEC-18)
   9. No file under `src/ggsad/` is modified as part of producing this diff (SPEC-13)
 
-**Plans**: 6/8 plans executed
+**Plans**: 7/8 plans executed
 
 Plans:
 **Wave 1**
@@ -153,7 +153,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion)*
 
-- [ ] 02-07-PLAN.md — Review fixes, part 2: state document write protection and body fields, evidence commands in the `full` frozen set, schema version check order, contract operations, change identifiers, recorded required level (CR-02, CR-03, WR-12, WR-14 to WR-17, WR-22 to WR-24, WR-27)
+- [x] 02-07-PLAN.md — Review fixes, part 2: state document write protection and body fields, evidence commands in the `full` frozen set, schema version check order, contract operations, change identifiers, recorded required level (CR-02, CR-03, WR-12, WR-14 to WR-17, WR-22 to WR-24, WR-27)
 
 **Wave 8** *(blocked on Wave 7 completion)*
 
@@ -256,7 +256,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
-| 2. Normative Drafting | v1.1 | 6/8 | In Progress|  |
+| 2. Normative Drafting | v1.1 | 7/8 | In Progress|  |
 | 3. Owner Approval | v1.1 | 0/TBD | Not started | - |
 | 4. Independent Review | v1.1 | 0/TBD | Not started | - |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
