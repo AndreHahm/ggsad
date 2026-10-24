@@ -2377,7 +2377,7 @@ A `core` change changes state only through the actions of the table below. An ac
 
 | Action | Legal From | Precondition | Resulting State |
 |---|---|---|---|
-| `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2. See AE-19, AE-20. |
+| `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2, and the anchor at position 1 where an anchor is kept or required (Section 24.4). See AE-19, AE-20, AE-278. |
 | `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8). For `gates`, the gate definitions are valid under Section 23.3. For `all`, both conditions hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-21, AE-22, AE-23, AE-24. |
 | `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), and the evaluation of Section 23.6 finds no fail gate and no wait gate active. | The state `active`, with the base revision recorded. See AE-25, AE-26. |
 | `wait` | `active` | A reason, an owner, and a resume condition are given, or an unanswered question is named. A named question exists and is unanswered, and the action never creates a question. When a question is named, the owner of the wait is the owner of the question and a different owner is rejected, and the reason and the resume condition default to awaiting the answer to the question (Section 24.8). | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action names a question (Section 23.5). See AE-27, AE-28, AE-29, AE-275. |
@@ -3448,6 +3448,8 @@ Consistency is not completeness. Consistency says that the entries which are pre
 
 An anchor records the position and the hash of the latest entry of a history. It is kept at a location that is outside the working tree of the project and is not part of the history, and it is written only after the append of that entry has succeeded. After every successful append the anchor is advanced to the new latest entry. Where the applicable configuration requires approvals at the level A2 (Section 24.3), the history of a change MUST have an anchor or an equivalent mechanism, and an implementation MUST NOT act on a change whose history has none until a human adopts the history. An equivalent mechanism gives the verifier a record of the latest position and hash that is independent of the history, is written only after the append has succeeded, supports the three checks below, and cannot be replaced. Where no configuration requires approvals at the level A2, an implementation MAY keep an anchor. See AE-140, AE-142.
 
+The first successful append of a change, which is the entry of the `new` action, creates the anchor at position 1 where an anchor is kept or required. This creation is not a replacement, and it needs no `adopt` action. The `adopt` action serves a history that has entries and no anchor, for example a history that was written before an anchor was kept. An implementation therefore acts on a new change in a project that requires approvals at the level A2 without an `adopt` action first. See AE-278.
+
 With an anchor, the verifier compares the history with it:
 
 - a history with fewer entries than the position of the anchor is truncated, or it was rolled back to an earlier state;
@@ -3493,6 +3495,14 @@ Then the chain of three entries is consistent, the history has fewer entries tha
 Given a project whose configuration requires approvals at the level A2, and a consistent history with no anchor  
 When any action other than `adopt` is requested, and later a human performs `adopt` at the level A2  
 Then the first request is refused, and after the `adopt` action the anchor holds the position and the hash of the latest entry and the actions are accepted
+
+**AE-278 — A new change creates its anchor with its first entry**
+
+- Covers: Section 24.4
+
+Given a project whose configuration requires approvals at the level A2, and a valid change definition for a new `core` change
+When the `new` action creates the change, and the `start` action is requested afterwards without an `adopt` action in between
+Then the entry of `new` is appended at position 1 and the anchor holds the position 1 and the hash of that entry, and the `start` action is not refused for a missing anchor, while a history that has entries and no anchor is still refused until a human adopts it
 
 **AE-141 — A history without an entry is not consistent**
 
