@@ -610,13 +610,60 @@ The statuses `failed`, `cancelled`, and `superseded` are legal only with the `cl
 | Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
 |---|---|---|---|---|---|
 | `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW; current-phase DoR was established by `ready`, and current-phase DoD and next-phase DoR are not applicable. | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `complete` | A non-closed phase with status `draft`, `active`, or `done` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied; from `done`, the next phase's DoR is re-evaluated. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition, DoF, DoW, current-phase DoR, or current-phase DoD is not satisfied. Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
+| `complete` | A non-closed phase with status `draft`, `active`, or `done` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied; from `done`, the next phase's DoR is re-evaluated. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition is not satisfied. When DoW, current-phase DoR, or current-phase DoD does not allow the transition, record the evaluation in the history and answer `blocked` (Section 22.2); an active fail condition of the severity `hard` closes the change as failed, and a soft fail condition or a gate that cannot be evaluated puts the change in a wait (Sections 24.7 and 24.2). Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW; current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition is not satisfied or DoF determines failure. |
-| `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; remain `waiting` when a DoW condition is still active; fail when DoF determines failure. |
+| `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. When the resume-phase DoR is not satisfied or a DoW condition is still active, record the evaluation in the history, remain `waiting`, and answer `blocked` (Section 22.2). Fail when DoF determines failure (Section 24.7). |
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `reopen` | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; wait when the new corrective scope's DoW determines a pause; fail when the new corrective scope's DoF determines failure. |
+
+**Rejected and Blocked Results per Action (`full`)**
+
+| Action | Answers `rejected` (nothing is written, `changed` is `false`) | Answers `blocked` (the evaluation is recorded, `changed` is `true`) |
+|---|---|---|
+| `start` | The phase does not have the status `ready`, the start is not authorized, or an applicable gate does not allow the start (issue code `start-blocked`). | Never. |
+| `complete` | The phase and status are not a legal source, or the applicable precondition is not satisfied. | DoW, current-phase DoR, or current-phase DoD does not allow the transition, including a wait that a soft fail condition or a gate that cannot be evaluated causes. |
+| `wait` | The change is closed, or no DoW condition is active. | Never. |
+| `resume` | The status is not `waiting`, the resume condition is not satisfied, or the resume phase is closed. | The resume-phase DoR is not satisfied, or a DoW condition is still active, so that the change remains `waiting`. |
+| `fail` | The change is closed, or no DoF condition is active. | Never. |
+| `cancel` | The change is closed, or no authorized cancellation decision exists. | Never. |
+| `supersede` | The change is closed, or no later change is authorized to replace this change. | Never. |
+| `reopen` | The change is not in the `closed` phase, the corrective follow-up work is not authorized with a reason and a new goal-bound scope, or the resume-phase DoR is not satisfied. | Never. |
+
+An action whose evaluation closes the change as failed answers `success` (Section 24.7). An action answers `blocked` only where this table lists a case, and a `complete` that preserves the current phase with the status `done` because the next-phase DoR is not satisfied answers `success`. See AE-121, AE-122, AE-123, AE-124.
+
+**AE-121 — Complete is blocked when the Definition of Done is not satisfied**
+
+- Covers: Section 8.3
+
+Given a `full` change in the build phase with the status `active` whose Definition of Done is not satisfied  
+When the `complete` action is requested  
+Then the result is `blocked` with `changed` true, the issues name the unsatisfied criteria, the evaluation is recorded in the history, and the phase and status do not change
+
+**AE-122 — Complete from a status that is not a legal source is rejected**
+
+- Covers: Section 8.3
+
+Given a `full` change in the build phase with the status `waiting`  
+When the `complete` action is requested  
+Then the result is `rejected` with `changed` false, and nothing is written to the history
+
+**AE-123 — Resume is blocked when the resume-phase Definition of Ready is not satisfied**
+
+- Covers: Section 8.3
+
+Given a `full` change with the status `waiting`, whose resume condition is satisfied and whose resume-phase Definition of Ready is not satisfied  
+When the `resume` action is requested  
+Then the result is `blocked` with `changed` true, the evaluation is recorded in the history, and the change remains `waiting`
+
+**AE-124 — Start with an unmet gate is rejected**
+
+- Covers: Section 8.3
+
+Given a `full` change whose phase has the status `ready` and a Definition of Wait condition that is active  
+When the `start` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
 ### 8.4 Cancellation, Supersession, Reopening, and Terminal Behavior
 
@@ -1551,21 +1598,81 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - initialize a stand-alone GG-SAD project;
 - create a goal-bound change;
 - validate governing configuration, artifacts, references, and state;
+- record a human decision (an approval, a sign-off, an override, or an answer) in the history of a change;
 - evaluate and execute one controlled state transition under the Section 8 Transition Table.
 
 The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
 
 ### 22.2 Minimal Result Envelope
 
-Every contract operation MUST return a result envelope containing three fields present in every response regardless of outcome: `operation`, identifying which contract operation ran; `result`, whose value is one of `success`, `rejected`, or `error` and is never partial; and `changed`, indicating whether persistent state changed.
+Every contract operation MUST return a result envelope containing three fields present in every response regardless of outcome: `operation`, identifying which contract operation ran; `result`, whose value is one of `success`, `rejected`, `blocked`, or `error` and is never partial; and `changed`, indicating whether persistent state changed.
 
-The `state` field contains the resulting phase and status and is included when applicable to the operation; it is omitted when the operation produces no phase/status result. As defined in Section 8, the phase may be `closed`, while the status carries the terminal outcome. The `issues` field contains stable codes plus human-readable messages and is included whenever `result` is `rejected` or `error` and omitted whenever `result` is `success`. The `data` field is always optional operation-specific output and is present only when relevant to the operation.
+The four results are exact lowercase names with these meanings:
+
+- `success`: the operation took effect;
+- `rejected`: the operation was invalid, or a precondition of the operation was not met; nothing was written, and `changed` is `false`;
+- `blocked`: the operation was valid, its evaluation was recorded in the history, and the requested transition did not occur; `changed` is `true`;
+- `error`: the operation could not be carried out; nothing was written, and `changed` is `false`.
+
+A `rejected` result with `changed` true and a `blocked` result with `changed` false are invalid. Only the actions that complete a change or a phase and the action `resume` can answer `blocked`: `close` and `resume` of a `core` change (Section 23.4), and `complete` and `resume` of a `full` change (Section 8.3). Every other action answers `rejected` when it does not take effect. An action whose evaluation closes the change as failed answers `success` (Section 24.7). See AE-111, AE-112, AE-113, AE-116.
+
+The `state` field contains the resulting state of the change and is included when applicable to the operation; it is omitted when the operation produces no state result. For a `full` change it contains the phase and status. As defined in Section 8, the phase may be `closed`, while the status carries the terminal outcome. For a `core` change it contains the state and the outcome (Section 23.2). The `issues` field contains stable codes plus human-readable messages. It is included whenever `result` is `rejected`, `blocked`, or `error`, and it then contains at least one issue; it is omitted whenever `result` is `success`. A result other than `success` without an issue is invalid. The `data` field is always optional operation-specific output and is present only when relevant to the operation. See AE-114, AE-115.
 
 A goal summary, specification anchor, gate outcome, evidence references, and timestamp are not universally required envelope fields. They MAY appear inside `data` when relevant to a specific operation.
+
+**AE-111 — A blocked result is recorded and changes state**
+
+- Covers: Section 22.2
+
+Given an `active` `core` change with a done gate that is not satisfied  
+When the `close` action is requested  
+Then the result is `blocked` with `changed` true, the issues name the unsatisfied gate, the evaluation is recorded in the history, and the state remains `active`
+
+**AE-112 — A rejected result writes nothing**
+
+- Covers: Section 22.2
+
+Given an `open` `core` change  
+When the `close` action is requested  
+Then the result is `rejected` with `changed` false, the issues state that the change is not `active`, and nothing is written to the history
+
+**AE-113 — Reject an envelope whose changed value contradicts its result**
+
+- Covers: Section 22.2
+
+Given an envelope with the result `rejected` and `changed` true, and an envelope with the result `blocked` and `changed` false  
+When the two envelopes are validated  
+Then both are invalid
+
+**AE-114 — Reject an envelope with no issue**
+
+- Covers: Section 22.2
+
+Given an envelope with the result `blocked` and an empty `issues` field  
+When the envelope is validated  
+Then the envelope is invalid, because every result other than `success` has at least one issue
+
+**AE-115 — The state field is worded per method profile**
+
+- Covers: Section 22.2
+
+Given a closed `core` change with the outcome `done` and a `full` change in the build phase with the status `done`  
+When the `state` field of the envelope of each change is read  
+Then the `state` field of the `core` change contains the state `closed` and the outcome `done`, and the `state` field of the `full` change contains the phase `build` and the status `done`
+
+**AE-116 — Reject a result name that is not exact lowercase**
+
+- Covers: Section 22.2
+
+Given an envelope with the result `Blocked`  
+When the envelope is validated  
+Then the envelope is invalid, because the results are the exact lowercase names `success`, `rejected`, `blocked`, and `error`
 
 ### 22.3 Rejection and Output Requirements
 
 An invalid operation MUST be rejected without any partial mutation of persisted state. Its `result` MUST be `rejected` or `error`, and `changed` MUST be `false`.
+
+A valid operation whose evaluation says that the requested transition does not occur is not an invalid operation. When the evaluation is recorded in the history, its result is `blocked` and `changed` is `true`; recording it is what makes the attempts countable under Section 24.2. An operation that is invalid, or whose precondition is not met, stays `rejected` or `error` with `changed` false. Sections 8.3 and 23.4 state per action which result applies. See AE-111, AE-112.
 
 For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the Section 8 Transition Table and Section 15 Evidence Model.
 
@@ -1752,6 +1859,57 @@ The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be perfor
 The actions `check`, `review`, and `guard` are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table. See AE-49.
 
 The method profile `core` has no `reopen` action. A change in the state `closed` is final, and follow-up work is a new change that names the closed change in `follows` (Section 23.1). See AE-48.
+
+**Rejected and Blocked Results per Action (`core`)**
+
+| Action | Answers `rejected` (nothing is written, `changed` is `false`) | Answers `blocked` (the evaluation is recorded, `changed` is `true`) |
+|---|---|---|
+| `new` | The change definition is invalid, the identifier is not unique, `follows` does not name a closed change, or no method profile is selected. | Never. |
+| `approve` | The target is invalid or its preconditions are not met, the approver is not a human where Section 24.3 requires one, or the gate definitions differ from the approved ones and the target is not the gate definitions (Section 24.1). | Never. |
+| `start` | The state is not `open`, or a precondition is not met, including a fail gate, a wait gate, or a gate that cannot be evaluated that would decide against the start (issue code `start-blocked`). | Never. |
+| `wait` | The state is not `active`, or the reason, the owner, or the resume condition is missing. | Never. |
+| `ask` | The state is not `open` or `active`, or the question is not valid. | Never. |
+| `answer` | The state is `closed`, the question does not exist or is already answered, or the answer is not valid or not given by the owner of the question. | Never. |
+| `resume` | The state is not `waiting`, or the resume condition of the wait record is not satisfied. | The evaluation of Section 23.6 finds a gate that keeps the change waiting. |
+| `close` | The state is not `active`. | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
+| `fail` | The state is not `waiting` with a wait record of kind `fail-gate`, or no reason is given. | Never. |
+| `cancel` | The state is `closed`. | Never. |
+| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist. | Never. |
+| `adopt` | The history already has an anchor. | Never. |
+
+A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-117, AE-118, AE-119, AE-120.
+
+**AE-117 — Start with an unmet gate is rejected**
+
+- Covers: Section 23.4
+
+Given an `open` `core` change with a wait gate that is active  
+When the `start` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the change remains `open`
+
+**AE-118 — Resume is rejected while the resume condition is not satisfied**
+
+- Covers: Section 23.4
+
+Given a `waiting` `core` change with a wait record of kind `question` for Q1, and Q1 is unanswered  
+When the `resume` action is requested  
+Then the result is `rejected` with `changed` false, and nothing is written to the history
+
+**AE-119 — Resume is blocked while a wait gate is still active**
+
+- Covers: Section 23.4
+
+Given a `waiting` `core` change whose awaited question is answered and whose wait gate `vendor-reply` is still active  
+When the `resume` action is requested  
+Then the result is `blocked` with `changed` true, the issues name `vendor-reply`, the evaluation is recorded in the history, and the change remains `waiting`
+
+**AE-120 — A close that triggers a hard failure answers success**
+
+- Covers: Section 23.4
+
+Given an `active` `core` change with a fail gate of the severity `hard` that is active  
+When the `close` action is requested  
+Then the result is `success`, the state is `closed`, and the outcome is `failed`
 
 **AE-19 — Create a change**
 
