@@ -450,15 +450,15 @@ RESULT: FAIL N          (exit 1; exit 2 on usage error or unreadable file)
 | A9 | Per-method-profile base gate set | SPEC-16, DC-12 | Compliance profiles later need their own base gates (§5.1 change) |
 | A10 | No `O-n` or requirement ids in the spec text | DC-17 | Reviewer wants traceability to the decision record inside the spec |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **OQ-1 Assurance floors and base gates per compliance profile.** Known: D-04 keeps §5.1 unchanged; the prototype set `lean` to A0 and `standard` to A1 and gave each its own base gates. Unclear: whether compliance profiles gain a floor or base gates. Recommendation: owner decides at Phase 3; the draft assigns none.
-2. **OQ-2 May an approved exception weaken a higher layer?** §5.3 says "silently", §4.2 says "without an approved exception", SPEC-16 says "must not". Recommendation: owner rules; the draft is absolute.
-3. **OQ-3 Granularity of "each `full` rule has an acceptance example".** Per bullet (200+) or per rule unit (about 40). Recommendation: owner confirms the unit before Plan 5.
-4. **OQ-4 `state.json` for `full`.** Mandatory (breaks inline Class S, §6.1 L369-371) or optional (the protections then cannot be enforced mechanically for those changes)?
-5. **OQ-5 Cite the decision record in the spec?** O-n ids are not prototype ids, but self-containment suggests no. The draft cites none.
-6. **OQ-6 `core` `supersede`:** outcome `cancelled` with `replaced_by`, or a fourth outcome `superseded`?
-7. **OQ-7 Items no SPEC id owns:** exit codes (WORK-01) and the text-versus-binary classification rule for content hashing (INTEG-02). Add to a SPEC commit now, or hand to the engine phases explicitly?
+1. **OQ-1 Assurance floors and base gates per compliance profile.** Known: D-04 keeps §5.1 unchanged; the prototype set `lean` to A0 and `standard` to A1 and gave each its own base gates. Unclear: whether compliance profiles gain a floor or base gates. Recommendation: owner decides at Phase 3; the draft assigns none. RESOLVED by D-15: drafting choice; the draft assigns no floor or base gates per compliance profile and lists it for Phase 3.
+2. **OQ-2 May an approved exception weaken a higher layer?** §5.3 says "silently", §4.2 says "without an approved exception", SPEC-16 says "must not". Recommendation: owner rules; the draft is absolute. RESOLVED by D-15: drafting choice; the draft is absolute (no exception weakens a higher layer) and lists it for Phase 3.
+3. **OQ-3 Granularity of "each `full` rule has an acceptance example".** Per bullet (200+) or per rule unit (about 40). Recommendation: owner confirms the unit before Plan 5. RESOLVED by D-14: the unit is the rule unit (about 40 example sets).
+4. **OQ-4 `state.json` for `full`.** Mandatory (breaks inline Class S, §6.1 L369-371) or optional (the protections then cannot be enforced mechanically for those changes)? RESOLVED by D-15: drafting choice, most conservative reading, listed for Phase 3.
+5. **OQ-5 Cite the decision record in the spec?** O-n ids are not prototype ids, but self-containment suggests no. The draft cites none. RESOLVED by D-15: the specification cites no decision record.
+6. **OQ-6 `core` `supersede`:** outcome `cancelled` with `replaced_by`, or a fourth outcome `superseded`? RESOLVED by D-15: drafting choice, supersede closes `core` changes as `cancelled` with `replaced_by`, listed for Phase 3.
+7. **OQ-7 Items no SPEC id owns:** exit codes (WORK-01) and the text-versus-binary classification rule for content hashing (INTEG-02). Add to a SPEC commit now, or hand to the engine phases explicitly? RESOLVED by D-15: handed to the engine phases explicitly via the hand-off list; no SPEC commit adds them.
 
 ## Environment Availability
 

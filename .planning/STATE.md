@@ -4,15 +4,15 @@ milestone: v1.1
 milestone_name: Executable Core
 current_phase: 2
 current_phase_name: Normative Drafting
-status: planning
+status: executing
 stopped_at: Phase 2 context gathered
-last_updated: "2026-10-24T17:24:19.662Z"
+last_updated: "2026-10-24T18:55:18.554Z"
 last_activity: 2026-10-24
 last_activity_desc: Roadmap created for milestone v1.1 (8 phases, 41/41 requirements mapped)
 progress:
   total_phases: 8
   completed_phases: 1
-  total_plans: 3
+  total_plans: 8
   completed_plans: 3
   percent: 13
 ---
@@ -35,7 +35,7 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 Phase: 2 — Normative Drafting
 Plan: Not started
-Status: Ready to plan
+Status: Ready to execute
 Last activity: 2026-10-24 — Phase 01 complete, transitioned to Phase 2
 
 Progress: [██████████] 100%

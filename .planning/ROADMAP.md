@@ -124,7 +124,28 @@ Plans:
   8. The diff specifies state as JSON (`state.json`) with a canonical hashing form, the six-layer profile resolution order with `core` implementing four layers, `reopen` for `full` only, and `schema_version` with explicit recorded migration (SPEC-15, SPEC-16, SPEC-17, SPEC-18)
   9. No file under `src/ggsad/` is modified as part of producing this diff (SPEC-13)
 
-**Plans**: TBD
+**Plans**: 0/5 plans executed
+
+Plans:
+**Wave 1**
+
+- [ ] 02-01-PLAN.md — Quick check script and the method profile vocabulary (tracer), then the `core` profile section and the applicability sweep (SPEC-12, SPEC-13)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 02-02-PLAN.md — Gates and results: three-valued gate results, frozen gate definitions, known-failure baselines, hard and soft failure, the `blocked` result (SPEC-02, SPEC-01, SPEC-07, SPEC-08, SPEC-03)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 02-03-PLAN.md — Trust and integrity: assurance levels and signed approval, history anchor, scope and isolation, interpreter, executable evidence, open questions (SPEC-04, SPEC-05, SPEC-06, SPEC-11, SPEC-10, SPEC-09)
+
+**Wave 4** *(blocked on Wave 3 completion)*
+
+- [ ] 02-04-PLAN.md — State and versioning: `state.json` and canonical form, `schema_version` and migration, `reopen` per profile (SPEC-15, SPEC-18, SPEC-17)
+
+**Wave 5** *(blocked on Wave 4 completion)*
+
+- [ ] 02-05-PLAN.md — Six-layer resolution, `full` revision with an example per rule unit, header Version 1.4, final checks, drafting-choices register and diff identity record (SPEC-16, SPEC-14)
 
 #### Phase 3: Owner Approval
 
