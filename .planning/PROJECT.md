@@ -18,6 +18,18 @@ retained Python implementation must be proven to conform to the *clarified* cont
 through explicit audit and verification evidence — not assumed to conform because prior
 GG-SAD/CHG-001 completion evidence claims it does.
 
+## Current Milestone: v1.1 Executable Core
+
+**Goal:** Turn the reference implementation from one executable transition into an executable core, where every gate result is either checked mechanically or attributed to a verified human, and the engine, not the agent, decides what may happen next.
+
+**Target features:**
+- Record owner decisions O-1 to O-11 in one decision record before any normative text is drafted
+- A normative amendment specifying two profiles (`core`, `full`) and the protections a prototype exercised, behind two hard gates: owner approval of the exact diff, then independent review by a reviewer that is not the Requestor (Claude Code is Requestor, Devin CLI is reviewer)
+- A `core` engine in `src/ggsad/` with state, gates and overrides, a trust and integrity layer, and a workflow surface (the engine refuses the `full` profile)
+- An audit against the approved specification, adversarial tests per protection, and a clean full verification baseline
+
+Input: the seeds `seed/REQUIREMENTS.md` and `seed/ROADMAP.md` (41 requirements, 8 phases) derived from the prototype's milestone proposal. The prototype is a reference and test oracle, not conformance evidence for this repository.
+
 ## Requirements
 
 ### Validated
@@ -34,8 +46,8 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 ### Active
 
-None. The next milestone will define a fresh active requirement set. The shipped v1.0 requirements
-are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
+See `.planning/REQUIREMENTS.md` for the v1.1 requirement set (41 requirements). The shipped v1.0
+requirements are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
 
 ### Out of Scope
 
@@ -100,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-10-24 — Out of Scope revised ahead of the next milestone (previously 2026-08-22 after v1.0)*
+*Last updated: 2026-10-24 after starting milestone v1.1*
