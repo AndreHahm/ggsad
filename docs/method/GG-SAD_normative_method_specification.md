@@ -482,6 +482,8 @@ Minimum content:
 - acceptance conditions,
 - verification.
 
+The scope of a change is stated and measured as Section 24.5 states.
+
 ### 6.2 Class M — Change
 
 Suitable for self-contained functional or technical changes.
@@ -862,6 +864,8 @@ At minimum:
 - required documentation is updated,
 - deviations from the specification are explained and approved.
 
+Whether unintended scope has been introduced is measured as Section 24.5 states.
+
 ### 10.7 Verify-Done
 
 At minimum:
@@ -963,6 +967,8 @@ The obligation to terminate applies to a fail condition of the severity `hard`. 
 A gate that cannot be evaluated is not a failure and does not count toward a retry limit (Section 24.2).
 
 A retry limit is a soft fail condition (Section 24.7).
+
+The approved scope is the allowed path list of Section 24.5. A path that changed since the base revision and that lies outside the allowed path list is a hard failure.
 
 ### 12.2 Mandatory Content of a Fail Rule
 
@@ -1529,6 +1535,8 @@ An AI agent MUST use the following process for every active phase:
 ```
 
 In steps 3 to 5, a gate that cannot be evaluated is neither failed nor satisfied: the change waits, as Section 24.2 states.
+
+In step 9, the approved scope is the allowed path list, and it is measured as Section 24.5 states.
 
 ### 19.1 Agent Prohibitions
 
@@ -2843,6 +2851,114 @@ Then the history is consistent and agrees with the anchor, and no check of this 
 Given a history whose entry 2 was edited without a change of its stored hash, and no anchor  
 When a human performs the `adopt` action  
 Then the action is rejected, and no anchor is created
+
+### 24.5 Scope and Isolation
+
+The scope of a change is a list of path patterns, the allowed path list. A change MAY touch a path only when at least one pattern of the list matches it. In `core`, the allowed path list is the field `scope.allow` of the change definition (Section 23.1). In `full`, it is the list of path patterns that the Scope of the change specification states (Section 16.1), and a change specification that states no allowed path list has a scope that cannot be measured. The allowed path list is part of the gate definitions and is fixed with them (Section 24.1).
+
+A path is written relative to the root of the repository, with the character `/` as the separator. A pattern is written in the same way and is compared with a path as Section 24 states, so that letter case matters and nothing is normalized. A pattern without a wildcard names one path, and a pattern that ends with `/` names every path below that directory. In a pattern, `*` matches any sequence of characters other than `/` inside one path segment, and a segment that is exactly `**` matches any number of path segments, including none. No other wildcard exists. A pattern that is empty, that begins with `/`, or that has a path segment `..` is invalid and MUST be rejected when the gate definitions are approved. See AE-156.
+
+The base revision is the revision from which the change started. It is recorded when the change starts: in `core`, when the `start` action succeeds (Section 23.4); in `full`, when the first phase of the change begins. A change MUST NOT start when its base revision cannot be recorded: the start is rejected, and nothing is written. See AE-153.
+
+The paths changed since the base revision are the paths whose content differs from the base revision according to version control, whether the difference is committed, staged, or unstaged, and the files that version control does not track and has not been told to ignore. A path changed since the base revision that no pattern of the allowed path list matches is a scope violation. A scope violation is a hard failure (Section 24.7): the change is closed as failed without human action, and the record names the paths outside the scope. See AE-147, AE-148, AE-149.
+
+The record files of the change itself are exempt from the measurement. In `core` they are the change definition, the specification, and the state document (Section 23.1). In `full` they are the specification and the state file or inline record of the change (Sections 16.1 and 4.3). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). Every other file in the change directory is measured. See AE-155.
+
+Before the change has started there is no base revision, and the scope is not evaluated: the record shows `not_applicable` (Section 24.2). After the change has started, a scope that cannot be measured is `not_evaluable` (Section 24.2). That is the case when version control is unavailable, when no base revision was recorded, and when the allowed path list is absent. It is never recorded as `satisfied`, and it is never recorded as a scope violation. See AE-154, AE-157.
+
+An allowed path list that is present and empty allows no path: every path changed since the base revision is a scope violation. When no path has changed, the change is in scope, whatever the list holds. See AE-151.
+
+A file that version control is told to ignore is invisible to the measurement. A change can create or alter an ignored file without a scope violation, so the allowed path list does not limit what happens in ignored locations. The consequence for the code that gate commands run is stated in Section 24.10. See AE-150.
+
+Work that is uncommitted when the change starts and that does not belong to the change is a changed path like any other. The measurement counts it, and it is a scope violation when no pattern matches it. A change therefore MUST run isolated: in a working copy that is separate from other work and whose content at the start equals the base revision, apart from the record files of the change. An implementation SHOULD warn when it finds other uncommitted work at the start, and it MUST NOT exclude that work from the measurement. See AE-152.
+
+**AE-147 — A changed path that a pattern matches is in scope**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change whose `scope.allow` is `lib/**`  
+When the file `lib/net/client.py` is changed and the `close` action evaluates the gates  
+Then the path is in scope, and the scope violation gate is not active
+
+**AE-148 — A path outside the scope is a hard failure**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change whose `scope.allow` is `lib/**`, and the file `docs/guide.md` is committed after the base revision  
+When the `close` action is requested  
+Then the state is `closed` and the outcome is `failed` without human action, and the record names `docs/guide.md` as outside the scope
+
+**AE-149 — An untracked file that is not ignored is counted**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change whose `scope.allow` is `lib/**`, and the new file `tools/run.sh` that version control does not track and has not been told to ignore  
+When the `close` action evaluates the gates  
+Then `tools/run.sh` is a changed path outside the scope, and the change is closed as failed
+
+**AE-150 — An ignored file is invisible**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change whose `scope.allow` is `lib/**`, a directory `.cache/` that version control is told to ignore, and a new file `.cache/tool.py` created by the change  
+When the `close` action evaluates the gates  
+Then `.cache/tool.py` is not seen by the measurement, and no scope violation is found
+
+**AE-151 — An empty allowed path list allows no path**
+
+- Covers: Section 24.5
+
+Given two `active` `core` changes whose `scope.allow` is an empty list, and the file `lib/a.py` changed since the base revision in the first change and no path changed in the second  
+When the `close` action evaluates the gates of each change  
+Then the first change has a scope violation and is closed as failed, and the second change is in scope
+
+**AE-152 — Unrelated uncommitted work counts as an outside edit**
+
+- Covers: Section 24.5
+
+Given a working copy in which the file `notes/todo.txt` has an uncommitted edit that does not belong to the change, and a change whose `scope.allow` is `lib/**` that starts in that working copy  
+When the `close` action evaluates the gates  
+Then `notes/todo.txt` is a changed path outside the scope, and the change is closed as failed, which is why the change runs in an isolated working copy
+
+**AE-153 — Refuse the start when the base revision cannot be recorded**
+
+- Covers: Section 24.5
+
+Given an `open` `core` change, and version control that does not provide a revision to record  
+When the `start` action is requested  
+Then the action is rejected, nothing is written, the change remains `open`, and no base revision is recorded
+
+**AE-154 — A scope that cannot be measured is not evaluable after the start**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change whose record holds no base revision, in a project where version control is available  
+When the `close` action evaluates the gates  
+Then the result of the scope gate is `not_evaluable`, no scope violation is recorded, and the change waits with a wait record of kind `external`
+
+**AE-155 — The record files of the change are exempt**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change `c-1` whose `scope.allow` is `lib/**`, and the files `specs/c-1/spec.md` and `specs/c-1/state.json` changed since the base revision, and the new file `specs/c-1/notes.md`  
+When the `close` action evaluates the gates  
+Then `spec.md` and `state.json` are not measured, and `specs/c-1/notes.md` is a changed path outside the scope
+
+**AE-156 — A wildcard does not cross a path separator, and an invalid pattern is rejected**
+
+- Covers: Section 24.5
+
+Given a change definition whose `scope.allow` is `lib/*.py`, and a second change definition whose `scope.allow` is `../lib/**`  
+When the file `lib/sub/a.py` is changed in the first change, and the gate definitions of the second change are approved  
+Then `lib/sub/a.py` is outside the scope of the first change, because `*` does not match `/`, and the approval of the second change is rejected, because the pattern has a segment `..`
+
+**AE-157 — The scope is not evaluated before the change has started**
+
+- Covers: Section 24.5
+
+Given an `open` `core` change with no base revision  
+When the `start` action is requested and succeeds  
+Then the scope gate is recorded as `not_applicable` for that evaluation, and the start is not stopped by it
 
 ### 24.6 Known-Failure Baselines
 
