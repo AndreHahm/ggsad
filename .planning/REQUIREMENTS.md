@@ -15,7 +15,7 @@ bundled with other work. Implementation follows approved text, never the reverse
 
 ### Decision Record (DEC)
 
-- [ ] **DEC-01**: The owner's decisions O-1 through O-11 (made 2026-10-23) are recorded in one decision record in the repository before any normative text is drafted, each stating the option chosen and, for O-4 (JSON state), that it departs from the proposal's recommendation to keep YAML
+- [x] **DEC-01**: The owner's decisions O-1 through O-11 (made 2026-10-23) are recorded in one decision record in the repository before any normative text is drafted, each stating the option chosen and, for O-4 (JSON state), that it departs from the proposal's recommendation to keep YAML
 
 ### Normative Specification (SPEC)
 
@@ -114,7 +114,7 @@ they are not the archived v1.0 phases of the same number.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DEC-01 | Phase 1 | Pending |
+| DEC-01 | Phase 1 | Complete |
 | SPEC-01 | Phase 2 | Pending |
 | SPEC-02 | Phase 2 | Pending |
 | SPEC-03 | Phase 2 | Pending |
@@ -157,6 +157,7 @@ they are not the archived v1.0 phases of the same number.
 | VERIFY-03 | Phase 8 | Pending |
 
 **Coverage:**
+
 - v1 requirements: 41 total
 - Mapped to phases: 41
 - Unmapped: 0 ✓
