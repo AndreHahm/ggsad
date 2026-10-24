@@ -360,6 +360,91 @@ Selecting a named flow from Section 7.1 is one authorized flow-selection decisio
 
 Replacement evidence MUST cover the outcomes and gates that each omitted phase would normally establish or explain why each outcome or gate is not applicable. Omitting a phase MUST NOT remove an invariant-core obligation or bypass the Definition of Ready for the next phase.
 
+### 5.6 Method Profiles
+
+GG-SAD defines two **method profiles**, `core` and `full`. A method profile fixes the model by which a change is carried out: its documents, states, gates, and actions.
+
+Method profiles are a second axis beside the compliance profiles of Section 5.1. They do not replace, rename, or alter the compliance profiles, and a compliance profile does not select a method profile.
+
+- `core` is the simplified model with four states, three outcomes, and one set of gate lists per change. It is specified in Section 23.
+- `full` is the model with phases, Definition of Ready and Definition of Done pairs, size classes, and the document hierarchy. It is specified by Sections 4 to 22 together with the protections of Section 24.
+
+Every change has exactly one method profile and exactly one compliance profile. Both are resolved in the order defined in Section 5.3.
+
+A change MUST record its method profile when the change is created. Project configuration MAY name a default method profile, which applies to every change that selects none. A request to create a change that selects no method profile, in a project whose configuration names no default, MUST be rejected, and no change is created. See AE-01, AE-02, AE-03.
+
+The identifiers `core` and `full` are exact lowercase strings. Any other value, including a different letter case or surrounding whitespace, is not a method profile and MUST be rejected. See AE-04.
+
+The method profile of a change is fixed for the life of the change. An operation MUST NOT alter the method profile of an existing change, and the recorded value MUST NOT be edited. See AE-05.
+
+To move work from one method profile to the other, a new change MUST be created in the other method profile, and the existing change MUST be superseded by the new change with the `supersede` action. No in-place switch is defined, and the states of `core` are not mapped onto the phases and statuses of `full`. A change that is already closed MUST NOT be superseded. See AE-06, AE-07.
+
+The method profile `full` is specified but not implemented: the reference implementation does not implement `full` and MUST reject the creation of a change that selects it. This marking describes the implementation only; it does not suspend or weaken any rule of `full`. See AE-08.
+
+**AE-01 — Select the `core` method profile at creation**
+
+- Covers: Section 5.6
+
+Given a project whose configuration names no default method profile  
+When a change is created that selects the method profile `core`  
+Then the change is created with the recorded method profile `core`, and Section 23 governs it
+
+**AE-02 — Use the default method profile**
+
+- Covers: Section 5.6
+
+Given a project whose configuration names the default method profile `core`  
+When a change is created that selects no method profile  
+Then the change is created with the recorded method profile `core`
+
+**AE-03 — Reject creation with no method profile and no default**
+
+- Covers: Section 5.6
+
+Given a project whose configuration names no default method profile  
+When a change is created that selects no method profile  
+Then the creation is rejected, and no change is created
+
+**AE-04 — Reject a method profile identifier that is not exact**
+
+- Covers: Section 5.6
+
+Given a project whose configuration names no default method profile  
+When a change is created that selects the method profile `Core`  
+Then the creation is rejected, because only the exact lowercase identifiers `core` and `full` are method profiles, and no change is created
+
+**AE-05 — Reject an in-place switch of the method profile**
+
+- Covers: Section 5.6
+
+Given an active change whose recorded method profile is `core`  
+When an operation sets the method profile of that change to `full`  
+Then the operation is rejected, and the recorded method profile remains `core`
+
+**AE-06 — Move to the other method profile by a new change and supersede**
+
+- Covers: Section 5.6
+
+Given an active change A whose method profile is `full`  
+When a new change B is created with the method profile `core` and change A is superseded by change B  
+Then change B is a `core` change in the state `open`, change A is closed as replaced by change B, and no state of change A is mapped onto a state of change B
+
+**AE-07 — Reject a second supersede of a closed change**
+
+- Covers: Section 5.6
+
+Given a change A that is closed because change B superseded it  
+When another change C is created and the `supersede` action of change A by change C is requested  
+Then the request is rejected, because change A is closed, and change A remains replaced by change B
+
+**AE-08 — Reject a change that selects the unimplemented method profile**
+
+- Covers: Section 5.6
+
+Given the reference implementation  
+When a change is created that selects the method profile `full`  
+Then the creation is rejected, and no change is created
+
 ## 6. Size Classes
 
 ### 6.1 Class S — Patch
