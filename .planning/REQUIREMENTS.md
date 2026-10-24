@@ -109,13 +109,61 @@ Potential future milestone scope, not tracked further here:
 
 ## Traceability
 
-Which phases cover which requirements. Filled in during roadmap creation.
+Which phases cover which requirements. Phase numbers are this milestone's (v1.1) and restart at 1;
+they are not the archived v1.0 phases of the same number.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
+| DEC-01 | Phase 1 | Pending |
+| SPEC-01 | Phase 2 | Pending |
+| SPEC-02 | Phase 2 | Pending |
+| SPEC-03 | Phase 2 | Pending |
+| SPEC-04 | Phase 2 | Pending |
+| SPEC-05 | Phase 2 | Pending |
+| SPEC-06 | Phase 2 | Pending |
+| SPEC-07 | Phase 2 | Pending |
+| SPEC-08 | Phase 2 | Pending |
+| SPEC-09 | Phase 2 | Pending |
+| SPEC-10 | Phase 2 | Pending |
+| SPEC-11 | Phase 2 | Pending |
+| SPEC-12 | Phase 2 | Pending |
+| SPEC-13 | Phase 2 | Pending |
+| SPEC-14 | Phase 2 | Pending |
+| SPEC-15 | Phase 2 | Pending |
+| SPEC-16 | Phase 2 | Pending |
+| SPEC-17 | Phase 2 | Pending |
+| SPEC-18 | Phase 2 | Pending |
+| APPR-01 | Phase 3 | Pending |
+| REVIEW-01 | Phase 4 | Pending |
+| REVIEW-02 | Phase 4 | Pending |
+| ENG-01 | Phase 5 | Pending |
+| ENG-02 | Phase 5 | Pending |
+| ENG-03 | Phase 5 | Pending |
+| ENG-04 | Phase 5 | Pending |
+| ENG-05 | Phase 5 | Pending |
+| ENG-06 | Phase 5 | Pending |
+| ENG-07 | Phase 5 | Pending |
+| TRUST-01 | Phase 6 | Pending |
+| TRUST-02 | Phase 6 | Pending |
+| INTEG-01 | Phase 6 | Pending |
+| INTEG-02 | Phase 6 | Pending |
+| INTEG-03 | Phase 6 | Pending |
+| WORK-01 | Phase 7 | Pending |
+| WORK-02 | Phase 7 | Pending |
+| WORK-03 | Phase 7 | Pending |
+| WORK-04 | Phase 7 | Pending |
+| VERIFY-01 | Phase 8 | Pending |
+| VERIFY-02 | Phase 8 | Pending |
+| VERIFY-03 | Phase 8 | Pending |
 
-**Coverage:** to be computed from the roadmap.
+**Coverage:**
+- v1 requirements: 41 total
+- Mapped to phases: 41
+- Unmapped: 0 ✓
+
+By phase: Phase 1 = 1 (DEC), Phase 2 = 18 (SPEC), Phase 3 = 1 (APPR), Phase 4 = 2 (REVIEW),
+Phase 5 = 7 (ENG), Phase 6 = 5 (TRUST 2, INTEG 3), Phase 7 = 4 (WORK), Phase 8 = 3 (VERIFY).
 
 ---
 *Requirements defined: 2026-10-24*
-*Last updated: 2026-10-24 after milestone v1.1 start*
+*Last updated: 2026-10-24 after roadmap creation (traceability filled in)*
