@@ -629,6 +629,8 @@ resulting terminal status is `failed` rather than `cancelled` or `superseded`.
 
 The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`.
 
+A fail condition of the severity `hard` closes the change as failed without human action, and a fail condition of the severity `soft` waits for a human, who either closes the change with `fail` or records an override (Section 24.7).
+
 `reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history.
 
 Once a change is in the `closed` phase, no further phase advancement is legal except through `reopen`.
@@ -851,6 +853,8 @@ DoW describes conditions under which the flow MUST pause in a controlled manner 
 
 `WAIT_EXTERNAL_SYSTEM` is the category of the wait that a gate causes when it cannot be evaluated (Section 24.2).
 
+`WAIT_DECISION` is the category of the wait that a soft failure causes while it awaits a human disposition (Section 24.7).
+
 ### 11.2 Mandatory Content of a Wait State
 
 Every wait state MUST include:
@@ -891,6 +895,8 @@ An AI agent MUST:
 
 DoF describes conditions under which the flow MUST terminate unsuccessfully.
 
+The obligation to terminate applies to a fail condition of the severity `hard`. A fail condition of the severity `soft` pauses the flow for a human disposition (Section 24.7).
+
 ### 12.1 Typical Fail Categories
 
 - critical technical error,
@@ -904,6 +910,8 @@ DoF describes conditions under which the flow MUST terminate unsuccessfully.
 - permanently unsatisfiable acceptance conditions.
 
 A gate that cannot be evaluated is not a failure and does not count toward a retry limit (Section 24.2).
+
+A retry limit is a soft fail condition (Section 24.7).
 
 ### 12.2 Mandatory Content of a Fail Rule
 
@@ -933,7 +941,12 @@ A breaking change is required but has not been approved.
 
 **Final status**  
 `FAILED_POLICY_VIOLATION`
+
+**Severity**  
+`hard`
 ```
+
+Every fail rule also states its severity, `hard` or `soft` (Section 24.7).
 
 ---
 
@@ -1483,6 +1496,7 @@ A change transitions into the `closed` phase with the terminal status `done`, re
 
 - no DoF condition is active,
 - no DoW condition is active,
+- no soft failure awaits a human disposition (Section 24.7),
 - all required DoD criteria are satisfied,
 - requirement and acceptance-example coverage is evidenced,
 - required Pair Review cycles are complete and blocking findings are resolved or formally dispositioned,
@@ -2503,3 +2517,134 @@ Then the result is `satisfied`, and the record notes that one baseline entry did
 Given a `core` change whose gate definitions were approved with a baseline that lists the failure `t1`, and the entry `t9` was added to the baseline after the approval  
 When the `close` action is requested  
 Then the result is `rejected` with the issue code `gates-changed`, and the baseline with `t9` has no effect until a human approves the gate definitions again
+
+### 24.7 Hard and Soft Failure
+
+Every fail condition has a severity, which is `hard` or `soft`, written in exact lowercase. A fail condition without a severity, or with any other value, is invalid and MUST be rejected when the gate definitions are approved. In `core`, the severity is the field `severity` of a fail gate (Section 23.3). In `full`, every fail rule states its severity (Section 12.2). A retry limit (Section 24.2) is a fail condition of the severity `soft`, and a retry limit that declares the severity `hard` is invalid and MUST be rejected. See AE-97, AE-108, AE-110.
+
+A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). See AE-98.
+
+A soft failure pauses the change for a human. When an action that evaluates gates finds a fail condition of the severity `soft` active and no hard failure, the action MUST NOT close the change. The change waits: in `core`, in the state `waiting` with a wait record of kind `fail-gate` (Section 23.5); in `full`, with the status `waiting` and a wait state of the category `WAIT_DECISION` (Section 11.1), whose resume condition is that a human has recorded an override. The wait ends by a human disposition (Section 24.3), which is one of two:
+
+- the human closes the change as failed with the `fail` action and a reason (Sections 8.3 and 23.4);
+- the human records an override of the soft failure.
+
+The `fail` action is valid only while a soft failure awaits disposition. See AE-99, AE-100, AE-101.
+
+An override is recorded by a human as an approval with the target `override` (Section 23.4). It MUST name the soft fail condition that it applies to, MUST give a reason, and MUST give a number N of further attempts. N MUST be an integer greater than or equal to 1. This specification defines no default for N: a request that gives no number, a number below 1, or a number that is not an integer MUST be rejected, and so MUST a request that gives no reason. An override is valid only for a fail condition of the severity `soft` that awaits disposition. An override for any other fail condition MUST be rejected. See AE-104, AE-105, AE-106, AE-107, AE-109.
+
+An attempt is one evaluation by the action that completes the change (in `core`, `close`; in `full`, `complete`) that is made while the override is in force. An evaluation that ends in the wait of Section 24.2 for a gate that cannot be evaluated is not an attempt. While the override is in force, the soft failure that it covers does not pause the change. The N-th attempt is allowed, and the evaluation after it pauses the change again, as a soft failure does. See AE-102.
+
+An override is bound to the approved hash of the gate definitions (Section 24.1). It lapses when its N attempts are used up and when the gate definitions are amended. A lapsed override has no effect, and a soft failure that is still active pauses the change again. See AE-103.
+
+**AE-97 — Reject a fail rule without a severity**
+
+- Covers: Section 24.7
+
+Given a `full` change whose fail rule `F-02` states no severity  
+When the gate definitions are approved  
+Then the approval is rejected, because every fail condition has a severity, and no approved hash is recorded
+
+**AE-98 — A hard failure closes the change as failed without human action**
+
+- Covers: Section 24.7
+
+Given an `active` `core` change with a fail gate of the severity `hard` that is active  
+When the `close` action is requested  
+Then the result is `success`, the state is `closed`, the outcome is `failed`, and no human action was needed
+
+**AE-99 — A soft failure pauses the change**
+
+- Covers: Section 24.7
+
+Given an `active` `core` change with a fail gate of the severity `soft` that is active and no hard failure  
+When the `close` action is requested  
+Then the change does not close, and it is `waiting` with a wait record of kind `fail-gate`
+
+**AE-100 — A human closes a paused change as failed**
+
+- Covers: Section 24.7
+
+Given a `waiting` `core` change with a wait record of kind `fail-gate`  
+When a human performs the `fail` action with the reason `retry limit reached`  
+Then the state is `closed` and the outcome is `failed`
+
+**AE-101 — A retry limit pauses the change and does not fail it**
+
+- Covers: Section 24.7
+
+Given a retry limit of three for `tests-pass`, a history with three `not_satisfied` results of `tests-pass`, and an `active` `core` change  
+When the `close` action is requested  
+Then the change is `waiting` with a wait record of kind `fail-gate`, and it is not `closed`
+
+**AE-102 — An override allows exactly the granted attempts**
+
+- Covers: Section 24.7
+
+Given an `active` `core` change with an active soft failure and an override of that soft failure with two further attempts  
+When the `close` action is requested three times and none of the evaluations ends in a wait for a gate that cannot be evaluated  
+Then the first two evaluations are not paused by the soft failure, and the third evaluation pauses the change again with a wait record of kind `fail-gate`
+
+**AE-103 — An override lapses when the gate definitions are amended**
+
+- Covers: Section 24.7
+
+Given a `core` change with an override that has one attempt left, and a human amended the gate definitions by approving them again  
+When the `close` action is requested and the soft failure is still active  
+Then the override has no effect, and the change is `waiting` with a wait record of kind `fail-gate`
+
+**AE-104 — Reject an override without a reason**
+
+- Covers: Section 24.7
+
+Given a `waiting` `core` change with a wait record of kind `fail-gate`  
+When a human approves the target `override` with two further attempts and no reason  
+Then the approval is rejected, and no override is recorded
+
+**AE-105 — Reject an override with zero attempts**
+
+- Covers: Section 24.7
+
+Given a `waiting` `core` change with a wait record of kind `fail-gate`  
+When a human approves the target `override` with a reason and zero further attempts  
+Then the approval is rejected, because the number of attempts is at least 1, and no override is recorded
+
+**AE-106 — Reject an override with a number that is not an integer**
+
+- Covers: Section 24.7
+
+Given a `waiting` `core` change with a wait record of kind `fail-gate`  
+When a human approves the target `override` with a reason and 2.5 further attempts  
+Then the approval is rejected, and no override is recorded
+
+**AE-107 — Reject an override for a hard failure**
+
+- Covers: Section 24.7
+
+Given an `active` `core` change with a fail gate of the severity `hard` that is active  
+When a human approves the target `override` for that fail gate with a reason and two further attempts  
+Then the approval is rejected, because an override is valid only for a soft failure, and the next evaluating action closes the change as failed
+
+**AE-108 — Reject a retry limit with the severity hard**
+
+- Covers: Section 24.7
+
+Given gate definitions with a retry limit of three for `tests-pass` and the severity `hard`  
+When the gate definitions are approved  
+Then the approval is rejected, because a retry limit has the severity `soft`
+
+**AE-109 — Reject an override that gives no number of attempts**
+
+- Covers: Section 24.7
+
+Given a `waiting` `core` change with a wait record of kind `fail-gate`  
+When a human approves the target `override` with a reason and no number of attempts  
+Then the approval is rejected, because no default number exists, and no override is recorded
+
+**AE-110 — Reject a severity that is not exact lowercase**
+
+- Covers: Section 24.7
+
+Given a change definition whose fail gate `no-secrets` has the severity `Hard`  
+When the gate definitions are approved  
+Then the approval is rejected, because only the exact lowercase values `hard` and `soft` are severities
