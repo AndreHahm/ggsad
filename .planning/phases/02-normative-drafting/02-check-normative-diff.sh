@@ -17,8 +17,9 @@
 #
 # Checks: B1 base blob, E1-E3 encoding, S1 S2 scope, N1 normative terms, X1 self-containment,
 # R2 acceptance example structure and citations (warning only), R3 unfinished-text markers
-# (warning only), R5 section map and structure, R6 base headings kept, R7 the old state file name
-# and reopen per profile (warning only), R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
+# (warning only), R1 section references and heading numbers (warning only), R5 section map and
+# structure, R6 base headings kept, R7 the old state file name and reopen per profile (warning only),
+# R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
 # known ids; the single header subject of the last plan is accepted and counts toward no id.
@@ -399,6 +400,48 @@ awk '
   }
 ' "$TMP/added.txt" > "$TMP/r8.out" || { echo "internal error in R8" >&2; exit 2; }
 if [ -s "$TMP/r8.out" ]; then cat "$TMP/r8.out"; else pass R8 "every added use of profile is qualified"; fi
+
+# R1: warning only. Every "Section N", "Sections N and M" and "Section N.M" reference (a list
+# continues after a comma, "and", "or" or "to") resolves to a numbered heading outside code fences;
+# heading numbers are unique; top-level numbers are contiguous from 1; subsection numbers are
+# contiguous from 1 within each section.
+awk '
+  /^```/ { infence = !infence; next }
+  infence { next }
+  /^## [0-9]+\. / {
+    n = $2; sub(/\.$/, "", n)
+    if (n in have) print "WARN R1 line " NR ": heading number " n " occurs more than once"
+    have[n] = 1; tops[n + 0] = 1; if (n + 0 > maxtop) maxtop = n + 0
+    next
+  }
+  /^### [0-9]+\.[0-9]+ / {
+    n = $2
+    if (n in have) print "WARN R1 line " NR ": heading number " n " occurs more than once"
+    have[n] = 1; split(n, w, "."); subs[w[1] + 0, w[2] + 0] = 1
+    if (w[2] + 0 > maxsub[w[1] + 0]) maxsub[w[1] + 0] = w[2] + 0
+    next
+  }
+  {
+    t = $0
+    while (match(t, /Sections? [0-9]+(\.[0-9]+)*/)) {
+      ref = substr(t, RSTART, RLENGTH); sub(/^Sections? /, "", ref)
+      nr++; rl[nr] = ref; rn[nr] = NR
+      rest = substr(t, RSTART + RLENGTH)
+      while (match(rest, /^(, and |, | and | or | to )[0-9]+(\.[0-9]+)*/)) {
+        piece = substr(rest, RSTART, RLENGTH); sub(/^(, and |, | and | or | to )/, "", piece)
+        nr++; rl[nr] = piece; rn[nr] = NR
+        rest = substr(rest, RLENGTH + 1)
+      }
+      t = rest
+    }
+  }
+  END {
+    for (i = 1; i <= nr; i++) if (!(rl[i] in have)) print "WARN R1 line " rn[i] ": Section " rl[i] " does not resolve to a numbered heading"
+    for (k = 1; k <= maxtop; k++) if (!(k in tops)) print "WARN R1 top-level numbers are not contiguous from 1: " k " is missing"
+    for (k = 1; k <= maxtop; k++) for (m = 1; m <= maxsub[k]; m++) if (!((k, m) in subs)) print "WARN R1 subsection numbers are not contiguous: " k "." m " is missing"
+  }
+' "$REC" > "$TMP/r1.out" || { echo "internal error in R1" >&2; exit 2; }
+if [ -s "$TMP/r1.out" ]; then cat "$TMP/r1.out"; else pass R1 "every section reference resolves to a numbered heading; heading numbers are unique and contiguous"; fi
 
 # R7: warning only. (a) The old state file name outside Section 25.3 (its only permitted place is
 # the migration rule there), reported separately for a tree line of Section 4.3. (b) A line of
