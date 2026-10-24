@@ -13,6 +13,9 @@
 #                       heading is absent); the body ends at the next heading of the same or a
 #                       higher level
 #   --ids LIST          comma-separated requirement ids (SPEC-01 to SPEC-18); also runs C1
+#   --final             the phase gate: R1, R2, R3 and R7 become failures, C1 runs for SPEC-01 to
+#                       SPEC-12 and SPEC-14 to SPEC-18, and R4, F1, W1 and A1 run
+#   --version V         the method version R4 expects in the header (default 1.4); with --final
 #   -h, --help          print this text
 #
 # Checks: B1 base blob, E1-E3 encoding, S1 S2 scope, N1 normative terms, X1 self-containment,
@@ -23,6 +26,10 @@
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
 # known ids; the single header subject of the last plan is accepted and counts toward no id.
+# With --final: R4 header version and revision line, F1 an acceptance example for each of the 41
+# full rule units and a realization row for each of the 11 protections, W1 no status wording in the
+# specification or in the notes of the phase, and A1 the identity facts of the text (printed, not
+# judged).
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are
 # not counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check,
@@ -46,6 +53,8 @@ BASE_BLOB="$DEFAULT_BASE_BLOB"
 PATHS_FROM=""
 SECTION=""
 IDS=""
+FINAL=0
+VERSION="1.4"
 HEADER_SUBJECT="docs(02-05): header Version 1.4 and revision line (D-12)"
 
 usage() {
@@ -69,6 +78,8 @@ while [ "$#" -gt 0 ]; do
     --paths-from) need_value "$@"; PATHS_FROM="$2"; shift 2 ;;
     --section) need_value "$@"; SECTION="$2"; shift 2 ;;
     --ids) need_value "$@"; IDS="$2"; shift 2 ;;
+    --final) FINAL=1; shift ;;
+    --version) need_value "$@"; VERSION="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
   esac
@@ -80,6 +91,10 @@ if [ -n "$SECTION" ]; then
 fi
 if [ -n "$IDS" ]; then
   [[ "$IDS" =~ ^SPEC-(0[1-9]|1[0-8])(,SPEC-(0[1-9]|1[0-8]))*$ ]] || { echo "--ids needs a comma-separated list of ids from SPEC-01 to SPEC-18" >&2; exit 2; }
+fi
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+$ ]] || { echo "--version needs two integers joined by a dot, such as 1.4" >&2; exit 2; }
+if [ "$FINAL" -eq 1 ]; then
+  IDS="SPEC-01,SPEC-02,SPEC-03,SPEC-04,SPEC-05,SPEC-06,SPEC-07,SPEC-08,SPEC-09,SPEC-10,SPEC-11,SPEC-12,SPEC-14,SPEC-15,SPEC-16,SPEC-17,SPEC-18"
 fi
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
 if [ -n "$PATHS_FROM" ]; then
@@ -129,6 +144,16 @@ FAILS=0
 pass() { echo "PASS $1 $2"; }
 fail() { echo "FAIL $1 $2"; FAILS=$((FAILS + 1)); }
 warn() { echo "WARN $1 $2"; }
+# warn_or_fail FILE: print the WARN lines of FILE. With --final each line is printed as FAIL and the
+# check counts as one failure.
+warn_or_fail() {
+  if [ "$FINAL" -eq 1 ]; then
+    sed 's/^WARN /FAIL /' "$1"
+    FAILS=$((FAILS + 1))
+  else
+    cat "$1"
+  fi
+}
 
 # B1: the base blob on the base ref is still the one this phase was drafted against.
 base_now=$(git rev-parse --verify --quiet "$BASE:$SPEC" 2> /dev/null) || base_now=""
@@ -361,7 +386,7 @@ awk '
 ' "$REC" > "$TMP/r2c.out" || { echo "internal error in R2 citations" >&2; exit 2; }
 cat "$TMP/r2.out" "$TMP/r2c.out" | grep '^WARN R2' > "$TMP/r2.warn" || true
 if [ -s "$TMP/r2.warn" ]; then
-  cat "$TMP/r2.warn"
+  warn_or_fail "$TMP/r2.warn"
 else
   pass R2 "every acceptance example block has Covers, Given, When and Then, is cited and has a unique id ($(sed -n 's/^NOTE //p' "$TMP/r2.out") blocks); every subsection of sections 23 to 25 cites an example"
 fi
@@ -381,7 +406,7 @@ awk '
     }
   }
 ' "$REC" > "$TMP/r3.out" || { echo "internal error in R3" >&2; exit 2; }
-if [ -s "$TMP/r3.out" ]; then cat "$TMP/r3.out"; else pass R3 "no unfinished-text marker outside code fences"; fi
+if [ -s "$TMP/r3.out" ]; then warn_or_fail "$TMP/r3.out"; else pass R3 "no unfinished-text marker outside code fences"; fi
 
 # R8: warning only. Added lines with the word profile that is not qualified as a method profile,
 # a compliance profile, or a named profile.
@@ -441,7 +466,7 @@ awk '
     for (k = 1; k <= maxtop; k++) for (m = 1; m <= maxsub[k]; m++) if (!((k, m) in subs)) print "WARN R1 subsection numbers are not contiguous: " k "." m " is missing"
   }
 ' "$REC" > "$TMP/r1.out" || { echo "internal error in R1" >&2; exit 2; }
-if [ -s "$TMP/r1.out" ]; then cat "$TMP/r1.out"; else pass R1 "every section reference resolves to a numbered heading; heading numbers are unique and contiguous"; fi
+if [ -s "$TMP/r1.out" ]; then warn_or_fail "$TMP/r1.out"; else pass R1 "every section reference resolves to a numbered heading; heading numbers are unique and contiguous"; fi
 
 # R7: warning only. (a) The old state file name outside Section 25.3 (its only permitted place is
 # the migration rule there), reported separately for a tree line of Section 4.3. (b) A line of
@@ -476,7 +501,7 @@ awk '
     }
   }
 ' "$REC" > "$TMP/r7.out" || { echo "internal error in R7" >&2; exit 2; }
-if [ -s "$TMP/r7.out" ]; then cat "$TMP/r7.out"; else pass R7 "no old state file name outside Section 25.3; every reopen in Section 8 names the full profile"; fi
+if [ -s "$TMP/r7.out" ]; then warn_or_fail "$TMP/r7.out"; else pass R7 "no old state file name outside Section 25.3; every reopen in Section 8 names the full profile"; fi
 
 # C1 (only with --ids): the commits since the base that touch the specification. Each subject starts
 # "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the one header
@@ -510,6 +535,115 @@ if [ -n "$IDS" ]; then
     fi
   done
   if [ -n "$c1" ]; then fail C1 "$c1"; else pass C1 "each listed id is named by a commit since $BASE, and every such commit names a known id"; fi
+fi
+
+if [ "$FINAL" -eq 1 ]; then
+  # R4: the header carries the method version and a revision line: an ISO date, an em dash and one
+  # sentence that ends in a period. Only the first ten lines are read.
+  head -n 10 "$REC" > "$TMP/header.txt"
+  r4=""
+  if [ "$(grep -c -x -F -e "**Version:** $VERSION" "$TMP/header.txt")" -ne 1 ]; then
+    r4="the header has no single line **Version:** $VERSION"
+  elif [ "$(grep -c -E -e '^\*\*Revision:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2} — .+\.$' "$TMP/header.txt")" -ne 1 ]; then
+    r4="the header has no single Revision line of the form: ISO date, em dash, one sentence ending in a period"
+  fi
+  if [ -n "$r4" ]; then fail R4 "$r4"; else pass R4 "header has **Version:** $VERSION and a Revision line with an ISO date, an em dash and a closing period"; fi
+
+  # F1: an acceptance example for each of the 41 full rule units (the Covers lines below, each
+  # outside code fences) and a realization row for each of the 11 protections. The unit of Section
+  # 8.4 already has the example of reopen, so it needs two. Section 8.3 has one example per action.
+  : > "$TMP/f1.units"
+  for u in "Section 4.1" "Section 5.5" "Section 6.1" "Section 6.2" "Section 6.3" \
+    "Section 7.1 (Patch Flow)" "Section 7.1 (Standard Flow)" "Section 7.1 (Release Flow)" \
+    "Section 7.1 (Exploration Flow)" "Section 8.2" "Section 8.4" "Section 8.5" \
+    "Section 11.2" "Section 12.2"; do
+    printf '%s\n' "$u" >> "$TMP/f1.units"
+  done
+  for a in start complete wait resume fail cancel supersede reopen; do
+    printf 'Section 8.3 (`%s`)\n' "$a" >> "$TMP/f1.units"
+  done
+  for k in 1 2 3 4 5 6 7 8; do
+    printf 'Sections 9.%s and 10.%s\n' "$k" "$k" >> "$TMP/f1.units"
+  done
+  for k in 1 2 3 4 5 6 7 8 9 10; do
+    printf 'Section 24.%s (full)\n' "$k" >> "$TMP/f1.units"
+  done
+  printf 'Section 22.2 (full)\n' >> "$TMP/f1.units"
+  awk '
+    /^```/ { infence = !infence; next }
+    infence { next }
+    /^- Covers: / { t = $0; sub(/^- Covers: /, "", t); seen[t]++ }
+    END { for (t in seen) print seen[t] "\t" t }
+  ' "$REC" > "$TMP/f1.seen"
+  f1=""
+  nunits=0
+  while IFS= read -r u || [ -n "$u" ]; do
+    nunits=$((nunits + 1))
+    need=1
+    [ "$u" = "Section 8.4" ] && need=2
+    have=$(awk -F '\t' -v u="$u" '$2 == u { print $1 }' "$TMP/f1.seen")
+    if [ "${have:-0}" -lt "$need" ]; then
+      [ -n "$f1" ] || f1="no acceptance example with the line [- Covers: $u] (needs $need)"
+    fi
+  done < "$TMP/f1.units"
+  awk -v cap='**Realization of the Protections in the Two Method Profiles**' '
+    /^```/ { infence = !infence; next }
+    infence { next }
+    $0 == cap { capn++; st = 1; next }
+    st == 1 { if ($0 == "") next; st = ($0 ~ /^\|/) ? 2 : 0 }
+    st == 2 {
+      if ($0 ~ /^\|/) {
+        rows++
+        if (rows > 2) {
+          n = split($0, c, "|"); s = c[3]; gsub(/^ +| +$/, "", s); sec[s]++; data++
+        }
+      } else st = 0
+    }
+    END {
+      bad = ""
+      if (capn != 1) bad = "the caption occurs " capn + 0 " times, expected once"
+      for (k = 1; bad == "" && k <= 10; k++) if (sec["24." k] != 1) bad = "no single realization row for Section 24." k
+      if (bad == "" && sec["22.2"] != 1) bad = "no single realization row for the result blocked (Section 22.2)"
+      if (bad == "" && data != 11) bad = "the realization table has " data + 0 " data rows, expected 11"
+      if (bad != "") print "FAIL " bad; else print "PASS"
+    }
+  ' "$REC" > "$TMP/f1.table"
+  if [ -z "$f1" ] && [ "$(cut -c1-4 "$TMP/f1.table")" != PASS ]; then f1="$(sed 's/^FAIL //' "$TMP/f1.table")"; fi
+  if [ -n "$f1" ]; then fail F1 "$f1"; else pass F1 "all $nunits full rule units have an acceptance example (41 units expected) and all 11 protections a realization row"; fi
+
+  # W1: no status wording in the specification or in the notes of this phase, and no owner reply
+  # row in the identity note.
+  w1=""
+  : > "$TMP/w1.files"
+  for f in .planning/phases/02-normative-drafting/02-DRAFTING-CHOICES.md .planning/reviews/*-normative-spec-diff-identity.md; do
+    [ -f "$f" ] && printf '%s\n' "$f" >> "$TMP/w1.files"
+  done
+  if grep -q -i -F -e 'owner-confirmed' -e 'Decided (' "$REC"; then w1="the specification holds status wording"; fi
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if grep -q -i -F -e 'owner-confirmed' -e 'Decided (' "$f"; then
+      [ -n "$w1" ] || w1="status wording in $f"
+    fi
+    case "$f" in
+      *-normative-spec-diff-identity.md)
+        if grep -q -i -E -e '^\| *Owner reply' "$f"; then [ -n "$w1" ] || w1="an Owner reply row in $f"; fi ;;
+    esac
+  done < "$TMP/w1.files"
+  if [ -n "$w1" ]; then fail W1 "$w1"; else pass W1 "no status wording in the specification or in the $(wc -l < "$TMP/w1.files" | tr -d ' ') note(s) of the phase; no owner reply row"; fi
+
+  # A1: facts only, printed for the diff identity record of the phase. No verdict.
+  echo "A1 base blob: ${base_now:-absent}"
+  if [ -n "$REF" ]; then
+    echo "A1 result blob: $(git rev-parse --verify --quiet "$REF:$FILE" 2> /dev/null || echo absent)"
+  else
+    echo "A1 result blob (working file): $(git hash-object "$REC")"
+    echo "A1 result blob (HEAD): $(git rev-parse --verify --quiet "HEAD:$FILE" 2> /dev/null || echo absent)"
+  fi
+  echo "A1 SHA-256: $(sha256sum < "$REC" | cut -d ' ' -f1)"
+  echo "A1 line count: $(wc -l < "$REC" | tr -d ' ')"
+  echo "A1 diffstat: $(git diff --no-index --shortstat -- "$TMP/base" "$REC" | sed 's/^ *//')"
+  echo "A1 commits touching the specification since $BASE: $(git log --format=%h "$BASE..HEAD" -- "$SPEC" 2> /dev/null | wc -l | tr -d ' ')"
+  git log --format='A1 commit %h %s' "$BASE..HEAD" -- "$SPEC" 2> /dev/null
 fi
 
 if [ "$FAILS" -eq 0 ]; then
