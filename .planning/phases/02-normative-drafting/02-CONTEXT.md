@@ -36,6 +36,9 @@ The diff implements the eleven owner decisions O-1 to O-11 in `docs/decisions/20
 - **D-12:** The specification's header is drafted as Version 1.4 with a new Revision line describing the change. The packet for Phase 3 states the number so the owner can change it at approval. — **Reversibility:** reversible — one header line.
 - **D-13:** Acceptance examples for the `full` rules (SPEC-14) are written inline under each rule in Given/When/Then form, each with an id (for example AE-nn) that the rule cites, covering normal and failure/boundary behavior as section 3.9 requires, so rule, example and verification evidence stay traceable.
 
+- **D-14:** For SPEC-14 the unit that needs an acceptance example is the rule unit (for example one transition-table row, one DoR/DoD pair, one size class), roughly 40 example sets, each covering normal and failure/boundary behavior; not every normative bullet and not one per section. Decided by the owner after the Phase 2 research found this the largest sizing risk.
+- **D-15:** Research candidates that are judgment calls (research register DC-01 to DC-27 and open questions OQ-1, OQ-2, OQ-4, OQ-6, OQ-7) follow D-10: the drafter takes the most conservative reading and lists it for the Phase 3 packet. The specification does not cite the decision record or other development artifacts (OQ-5), keeping it self-contained.
+
 ### Claude's Discretion
 - The order of requirement commits inside a plan, the exact checks of the lean script, the numbering and placement of new subsections and acceptance example ids, and the exact wording of rules, provided they follow D-01 to D-13, the section 2 normative terms and the Phase 1 record.
 
@@ -63,6 +66,8 @@ The diff implements the eleven owner decisions O-1 to O-11 in `docs/decisions/20
 
 ### Hand-off list (recorded here, acted on in later phases)
 - `specs/examples/class-m/state.yaml`, `.ggsad/templates/*.template.md`, `.ggsad/schemas/state.schema.json`, and the archived CHG-001 `state.yaml` — convert to `state.json` / the new schema when the engine is changed (not in Phase 2, D-11)
+- Version "1.3" is pinned in `.ggsad/config.yaml` (line 10), `src/ggsad/application/initialize_project.py` (line 82) and `tests/unit/test_initialize_project.py` (line 61); the header change to 1.4 (D-12) leaves them stale until the engine phases update them (SPEC-13 forbids touching `src/ggsad/` in Phase 2)
+- `.planning/phases/02-normative-drafting/02-RESEARCH.md` — spec impact map with per-requirement edit sites, conflicts T1-T20, Drafting-choice register DC-01 to DC-27 and the check-script design (read before planning)
 
 </canonical_refs>
 
