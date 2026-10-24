@@ -419,7 +419,7 @@ Then the sign-off is rejected, because the required level remains A2, and the ch
 
 - Covers: Section 5.3
 
-Given a `core` change definition that lists a wait gate with the identifier `stale-spec-approval` whose condition is active only before the first `start`  
+Given a `core` change definition that lists a wait gate with the identifier `stale-spec-approval` whose condition is a `command` that tests for a file, with an exit map that maps the exit status 0 to `satisfied` and the exit status 1 to `not_satisfied`  
 When the `new` action receives it  
 Then the definition is rejected with the issue code `gate-weakened`, the message names `stale-spec-approval` as altered, and no change is created
 
@@ -427,7 +427,7 @@ Then the definition is rejected with the issue code `gate-weakened`, the message
 
 - Covers: Section 5.3
 
-Given a `core` change definition that lists a wait gate with the identifier `unanswered-question`, the same kind, the same condition, and no difference from the base gate  
+Given a `core` change definition that lists a wait gate with the identifier `unanswered-question` and the condition `predicate` `unanswered-question`, so that the gate does not differ from the base gate  
 When the `new` action receives it  
 Then the definition is rejected as a duplicate identifier (Section 23.3), and the issue code is not `gate-weakened`, because nothing is weakened
 
@@ -435,7 +435,7 @@ Then the definition is rejected as a duplicate identifier (Section 23.3), and th
 
 - Covers: Section 5.3
 
-Given a `core` change definition that lists the done gate `review-ok` first and, listed after it, a fail gate `scope-violation` with the severity `soft`  
+Given a `core` change definition that lists the done gate `review-ok` of the kind `sign-off` first and, listed after it, a fail gate `scope-violation` with the severity `soft`  
 When the `new` action receives it  
 Then the whole definition is rejected with the issue code `gate-weakened`, because an entry listed later does not override a higher layer and an added gate does not make up for a weakened one, and no change is created
 
@@ -2311,9 +2311,17 @@ The field `gates` of a `core` change holds three lists:
 
 There is no ready gate. Readiness to start is a precondition of the `start` action (Section 23.4).
 
+A fail gate and a wait gate have no kind. Each has a `condition`, a mapping that holds exactly one of the members `command`, `retry_limit`, and `predicate`:
+
+- `command`: the argument list of a check command (Section 24.2). The condition also holds the member `exit_map`, and it MAY hold the member `time_limit`. The gate is active when the command ends with an exit status that the exit map maps to `satisfied`.
+- `retry_limit`: a mapping with the members `gate` and `limit`, for a fail gate only. The member `gate` is the identifier of a done gate of the kind `check`, and the member `limit` is the limit of Section 24.2. The gate is active when the retry limit is reached.
+- `predicate`: the name of a built-in predicate. A fail gate MAY name `scope-violation`, and a wait gate MAY name `unanswered-question` or `stale-spec-approval`. Section 23.7 defines them.
+
+A condition that holds none of these members, that holds two or more of them, that holds another member, or that names a predicate which is not listed for the kind of the gate MUST be rejected. The rules about the kind of a gate apply to done gates only. See AE-273.
+
 A `core` fail gate holds an `id`, a `severity`, and a condition. It states no required response, no permitted preservation actions, and no documentation: the response to an active fail gate is fixed by Section 24.7, a closure as failed for the severity `hard` and a wait for a human disposition for the severity `soft`, and the preservation of the history and the evidence is the work of Sections 24.4 and 24.9. See AE-271.
 
-Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate and a wait gate are predicate gates: each evaluates a condition to one of the three results of Section 24.2. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `review`, satisfied by a recorded review result from a participant other than the participant that requested the reviewed work (Section 3.10); or `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3). A change definition with a duplicate gate identifier, a gate without a kind, a gate with more than one kind, or a fail gate without a severity MUST be rejected. See AE-16, AE-17, AE-18.
+Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; or `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3). A done gate of the kind `review` is invalid and MUST be rejected, because no action records a review result that a gate could evaluate. A review before the closure of a change is a gate of the kind `sign-off`, which a human approves, or a gate of the kind `check`, whose command reports the result of the review. The review records of Section 14.5 are evidence that no gate evaluates, and the read-only action `review` (Section 23.4) is not a kind of gate. A change definition with a duplicate gate identifier, a done gate without a kind, a done gate with more than one kind, a done gate of another kind, or a fail gate without a severity MUST be rejected. See AE-16, AE-17, AE-18, AE-272.
 
 **AE-271 — A `core` fail gate needs no response, preservation actions, or documentation**
 
@@ -2322,6 +2330,22 @@ Every gate has an `id` that is unique within the change, including the base gate
 Given a `core` change definition whose fail gate `no-secrets` states an `id`, the `severity` `hard`, and a condition, and states no required response, no permitted preservation actions, and no documentation  
 When the gate definitions are approved  
 Then the gate is valid, because a `core` fail gate is not required to state those items of Section 12.2, and an active `no-secrets` closes the change as failed as Section 24.7 states
+
+**AE-272 — A done gate of the kind review is rejected**
+
+- Covers: Section 23.3
+
+Given a change definition with the done gate `code-review` of the kind `review`, and a second change definition with the done gates `tests-pass` of the kind `check` and `legal-ok` of the kind `sign-off`
+When the `new` action receives each of them
+Then the first definition is rejected, because a done gate of the kind `review` is invalid, and no change is created, and the second definition is accepted
+
+**AE-273 — A fail gate or a wait gate has exactly one form of condition**
+
+- Covers: Section 23.3
+
+Given a change definition with the hard fail gate `no-secrets` whose condition is a `command` with an exit map, the soft fail gate `flaky` whose condition is a `retry_limit` for the `check` done gate `tests-pass`, and the wait gate `late-answers` whose condition is the `predicate` `unanswered-question`, a second definition whose fail gate has no condition, and a third definition whose fail gate has a condition with both a `command` and a `predicate`
+When the `new` action receives each of them
+Then the first definition is accepted, and the second and the third are rejected, because a condition has exactly one form, and no change is created for them
 
 **AE-16 — Reject a duplicate gate identifier**
 
@@ -2356,8 +2380,8 @@ A `core` change changes state only through the actions of the table below. An ac
 | `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2. See AE-19, AE-20. |
 | `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8). For `gates`, the gate definitions are valid under Section 23.3. For `all`, both conditions hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-21, AE-22, AE-23, AE-24. |
 | `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), and the evaluation of Section 23.6 finds no fail gate and no wait gate active. | The state `active`, with the base revision recorded. See AE-25, AE-26. |
-| `wait` | `active` | A reason, an owner, and a resume condition are given. | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action gives a question (Section 23.5). See AE-27, AE-28, AE-29. |
-| `ask` | `open`, `active` | The question has a text and an owner, which defaults to the owner of the change. A structured question has at least two distinct options. | The state does not change, and an unanswered question with the next identifier is recorded (Section 24.8). See AE-30, AE-31. |
+| `wait` | `active` | A reason, an owner, and a resume condition are given, or an unanswered question is named. A named question exists and is unanswered, and the action never creates a question. When a question is named, the owner of the wait is the owner of the question and a different owner is rejected, and the reason and the resume condition default to awaiting the answer to the question (Section 24.8). | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action names a question (Section 23.5). See AE-27, AE-28, AE-29, AE-275. |
+| `ask` | `open`, `active`, `waiting` | The question has a text and an owner, which defaults to the owner of the change. A structured question has at least two distinct options. | The state does not change, and an unanswered question with the next identifier is recorded (Section 24.8). In the state `waiting`, the wait record does not change, and the change cannot resume until the question is answered (Section 23.7). See AE-30, AE-31, AE-274. |
 | `answer` | Any state except `closed` | The question exists and is unanswered. The answer comes from the owner of the question. A structured question receives one of its options, and a free-text question receives a text. | The state does not change, and the question is recorded as answered. An answer does not resume a waiting change. See AE-32, AE-33, AE-34. |
 | `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. See AE-35, AE-36. |
 | `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
@@ -2381,8 +2405,8 @@ A `follows` field is a reference and not a state transition: it never changes th
 | `new` | The change definition is invalid, the identifier is not unique, `follows` does not name a closed change, or no method profile is selected. | Never. |
 | `approve` | The target is invalid or its preconditions are not met, the approver is not a human where Section 24.3 requires one, or the gate definitions differ from the approved ones and the target is not the gate definitions (Section 24.1). | Never. |
 | `start` | The state is not `open`, or a precondition is not met, including a fail gate, a wait gate, or a gate that cannot be evaluated that would decide against the start (issue code `start-blocked`). | Never. |
-| `wait` | The state is not `active`, or the reason, the owner, or the resume condition is missing. | Never. |
-| `ask` | The state is not `open` or `active`, or the question is not valid. | Never. |
+| `wait` | The state is not `active`; or the reason, the owner, or the resume condition is missing and no question is named; or the named question does not exist, is already answered, or has another owner than the owner given. | Never. |
+| `ask` | The state is not `open`, `active`, or `waiting`, or the question is not valid. | Never. |
 | `answer` | The state is `closed`, the question does not exist or is already answered, or the answer is not valid or not given by the owner of the question. | Never. |
 | `resume` | The state is not `waiting`, or the resume condition of the wait record is not satisfied. | The evaluation of Section 23.6 finds a gate that keeps the change waiting. |
 | `close` | The state is not `active`. | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
@@ -2512,6 +2536,22 @@ Then the action is rejected, and the change remains `open` with no wait record
 Given an `active` change with the unanswered question Q1  
 When the `wait` action names Q1, the owner of Q1, and the resume condition `Q1 answered`  
 Then the state is `waiting`, and the wait record has the kind `question` and names Q1
+
+**AE-275 — A wait names an existing unanswered question and takes its owner**
+
+- Covers: Section 23.4 (`wait`)
+
+Given an `active` change with the answered question Q1 and the unanswered question Q2 whose owner is `human:bo`
+When the `wait` action names Q1, then names Q2 and gives the owner `human:ada`, and then names Q2 and gives no owner
+Then the first and the second request are rejected and nothing is written for them, because Q1 is answered and `human:ada` is not the owner of Q2, and the third request makes the change `waiting` with a wait record of kind `question` that names Q2 and has the owner `human:bo`, and the reason and the resume condition await the answer to Q2
+
+**AE-274 — Ask a question while the change is waiting**
+
+- Covers: Section 23.4 (`ask`)
+
+Given a `waiting` change with a wait record of kind `manual` whose resume condition the owner of the wait states holds
+When the `ask` action records the question Q1, and the `resume` action is requested while Q1 is unanswered
+Then Q1 is recorded as unanswered and the state remains `waiting`, and the `resume` action answers `blocked` with the issues naming the unanswered question gate, and after Q1 is answered the `resume` action makes the change `active`
 
 **AE-30 — Ask a structured question**
 
@@ -2702,10 +2742,12 @@ A `core` change has at most one wait record, and the wait record exists exactly 
 
 The kind of a wait record depends on how it came to exist:
 
-- `question`: the `wait` action gave a question (Section 24.8);
-- `manual`: the `wait` action gave no question;
+- `question`: the `wait` action named an unanswered question (Section 24.8);
+- `manual`: the `wait` action named no question;
 - `fail-gate`: the evaluation of Section 23.6 found a soft fail condition (Section 24.7);
 - `external`: the evaluation of Section 23.6 found a gate that could not be evaluated (Section 24.2).
+
+A wait record that the evaluation creates has these values. The `owner` is the owner of the change. For the kind `fail-gate`, `resume_when` is the text `a human recorded an override of <id>`, where `<id>` is the identifier of the fail gate. For the kind `external`, `resume_when` is the text `gate <id> can be evaluated`, where `<id>` is the identifier of the gate that could not be evaluated. The `reason` names the gate and the cause. See AE-277.
 
 The resume condition is satisfied as follows. For the kind `question`, the awaited question is answered. For the kind `fail-gate`, a human has recorded an override for the soft fail condition. For the kind `external`, the gate can be evaluated. For the kind `manual`, the owner of the wait states in the `resume` action that the condition holds.
 
@@ -2721,6 +2763,14 @@ Each kind corresponds to one wait category of Section 11.1:
 | `external` | `WAIT_EXTERNAL_SYSTEM` |
 
 The categories `WAIT_DEPENDENCY` and `WAIT_APPROVAL` have no kind of their own in `core`. See AE-50, AE-51, AE-52.
+
+**AE-277 — A wait record that the evaluation creates names its owner, gate, and resume condition**
+
+- Covers: Section 23.5
+
+Given two `active` `core` changes owned by `human:ada`, the first with a soft fail gate `flaky` that is active and the second with a `check` done gate `docs-built` whose program is missing
+When the `close` action is requested for each change
+Then the first change is `waiting` with a wait record of kind `fail-gate`, the owner `human:ada`, the resume condition `a human recorded an override of flaky`, and a reason that names `flaky`, and the second change is `waiting` with a wait record of kind `external`, the owner `human:ada`, the resume condition `gate docs-built can be evaluated`, and a reason that names `docs-built` and the missing program
 
 **AE-50 — A wait record needs no safe state and no next action**
 
@@ -2786,14 +2836,16 @@ Then the change does not close and remains `active`
 
 Every `core` change has four base gates in addition to the gates in its change definition:
 
-- the scope violation gate, a fail gate with the severity `hard`, which is active when a path changed since the base revision lies outside `scope.allow` (Section 24.5);
-- the unanswered question gate, a wait gate, which is active while any question is unanswered (Section 24.8);
-- the stale specification approval gate, a wait gate, which is active while `spec.md` differs from the version that was approved (Section 24.3);
+- the scope violation gate, a fail gate with the severity `hard` and the condition `predicate` `scope-violation`, which is active when a path changed since the base revision lies outside `scope.allow` (Section 24.5);
+- the unanswered question gate, a wait gate with the condition `predicate` `unanswered-question`, which is active while any question is unanswered (Section 24.8);
+- the stale specification approval gate, a wait gate with the condition `predicate` `stale-spec-approval`, which is active only if `spec.md` was approved at least once and its content hash differs from the content hash that was approved last (Section 24.3);
 - the incomplete evidence gate, a done gate, which is not satisfied until the evidence of every requirement is complete (Section 24.9).
 
 The base gates belong to the `core` method profile. They apply to every `core` change without being listed in its change definition, they MUST NOT be removed, and a lower layer of Section 5.3 MUST NOT weaken or alter them. See AE-56, AE-57, AE-58.
 
 The base gates have the identifiers `scope-violation`, `unanswered-question`, `stale-spec-approval`, and `incomplete-evidence`. A change definition that redefines one of them, or that states that one does not apply, is rejected as Section 5.3 states, at the creation of the change and again before the approval of its gate definitions. See AE-219, AE-225.
+
+The predicate of a base gate has the identifier of the gate as its name, and the rules of Section 23.3 about the kind and the condition of a gate govern the gates of the change definition and not the base gates. The check of Section 5.3 on the identifiers of the base gates is made before the other checks of Sections 23.1 and 23.3, so that a gate with the identifier of a base gate is rejected as Section 5.3 states, whatever its condition. A specification that was never approved has no approved version from which it can differ, so that the stale specification approval gate is not active for it and does not stop the `start` action. See AE-276.
 
 **AE-56 — The scope violation gate applies without being listed**
 
@@ -2818,6 +2870,14 @@ Then the change does not close, because the stale specification approval gate is
 Given an `active` change with a requirement that has no evidence command  
 When the `close` action is requested  
 Then the change does not close, because the incomplete evidence gate is not satisfied
+
+**AE-276 — A specification that was never approved does not make the stale gate active**
+
+- Covers: Section 23.7
+
+Given an `open` `core` change in a project whose configuration does not require the approval of the specification, whose `spec.md` was never approved
+When the `start` action is requested, and later a human approves `spec`, `spec.md` is edited, and the `close` action is requested
+Then the `start` action succeeds, because the stale specification approval gate is not active, and the `close` action does not close the change, because the gate is active after the edit
 
 ---
 
@@ -3112,6 +3172,8 @@ A check-command gate is a gate whose condition is the outcome of a command. In `
 
 A definition of a check-command gate without a command or without an exit map is invalid and MUST be rejected when the gate definitions are approved. An exit status that the exit map does not map is `not_evaluable`. Except for the baseline comparison of Section 24.6, the output of a command does not change the result that the exit map decides. Empty output never makes a gate `satisfied`: only an exit status that the exit map maps to `satisfied` does. This specification names no programming language, test runner, or output format. Section 24.10 governs the interpreter that runs the command. See AE-65, AE-66, AE-73.
 
+A `command` condition of a fail gate or a wait gate (Section 23.3) is evaluated as a check command: its command and its exit map are defined and evaluated as above, and a condition without an exit map is invalid and MUST be rejected when the gate definitions are approved. Such a gate is not a check-command gate in the sense of Section 24.6, so that it carries no baseline. See AE-273.
+
 `not_applicable` is not a result. It is the marker that Sections 8.5 and 23.6 prescribe for a gate that is not evaluated by design, because it does not apply to the requested action or because the commands of gates were deliberately not run for the action. A `not_applicable` record is not a failure, does not count toward a retry limit, and is not `not_evaluable`: a gate that applies to the action and could not be evaluated is `not_evaluable`. See AE-68.
 
 **AE-61 — Reject a result name that is not exact lowercase**
@@ -3244,7 +3306,7 @@ The required level of an action is the higher of two minimums: the minimum that 
 
 These actions MUST be performed by a human: every approval, the sign-off of a gate, an override, an answer to a question whose owner is a human, `cancel`, `supersede`, `fail`, and `adopt`. The identity of a human is written with the prefix `human:`. An identity without that prefix is not a human, and an action that requires a human MUST be rejected when the identity that performs it does not carry the prefix. The prefix is part of the claim: at A0 it is self-declared, and at A1 or A2 it is as well verified as the claim is. See AE-128, AE-133.
 
-An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved. The approval of the specification is stale while the content hash of the current specification differs from the content hash that was approved, and the stale specification approval gate of Section 23.7 is active in that case. See AE-125, AE-126, AE-136.
+An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved. The approval of the specification is stale only if the specification was approved at least once and the content hash of the current specification differs from the content hash that was approved last, and the stale specification approval gate of Section 23.7 is active in that case and in no other. See AE-125, AE-126, AE-136.
 
 The statement of a signed approval is built by the implementation from the action that it is about to perform. A statement that the participant supplies is not accepted, so that what is signed cannot differ from what is verified. The statement is text in lines, each ended by a line feed, and the bytes that are signed are its UTF-8 encoding. It contains, in this order:
 
@@ -3825,7 +3887,7 @@ An open question is part of the state of the change and is recorded in its histo
 - `answer`: absent while the question is unanswered;
 - `answerer`: the participant that gave the answer.
 
-In `core`, the `ask` action records a question without pausing the change, and the `wait` action that gives a question records it and pauses the change with a wait record of kind `question` (Sections 23.4 and 23.5). In `full`, a question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1). A wait that a question causes has the category `WAIT_USER_INPUT` (Section 11.1).
+In `core`, the `ask` action records a question without pausing the change, and the `wait` action that names an unanswered question pauses the change with a wait record of kind `question`; the `wait` action never creates a question (Sections 23.4 and 23.5). In `full`, a question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1). A wait that a question causes has the category `WAIT_USER_INPUT` (Section 11.1).
 
 Two options are distinct when they differ as sequences of code points (Section 24). A structured question with fewer than two distinct options MUST be rejected, and so MUST a structured question whose list repeats an option. Question identifiers are compared in the same way, so that `Q1` and `q1` are different identifiers. See AE-177, AE-181.
 
