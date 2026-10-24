@@ -122,7 +122,7 @@ Tailoring MUST NOT remove the invariant core:
 - an explicit goal,
 - a specification anchor appropriate to the change size,
 - gate evaluation,
-- evidence appropriate to the selected profile,
+- evidence appropriate to the selected compliance profile,
 - controlled wait and fail behavior,
 - traceable final status.
 
@@ -173,6 +173,8 @@ Pair Review MUST NOT replace a required human approval. Where segregation of dut
 ## 4. Document Hierarchy
 
 ### 4.1 Binding Order of Precedence
+
+This section specifies the `full` method profile (Section 5.6).
 
 In case of conflict, the following priority applies:
 
@@ -290,20 +292,20 @@ Inline storage of any of this information is permitted only when its authoritati
 
 Every project MUST select one active compliance profile in `.ggsad/config.yaml` and record it in `docs/project-brief.md`.
 
-GG-SAD defines the following default profiles:
+GG-SAD defines the following default compliance profiles:
 
-| Profile | Intended Use | Minimum Characteristics |
+| Compliance Profile | Intended Use | Minimum Characteristics |
 |---|---|---|
 | `lean` | Pre-PMF MVPs, prototypes, solo development, fast iteration | Minimal artifacts, automated checks where available, self-approval permitted unless a critical rule applies |
 | `standard` | Typical product and team development | Separate specification for normal changes, defined quality gates, recorded evidence, peer review where practical |
 | `governed` | Enterprise or high-impact delivery | Strong traceability, explicit approvals, security and architecture review, controlled release evidence |
 | `regulated` | Regulated, safety-critical, or externally audited work | Segregation of duties, immutable or retained evidence, formal approvals, compliance mappings, audit-ready history |
 
-Projects MAY define additional profiles. Custom profiles MUST inherit from a default profile or explicitly document every invariant and deviation.
+Projects MAY define additional compliance profiles. Custom compliance profiles MUST inherit from a default compliance profile or explicitly document every invariant and deviation.
 
 ### 5.2 Tailoring Dimensions
 
-A profile MAY tailor:
+A compliance profile MAY tailor:
 
 - enabled and skippable phases,
 - required artifacts by change class,
@@ -318,7 +320,7 @@ A profile MAY tailor:
 - release, rollback, and monitoring requirements,
 - integration mappings to external methods and tools.
 
-A lower-compliance profile MAY reduce optional controls. It MUST NOT disable the invariant core defined in Section 3.7.
+A compliance profile of lower compliance MAY reduce optional controls. It MUST NOT disable the invariant core defined in Section 3.7.
 
 ### 5.3 Profile Resolution
 
@@ -372,7 +374,7 @@ Method profiles are a second axis beside the compliance profiles of Section 5.1.
 
 Every change has exactly one method profile and exactly one compliance profile. Both are resolved in the order defined in Section 5.3.
 
-A change MUST record its method profile when the change is created. Project configuration MAY name a default method profile, which applies to every change that selects none. A request to create a change that selects no method profile, in a project whose configuration names no default, MUST be rejected, and no change is created. See AE-01, AE-02, AE-03.
+A change MUST record its method profile when the change is created. Project configuration MAY name a default method profile, which applies to every change that selects none. A project that names a default SHOULD record it in the project brief (Section 16.5). A request to create a change that selects no method profile, in a project whose configuration names no default, MUST be rejected, and no change is created. See AE-01, AE-02, AE-03.
 
 The identifiers `core` and `full` are exact lowercase strings. Any other value, including a different letter case or surrounding whitespace, is not a method profile and MUST be rejected. See AE-04.
 
@@ -381,6 +383,14 @@ The method profile of a change is fixed for the life of the change. An operation
 To move work from one method profile to the other, a new change MUST be created in the other method profile, and the existing change MUST be superseded by the new change with the `supersede` action. No in-place switch is defined, and the states of `core` are not mapped onto the phases and statuses of `full`. A change that is already closed MUST NOT be superseded. See AE-06, AE-07.
 
 The method profile `full` is specified but not implemented: the reference implementation does not implement `full` and MUST reject the creation of a change that selects it. This marking describes the implementation only; it does not suspend or weaken any rule of `full`. See AE-08.
+
+The following table states which of Sections 1 to 22 apply to which method profile. A section that the table does not name as `full` only applies to both method profiles. A `core` change MUST NOT be required to satisfy a rule of a section that applies to `full` only. Sections 23 to 25 state their own applicability. See AE-39, AE-50, AE-59.
+
+| Sections | Applies To |
+|---|---|
+| 4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 11.1, 16.1 to 16.4, and the diagram of Section 21 | `full` only |
+| 11.2 and 12.2 | Both method profiles, except that the safe current state and the next action of a wait state in 11.2 and the final status code of a fail rule in 12.2 apply to `full` only. Sections 23.5 and 23.2 give the `core` equivalents. |
+| Every other section of Sections 1 to 22 | Both method profiles |
 
 **AE-01 — Select the `core` method profile at creation**
 
@@ -448,6 +458,8 @@ Then the creation is rejected, and no change is created
 
 ## 6. Size Classes
 
+This section specifies the `full` method profile (Section 5.6).
+
 ### 6.1 Class S — Patch
 
 Suitable for small, clearly bounded changes with a known solution and low risk.
@@ -486,6 +498,8 @@ An initiative MUST be decomposed into multiple change specifications. A short ro
 ---
 
 ## 7. Phase Model
+
+This section specifies the `full` method profile (Section 5.6).
 
 The canonical phase identifiers are lowercase and limited to:
 
@@ -552,6 +566,8 @@ Exploration MUST NOT silently transition into production implementation.
 ---
 
 ## 8. State Model
+
+This section specifies the `full` method profile (Section 5.6).
 
 Every phase has a status.
 
@@ -629,6 +645,8 @@ This order defines evaluation precedence. A gate that is not applicable to the r
 ---
 
 ## 9. Definition of Ready
+
+This section specifies the `full` method profile (Section 5.6).
 
 DoR determines whether a phase may begin.
 
@@ -713,6 +731,8 @@ At minimum:
 ---
 
 ## 10. Definition of Done
+
+This section specifies the `full` method profile (Section 5.6).
 
 DoD determines whether a phase has been completed successfully.
 
@@ -948,7 +968,7 @@ Pair Review MAY be enabled or required by:
 - affected artifact type,
 - local strengthening in the change specification.
 
-Lean and low-risk Class S flows MAY omit Pair Review. Governed or regulated profiles SHOULD require it for relevant high-impact changes.
+Lean and low-risk Class S flows MAY omit Pair Review. Governed or regulated compliance profiles SHOULD require it for relevant high-impact changes.
 
 ### 14.2 Participants and Identity
 
@@ -1297,6 +1317,10 @@ Then <result>
 
 `lean | standard | governed | regulated | <custom>`
 
+## Method Profile
+
+`core | full`
+
 ## Operating Mode
 
 `stand-alone | combination`
@@ -1462,6 +1486,8 @@ Active Phase
                               ↓
                          Next Phase
 ```
+
+The diagram above shows the `full` flow (Section 5.6). The flow of `core` is given by the transition table of Section 23.4.
 
 Leading source of truth:
 
