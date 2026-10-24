@@ -1108,6 +1108,8 @@ Regardless of whether it is stored inline in `evidence.md` or separately in `rev
 
 Evidence MUST demonstrate traceably whether requirements, gates, and quality criteria have been satisfied.
 
+Where evidence is recorded in the history of a change, the consistency and the completeness of that history are verified as Section 24.4 states.
+
 Permitted evidence includes:
 
 - test results,
@@ -2730,6 +2732,117 @@ Then the claim is verified at A1, and the verification does not show that the pa
 Given a signature by a listed key over the statement for an approval of `spec` that names the content hash of an earlier version of the specification, and a specification that was edited since  
 When the approval is presented with that signature  
 Then the statement that the implementation builds names the content hash of the current specification, the signature is not valid for it, and the claim is A0
+
+### 24.4 History Consistency and Completeness
+
+The history of a change is an append-only list of entries, and the state of the change is read from it (Section 25.1). Every entry has four fields:
+
+- `n`: the position of the entry, which starts at 1;
+- `prev`: the hash of the entry before it. For the first entry, `prev` is the prefix `sha256:` followed by 64 digits 0;
+- `body`: the content that the entry records, including the result of the action and the state of the change after it;
+- `hash`: the hash of the entry, which is the hash of the canonical form (Section 25.1) of an object that holds `prev` and `body`. It is written as the prefix `sha256:` followed by the 64 lowercase hexadecimal digits of the SHA-256 digest.
+
+The state of the change is the state that the last entry records. The state document has no other field that holds the state, so that there is no field to edit by hand in order to change it.
+
+A history is consistent when it has at least one entry, the positions run from 1 without a gap, the `prev` of each entry equals the `hash` of the entry before it, and the stored `hash` of each entry equals the hash that is computed again from its `prev` and `body`. A history without an entry is not consistent. An implementation MUST verify the consistency of the history before it acts on a change, and MUST NOT act on a history that is not consistent. See AE-137, AE-141, AE-143.
+
+Consistency is not completeness. Consistency says that the entries which are present form an unbroken chain. It does not say that no entry is missing: a history from which the last entries were removed is still consistent, because nothing in a chain refers forward to the entries after it. Completeness says that no entry is missing, in particular none at the end of the history, and a chain alone cannot establish it. See AE-139.
+
+An anchor records the position and the hash of the latest entry of a history. It is kept at a location that is outside the working tree of the project and is not part of the history, and it is written only after the append of that entry has succeeded. After every successful append the anchor is advanced to the new latest entry. Where the applicable configuration requires approvals at the level A2 (Section 24.3), the history of a change MUST have an anchor or an equivalent mechanism, and an implementation MUST NOT act on a change whose history has none until a human adopts the history. An equivalent mechanism gives the verifier a record of the latest position and hash that is independent of the history, is written only after the append has succeeded, supports the three checks below, and cannot be replaced. Where no configuration requires approvals at the level A2, an implementation MAY keep an anchor. See AE-140, AE-142.
+
+With an anchor, the verifier compares the history with it:
+
+- a history with fewer entries than the position of the anchor is truncated, or it was rolled back to an earlier state;
+- a history whose entry at the position of the anchor has a hash that differs from the hash of the anchor was rewritten;
+- otherwise the history agrees with the anchor. Entries after the position of the anchor are the entries appended since the anchor was last advanced.
+
+An implementation MUST NOT act on a history that is truncated or rewritten, and its message MUST say which of the two it found. See AE-138, AE-139.
+
+An existing anchor MUST NOT be replaced. It is only advanced, after a successful append, to the position and the hash of a later entry of the same chain. No action sets an anchor to an earlier position or to a different hash. See AE-144.
+
+The `adopt` action creates the anchor from the history as it is, at the position and the hash of its latest entry (Section 23.4). It MUST be performed by a human at the level that Section 24.3 requires for `adopt`, and it is rejected when an anchor exists and when the history is not consistent. A human who adopts a history takes responsibility for its completeness at that moment: adoption cannot show whether entries were lost before it. See AE-140, AE-146.
+
+An anchor is only as strong as the location that holds it. An actor that can write both the history and the anchor can rewrite both, and every check of this section then passes. The anchor protects against an actor that can write the history and cannot write the anchor, and against accident. It does not protect against an actor that can write both. See AE-145.
+
+**AE-137 — Accept a consistent history that agrees with its anchor**
+
+- Covers: Section 24.4
+
+Given a history of four entries with positions 1 to 4, each `prev` equal to the hash of the entry before it, each stored hash equal to the hash computed again, and an anchor at position 4 with the hash of entry 4  
+When any action on the change is requested  
+Then the history is consistent and agrees with the anchor, and the implementation acts on the change
+
+**AE-138 — A rewritten entry is detected through the anchor**
+
+- Covers: Section 24.4
+
+Given an anchor at position 5 with the hash of entry 5, and a history in which the body of entry 5 was edited and the hashes of entry 5 were computed again, so that the chain is consistent  
+When any action on the change is requested  
+Then the hash of entry 5 differs from the hash of the anchor, the history is found rewritten, and the implementation does not act
+
+**AE-139 — A truncated history is consistent and is detected through the anchor**
+
+- Covers: Section 24.4
+
+Given an anchor at position 5, and a history from which entries 4 and 5 were removed, so that three entries remain  
+When any action on the change is requested  
+Then the chain of three entries is consistent, the history has fewer entries than the position of the anchor, it is found truncated or rolled back, and the implementation does not act
+
+**AE-140 — A history without an anchor is refused until a human adopts it**
+
+- Covers: Section 24.4
+
+Given a project whose configuration requires approvals at the level A2, and a consistent history with no anchor  
+When any action other than `adopt` is requested, and later a human performs `adopt` at the level A2  
+Then the first request is refused, and after the `adopt` action the anchor holds the position and the hash of the latest entry and the actions are accepted
+
+**AE-141 — A history without an entry is not consistent**
+
+- Covers: Section 24.4
+
+Given a state document whose history has no entry  
+When any action on the change is requested  
+Then the history is not consistent, and the implementation does not act
+
+**AE-142 — An equivalent mechanism meets the requirement for an anchor**
+
+- Covers: Section 24.4
+
+Given a project whose configuration requires approvals at the level A2, and no anchor, but an independent append-only record outside the working tree that holds the latest position and hash and is written only after each successful append  
+When the history is verified, once intact and once with its last entry removed  
+Then the requirement for an anchor is met, the intact history agrees with the record, and the shortened history is found truncated
+
+**AE-143 — An edited entry that keeps its stored hash breaks the chain**
+
+- Covers: Section 24.4
+
+Given a history of three entries in which the body of entry 2 was edited and its stored hash was not changed  
+When the history is verified  
+Then the hash computed again for entry 2 differs from its stored hash, the history is not consistent, and the implementation does not act
+
+**AE-144 — An existing anchor is not replaced**
+
+- Covers: Section 24.4
+
+Given an anchor at position 5  
+When an operation sets the anchor to position 3, or to a different hash at position 5  
+Then the operation is rejected, and the anchor does not change
+
+**AE-145 — An actor that can write both history and anchor can rewrite both**
+
+- Covers: Section 24.4
+
+Given an actor that can write the history and the anchor, that rewrote entries 3 to 5, computed their hashes again, and set the anchor to the new latest entry  
+When the history is verified  
+Then the history is consistent and agrees with the anchor, and no check of this section detects the rewrite
+
+**AE-146 — Reject the adoption of an inconsistent history**
+
+- Covers: Section 24.4
+
+Given a history whose entry 2 was edited without a change of its stored hash, and no anchor  
+When a human performs the `adopt` action  
+Then the action is rejected, and no anchor is created
 
 ### 24.6 Known-Failure Baselines
 
