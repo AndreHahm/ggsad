@@ -3349,16 +3349,18 @@ Verification MUST fail closed. A claim whose level cannot be established is A0, 
 
 The required level of an action is the higher of two minimums: the minimum that the gate states, when the action serves a gate (a sign-off gate, or the fail condition of an override), and the minimum that the project configuration sets for the kind of action. The kinds of action are the approval of the specification, the approval and the re-approval of gate definitions, the sign-off of a gate, an override, an answer, `cancel` and `supersede`, `fail`, and `adopt`. A minimum that is not stated is A0. This specification assigns no minimum to a compliance profile (Section 5.1): a compliance profile reaches a level only through a gate or through the project configuration. See AE-131, AE-132.
 
+For the kinds of action that an approval record covers, which are the approval of the specification, the approval and the re-approval of gate definitions, the sign-off of a gate, and an override, the required level is never below the highest required level that the history of the change records in `required_level` for that kind of action. A project configuration that is lowered after an approval at a higher level therefore does not lower the level that the next action of that kind in the same change requires. The project configuration is a file of the repository, and this specification does not protect it: a participant that can change the configuration can lower a minimum for a change whose history records no earlier approval of that kind. See AE-289.
+
 These actions MUST be performed by a human: every approval, the sign-off of a gate, an override, an answer to a question whose owner is a human, `cancel`, `supersede`, `fail`, and `adopt`. The identity of a human is written with the prefix `human:`. An identity without that prefix is not a human, and an action that requires a human MUST be rejected when the identity that performs it does not carry the prefix. The prefix is part of the claim: at A0 it is self-declared, and at A1 or A2 it is as well verified as the claim is. See AE-128, AE-133.
 
-An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved. The approval of the specification is stale only if the specification was approved at least once and the content hash of the current specification differs from the content hash that was approved last, and the stale specification approval gate of Section 23.7 is active in that case and in no other. See AE-125, AE-126, AE-136.
+An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved and the `required_level`, which is the required level that applied when the approval was accepted. The approval of the specification is stale only if the specification was approved at least once and the content hash of the current specification differs from the content hash that was approved last, and the stale specification approval gate of Section 23.7 is active in that case and in no other. See AE-125, AE-126, AE-136.
 
 The statement of a signed approval is built by the implementation from the action that it is about to perform. A statement that the participant supplies is not accepted, so that what is signed cannot differ from what is verified. The statement is text in lines, each ended by a line feed, and the bytes that are signed are its UTF-8 encoding. It contains, in this order:
 
 1. a first line that holds the format identifier and the format version of the statement;
 2. the operation, which is the name of the action;
 3. the change, which is the identifier of the change;
-4. the version, which is the number of entries that the history of the change holds when the statement is built (Section 24.4), so that the statement names the position in the history at which the action will be recorded;
+4. the version, which is the number of entries that the history of the change holds when the statement is built (Section 24.4), so that the statement names the history that the action extends;
 5. the identity of the signer;
 6. the details of the action, one line for each detail field, in ascending order of the field names compared as Section 24 states. The details of an approval include its target and the content hash of the content that is approved.
 
@@ -3443,6 +3445,14 @@ Then the first sign-off is rejected, because the required level is A2, and the s
 Given a change whose compliance profile is `regulated`, whose gates state no minimum level, and whose project configuration sets none  
 When `human:ada` approves the target `spec` with a claim at A0  
 Then the approval is recorded, because the required level is A0
+
+**AE-289 — A lowered minimum does not lower the level that the history already used**
+
+- Covers: Section 24.3
+
+Given an `open` `core` change in a project whose configuration sets the minimum level A2 for the approval of the specification, and the approval of the target `spec` by `human:ada` at A2, which is recorded with the `required_level` A2, and then a change of the configuration that lowers the minimum to A0 and a change of the specification that makes the approval stale  
+When `human:ada` approves the target `spec` again with a claim at A0  
+Then the approval is rejected with `changed` false, because the required level is not below A2, which the history of the change already records for the approval of the specification, and no approval is recorded
 
 **AE-133 — A1 requires that the approved files have no uncommitted change**
 
@@ -4154,6 +4164,8 @@ The commands of check-command gates (Section 24.2) and the evidence commands of 
 
 The interpreter is the program that runs the code a command points at, for example the runtime of a programming language. It is explicit and opt-in. A command MAY use the designated token `@interpreter` as the first element of its argument list. The token stands for the interpreter that the project configuration names if the configuration names one, and only for that interpreter. An implementation MUST NOT discover an interpreter: it MUST NOT search the project for a virtual environment, a tool directory, or any other candidate, because what stands behind the token decides whether every gate passes. When the configuration names no interpreter, the token stands for the interpreter that runs the implementation itself. A first element other than the token is a program that is run as it is. See AE-159, AE-160.
 
+The interpreter that the project configuration names is not part of the gate definitions and is not frozen (Section 24.1), so a change of the configuration changes which program runs without a difference of the gate definitions. The record shows which program ran: the `gate_detail` of the result of a command whose first element is the token `@interpreter` names the program that the token stood for in that evaluation (Section 25.1). See AE-159.
+
 An implementation SHOULD warn when the interpreter that the token stands for lives inside the repository of the project. See AE-161.
 
 Code in a location that version control is told to ignore is invisible to the scope check (Section 24.5). When a command runs code from such a location, including an interpreter or a library that is installed there, a change can alter that code, and so the result of the gate, without a scope violation. The scope check therefore does not show that the code behind a gate is unchanged, and the result of a gate is worth only as much as the protection of the code that its command runs. See AE-162.
@@ -4172,7 +4184,7 @@ Then the program `run-tests` is run with the two arguments `--label` and `a; ech
 
 Given a project configuration that names the interpreter `rt-stable`, and a check-command gate whose command is `@interpreter`, `check.script`  
 When the gate is evaluated  
-Then the program `rt-stable` is run with the argument `check.script`
+Then the program `rt-stable` is run with the argument `check.script`, and the `gate_detail` of the result names `rt-stable`
 
 **AE-160 — Without configuration the token stands for the interpreter of the implementation**
 
@@ -4188,7 +4200,7 @@ Then the interpreter that runs the implementation itself is used, and the interp
 
 Given a project configuration that names an interpreter located in a directory inside the repository  
 When a gate whose command starts with `@interpreter` is evaluated  
-Then the configured interpreter is used, and the implementation warns that it lives inside the repository
+Then the configured interpreter is used, and an implementation that follows this recommendation warns that it lives inside the repository
 
 **AE-162 — Code in an ignored location is invisible to the scope check**
 
@@ -4228,7 +4240,7 @@ A field that does not apply to an action is present with the value `null`. The b
 The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
 
 - `state` and `outcome` (Section 23.2);
-- `approvals`: the approvals recorded so far, in the order of their recording, each naming its target, the identity, the verified assurance level, and the content hash that was approved (Section 24.3), and for a sign-off, an override, and a re-approval also the fields that Sections 24.1 and 24.7 call for;
+- `approvals`: the approvals recorded so far, in the order of their recording, each naming its target, the identity, the verified assurance level, the `required_level`, and the content hash that was approved (Section 24.3), and for a sign-off, an override, and a re-approval also the fields that Sections 24.1 and 24.7 call for;
 - `questions`: the questions recorded so far, with the fields of Section 24.8;
 - `wait`: the wait record (Section 23.5), or `null`;
 - `base_revision`: the base revision (Section 24.5), or `null` before it is recorded;
