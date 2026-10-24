@@ -16,8 +16,9 @@
 #   -h, --help          print this text
 #
 # Checks: B1 base blob, E1-E3 encoding, S1 S2 scope, N1 normative terms, X1 self-containment,
-# R2 acceptance example structure (warning only), R5 section map and structure, R6 base headings
-# kept, R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
+# R2 acceptance example structure and citations (warning only), R3 unfinished-text markers
+# (warning only), R5 section map and structure, R6 base headings kept, R8 qualified "profile"
+# (warning only). With --ids, C1: every listed id is named in the
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
 # known ids; the single header subject of the last plan is accepted and counts toward no id.
@@ -104,7 +105,7 @@ if [ -n "$SECTION" ]; then
         match($0, /^#+/); lvl = RLENGTH
         t = $0; sub(/^#+ +/, "", t); split(t, w, " "); num = w[1]; sub(/\.$/, "", num)
         if (on && lvl <= wl) { on = 0; done = 1 }
-        if (!on && !done && num == want) { on = 1; wl = lvl; found = 1 }
+        if (!on && !done && (num "") == (want "")) { on = 1; wl = lvl; found = 1 }
       }
       if (on) print
       if (isfence) infence = !infence
@@ -328,11 +329,58 @@ awk '
   }
   END { close_block(); if (nblocks == 0) print "NOTE none"; else print "NOTE " nblocks }
 ' "$REC" > "$TMP/r2.out" || { echo "internal error in R2" >&2; exit 2; }
-if grep -q '^WARN R2' "$TMP/r2.out"; then
-  grep '^WARN R2' "$TMP/r2.out"
+# R2, citations (warning only): every defined example is cited by a line "See AE-nn", every cited
+# example is defined, and every subsection N.M of sections 23 to 25 cites at least one example.
+awk '
+  /^```/ { infence = !infence; next }
+  infence { next }
+  /^#+ / {
+    cur = ""
+    if ($0 ~ /^### (23|24|25)\.[0-9]+ /) { cur = $2; subs[++ns] = cur }
+    next
+  }
+  /^\*\*AE-[0-9]+ / {
+    id = $1; sub(/^\*\*/, "", id)
+    if (!(id in defd)) { defd[id] = 1; dlist[++nd] = id }
+    next
+  }
+  /[Ss]ee AE-[0-9]+/ {
+    t = $0
+    while (match(t, /AE-[0-9]+/)) {
+      id = substr(t, RSTART, RLENGTH); t = substr(t, RSTART + RLENGTH)
+      if (!(id in citd)) { citd[id] = 1; clist[++nc] = id }
+    }
+    if (cur != "") hasc[cur] = 1
+  }
+  END {
+    for (i = 1; i <= nd; i++) if (!(dlist[i] in citd)) print "WARN R2 " dlist[i] " is defined but no rule line cites it"
+    for (i = 1; i <= nc; i++) if (!(clist[i] in defd)) print "WARN R2 " clist[i] " is cited but not defined"
+    for (i = 1; i <= ns; i++) if (!(subs[i] in hasc)) print "WARN R2 section " subs[i] " cites no acceptance example"
+  }
+' "$REC" > "$TMP/r2c.out" || { echo "internal error in R2 citations" >&2; exit 2; }
+cat "$TMP/r2.out" "$TMP/r2c.out" | grep '^WARN R2' > "$TMP/r2.warn" || true
+if [ -s "$TMP/r2.warn" ]; then
+  cat "$TMP/r2.warn"
 else
-  pass R2 "every acceptance example block has Covers, Given, When and Then; ids are unique ($(sed -n 's/^NOTE //p' "$TMP/r2.out") blocks)"
+  pass R2 "every acceptance example block has Covers, Given, When and Then, is cited and has a unique id ($(sed -n 's/^NOTE //p' "$TMP/r2.out") blocks); every subsection of sections 23 to 25 cites an example"
 fi
+
+# R3: warning only. Unfinished-text markers outside code fences: TODO, FIXME, TBD, XXX, the word
+# placeholder, "to be defined" and the like, and runs of question marks.
+awk '
+  /^```/ { infence = !infence; next }
+  infence { next }
+  {
+    low = tolower($0)
+    if ($0 ~ /(^|[^A-Za-z])(TODO|FIXME|TBD|XXX)([^A-Za-z]|$)/ \
+      || low ~ /placeholder/ \
+      || low ~ /to be (defined|decided|determined|written|specified)/ \
+      || $0 ~ /[?][?][?]/) {
+      print "WARN R3 line " NR ": unfinished-text marker: " substr($0, 1, 70)
+    }
+  }
+' "$REC" > "$TMP/r3.out" || { echo "internal error in R3" >&2; exit 2; }
+if [ -s "$TMP/r3.out" ]; then cat "$TMP/r3.out"; else pass R3 "no unfinished-text marker outside code fences"; fi
 
 # R8: warning only. Added lines with the word profile that is not qualified as a method profile,
 # a compliance profile, or a named profile.
