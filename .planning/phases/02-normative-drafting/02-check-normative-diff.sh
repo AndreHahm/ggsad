@@ -12,10 +12,15 @@
 #   --section N[.M]     print the numbered heading N[.M] and its body, then exit 0 (exit 2 if the
 #                       heading is absent); the body ends at the next heading of the same or a
 #                       higher level
+#   --ids LIST          comma-separated requirement ids (SPEC-01 to SPEC-18); also runs C1
 #   -h, --help          print this text
 #
 # Checks: B1 base blob, E1-E3 encoding, S1 S2 scope, N1 normative terms, X1 self-containment,
-# R5 section map and structure, R6 base headings kept, R8 qualified "profile" (warning only).
+# R2 acceptance example structure (warning only), R5 section map and structure, R6 base headings
+# kept, R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
+# subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
+# S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
+# known ids; the single header subject of the last plan is accepted and counts toward no id.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are
 # not counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check,
@@ -38,6 +43,8 @@ BASE="origin/main"
 BASE_BLOB="$DEFAULT_BASE_BLOB"
 PATHS_FROM=""
 SECTION=""
+IDS=""
+HEADER_SUBJECT="docs(02-05): header Version 1.4 and revision line (D-12)"
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0" >&2
@@ -59,6 +66,7 @@ while [ "$#" -gt 0 ]; do
     --base-blob) need_value "$@"; BASE_BLOB="$2"; shift 2 ;;
     --paths-from) need_value "$@"; PATHS_FROM="$2"; shift 2 ;;
     --section) need_value "$@"; SECTION="$2"; shift 2 ;;
+    --ids) need_value "$@"; IDS="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
   esac
@@ -67,6 +75,9 @@ done
 [[ "$BASE_BLOB" =~ ^[0-9a-f]{40}$ ]] || { echo "--base-blob must be a 40-digit lowercase hexadecimal blob id" >&2; exit 2; }
 if [ -n "$SECTION" ]; then
   [[ "$SECTION" =~ ^[0-9]+(\.[0-9]+)*$ ]] || { echo "--section needs a number such as 5 or 5.6" >&2; exit 2; }
+fi
+if [ -n "$IDS" ]; then
+  [[ "$IDS" =~ ^SPEC-(0[1-9]|1[0-8])(,SPEC-(0[1-9]|1[0-8]))*$ ]] || { echo "--ids needs a comma-separated list of ids from SPEC-01 to SPEC-18" >&2; exit 2; }
 fi
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
 if [ -n "$PATHS_FROM" ]; then
@@ -287,6 +298,42 @@ r6=$(awk '
 ' "$TMP/base-headings.txt" "$TMP/headings.txt")
 if [ -n "$r6" ]; then fail R6 "$r6"; else pass R6 "every base heading is present, unchanged and in order"; fi
 
+# R2: warning only. Acceptance example structure outside fences: ids unique; every block (from a
+# line "**AE-nn" to the next block, heading or rule line) has a Covers line and a Given, a When
+# and a Then line.
+awk '
+  function close_block() {
+    if (id == "") return
+    if (!cov) print "WARN R2 " id " has no Covers line"
+    if (!giv) print "WARN R2 " id " has no Given line"
+    if (!whn) print "WARN R2 " id " has no When line"
+    if (!thn) print "WARN R2 " id " has no Then line"
+    id = ""
+  }
+  /^```/ { close_block(); infence = !infence; next }
+  infence { next }
+  /^\*\*AE-[0-9]+ / {
+    close_block()
+    id = $1; sub(/^\*\*/, "", id)
+    if (seen[id]++) print "WARN R2 " id " is defined more than once"
+    cov = 0; giv = 0; whn = 0; thn = 0; nblocks++
+    next
+  }
+  /^#+ / || /^---$/ { close_block(); next }
+  id != "" {
+    if ($0 ~ /^- Covers: /) cov = 1
+    else if ($0 ~ /^Given /) giv = 1
+    else if ($0 ~ /^When /) whn = 1
+    else if ($0 ~ /^Then /) thn = 1
+  }
+  END { close_block(); if (nblocks == 0) print "NOTE none"; else print "NOTE " nblocks }
+' "$REC" > "$TMP/r2.out" || { echo "internal error in R2" >&2; exit 2; }
+if grep -q '^WARN R2' "$TMP/r2.out"; then
+  grep '^WARN R2' "$TMP/r2.out"
+else
+  pass R2 "every acceptance example block has Covers, Given, When and Then; ids are unique ($(sed -n 's/^NOTE //p' "$TMP/r2.out") blocks)"
+fi
+
 # R8: warning only. Added lines with the word profile that is not qualified as a method profile,
 # a compliance profile, or a named profile.
 awk '
@@ -304,6 +351,40 @@ awk '
   }
 ' "$TMP/added.txt" > "$TMP/r8.out" || { echo "internal error in R8" >&2; exit 2; }
 if [ -s "$TMP/r8.out" ]; then cat "$TMP/r8.out"; else pass R8 "every added use of profile is qualified"; fi
+
+# C1 (only with --ids): the commits since the base that touch the specification. Each subject starts
+# "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the one header
+# subject, which names none and counts toward none. Each listed id is named by some subject.
+# SPEC-13 is covered by S1 and S2 and needs no commit. Commits before the base never count.
+if [ -n "$IDS" ]; then
+  git log --format=%s "$BASE..HEAD" -- "$SPEC" > "$TMP/subjects.txt" 2> /dev/null \
+    || { echo "cannot list the commits since $BASE" >&2; exit 2; }
+  : > "$TMP/named.txt"
+  c1=""
+  prefix_re='^docs\(02-[0-9]{2}\): SPEC-[0-9]{2}'
+  while IFS= read -r subj || [ -n "$subj" ]; do
+    [ "$subj" = "$HEADER_SUBJECT" ] && continue
+    if ! [[ "$subj" =~ $prefix_re ]]; then
+      [ -n "$c1" ] || c1="a commit that touches the specification does not start with docs(02-NN): SPEC-nn: [$subj]"
+      continue
+    fi
+    for tok in $(printf '%s\n' "$subj" | grep -o -E 'SPEC-[0-9]{2}'); do
+      if [[ "$tok" =~ ^SPEC-(0[1-9]|1[0-8])$ ]]; then
+        echo "$tok" >> "$TMP/named.txt"
+      elif [ -z "$c1" ]; then
+        c1="a commit subject names the unknown id $tok: [$subj]"
+      fi
+    done
+  done < "$TMP/subjects.txt"
+  IFS=',' read -r -a wanted <<< "$IDS"
+  for id in "${wanted[@]}"; do
+    [ "$id" = SPEC-13 ] && continue
+    if ! grep -q -x -F "$id" "$TMP/named.txt"; then
+      [ -n "$c1" ] || c1="no commit since $BASE that touches the specification names $id"
+    fi
+  done
+  if [ -n "$c1" ]; then fail C1 "$c1"; else pass C1 "each listed id is named by a commit since $BASE, and every such commit names a known id"; fi
+fi
 
 if [ "$FAILS" -eq 0 ]; then
   echo "RESULT: PASS"
