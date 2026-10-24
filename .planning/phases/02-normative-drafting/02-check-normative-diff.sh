@@ -17,8 +17,8 @@
 #
 # Checks: B1 base blob, E1-E3 encoding, S1 S2 scope, N1 normative terms, X1 self-containment,
 # R2 acceptance example structure and citations (warning only), R3 unfinished-text markers
-# (warning only), R5 section map and structure, R6 base headings kept, R8 qualified "profile"
-# (warning only). With --ids, C1: every listed id is named in the
+# (warning only), R5 section map and structure, R6 base headings kept, R7 the old state file name
+# and reopen per profile (warning only), R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
 # known ids; the single header subject of the last plan is accepted and counts toward no id.
@@ -399,6 +399,41 @@ awk '
   }
 ' "$TMP/added.txt" > "$TMP/r8.out" || { echo "internal error in R8" >&2; exit 2; }
 if [ -s "$TMP/r8.out" ]; then cat "$TMP/r8.out"; else pass R8 "every added use of profile is qualified"; fi
+
+# R7: warning only. (a) The old state file name outside Section 25.3 (its only permitted place is
+# the migration rule there), reported separately for a tree line of Section 4.3. (b) A line of
+# Section 8 that mentions reopen and is not in a unit that names full: the line itself, its paragraph,
+# or a paragraph that is only a bold caption line directly before it.
+awk '
+  /^```/ { isfence = 1; infence = !infence } !/^```/ { isfence = 0 }
+  {
+    L[NR] = $0; F[NR] = infence || isfence
+    if (!infence && !isfence && $0 ~ /^## [0-9]+\./) { s = $2; sub(/\.$/, "", s); top = s; sub2 = "" }
+    else if (!infence && !isfence && $0 ~ /^### [0-9]+\.[0-9]+ /) sub2 = $2
+    SEC[NR] = top; SUB[NR] = sub2
+  }
+  END {
+    for (i = 1; i <= NR; i++) {
+      if (index(L[i], "state.yaml") > 0 && SUB[i] != "25.3") {
+        if (SUB[i] == "4.3" && F[i]) print "WARN R7 line " i ": state.yaml in a tree line of Section 4.3"
+        else print "WARN R7 line " i ": state.yaml outside Section 25.3: " substr(L[i], 1, 60)
+      }
+    }
+    for (i = 1; i <= NR; i++) {
+      if (SEC[i] != "8" || F[i] || index(L[i], "reopen") == 0) continue
+      ok = (index(L[i], "full") > 0)
+      st = i; while (!ok && st > 1 && L[st - 1] != "") st--
+      en = i; while (!ok && en < NR && L[en + 1] != "") en++
+      for (j = st; !ok && j <= en; j++) if (index(L[j], "full") > 0) ok = 1
+      if (!ok && st >= 3 && L[st - 1] == "") {
+        q = st - 2; while (q > 1 && L[q - 1] != "") q--
+        if (q == st - 2 && L[q] ~ /^[*][*]/ && index(L[q], "full") > 0) ok = 1
+      }
+      if (!ok) print "WARN R7 line " i ": reopen in Section 8 without naming full: " substr(L[i], 1, 60)
+    }
+  }
+' "$REC" > "$TMP/r7.out" || { echo "internal error in R7" >&2; exit 2; }
+if [ -s "$TMP/r7.out" ]; then cat "$TMP/r7.out"; else pass R7 "no old state file name outside Section 25.3; every reopen in Section 8 names the full profile"; fi
 
 # C1 (only with --ids): the commits since the base that touch the specification. Each subject starts
 # "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the one header
