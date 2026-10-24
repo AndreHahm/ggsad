@@ -970,6 +970,8 @@ A retry limit is a soft fail condition (Section 24.7).
 
 The approved scope is the allowed path list of Section 24.5. A path that changed since the base revision and that lies outside the allowed path list is a hard failure.
 
+The interpreter that runs the commands of gates is explicit and opt-in (Section 24.10).
+
 ### 12.2 Mandatory Content of a Fail Rule
 
 Every fail rule MUST include:
@@ -1130,6 +1132,8 @@ Permitted evidence includes:
 - references to commits and pull requests.
 
 A check-command gate whose evidence is a test run MAY carry a baseline of known failures (Section 24.6).
+
+The commands that produce evidence are run as Section 24.10 states.
 
 Minimal evidence template:
 
@@ -3184,3 +3188,53 @@ Then the approval is rejected, because no default number exists, and no override
 Given a change definition whose fail gate `no-secrets` has the severity `Hard`  
 When the gate definitions are approved  
 Then the approval is rejected, because only the exact lowercase values `hard` and `soft` are severities
+
+### 24.10 Gate-Command Interpreter
+
+The commands of check-command gates (Section 24.2) and the evidence commands of requirements (Section 24.9) are run directly, as argument lists. No shell runs them, so the syntax of a shell has no effect: a pipe, a conjunction, a redirection, the expansion of a variable or of a pattern, and a command substitution are ordinary characters of an argument. See AE-158.
+
+The interpreter is the program that runs the code a command points at, for example the runtime of a programming language. It is explicit and opt-in. A command MAY use the designated token `@interpreter` as the first element of its argument list. The token stands for the interpreter that the project configuration names if the configuration names one, and only for that interpreter. An implementation MUST NOT discover an interpreter: it MUST NOT search the project for a virtual environment, a tool directory, or any other candidate, because what stands behind the token decides whether every gate passes. When the configuration names no interpreter, the token stands for the interpreter that runs the implementation itself. A first element other than the token is a program that is run as it is. See AE-159, AE-160.
+
+An implementation SHOULD warn when the interpreter that the token stands for lives inside the repository of the project. See AE-161.
+
+Code in a location that version control is told to ignore is invisible to the scope check (Section 24.5). When a command runs code from such a location, including an interpreter or a library that is installed there, a change can alter that code, and so the result of the gate, without a scope violation. The scope check therefore does not show that the code behind a gate is unchanged, and the result of a gate is worth only as much as the protection of the code that its command runs. See AE-162.
+
+**AE-158 — Shell syntax has no effect**
+
+- Covers: Section 24.10
+
+Given a check-command gate whose command is the argument list `run-tests`, `--label`, `a; echo done`  
+When the gate is evaluated  
+Then the program `run-tests` is run with the two arguments `--label` and `a; echo done`, and no second command `echo` is run
+
+**AE-159 — The designated token stands for the configured interpreter**
+
+- Covers: Section 24.10
+
+Given a project configuration that names the interpreter `rt-stable`, and a check-command gate whose command is `@interpreter`, `check.script`  
+When the gate is evaluated  
+Then the program `rt-stable` is run with the argument `check.script`
+
+**AE-160 — Without configuration the token stands for the interpreter of the implementation**
+
+- Covers: Section 24.10
+
+Given a project configuration that names no interpreter, a directory inside the repository that holds an interpreter, and a check-command gate whose command is `@interpreter`, `check.script`  
+When the gate is evaluated  
+Then the interpreter that runs the implementation itself is used, and the interpreter in the repository is not discovered and not used
+
+**AE-161 — Warn when the interpreter lives inside the repository**
+
+- Covers: Section 24.10
+
+Given a project configuration that names an interpreter located in a directory inside the repository  
+When a gate whose command starts with `@interpreter` is evaluated  
+Then the configured interpreter is used, and the implementation warns that it lives inside the repository
+
+**AE-162 — Code in an ignored location is invisible to the scope check**
+
+- Covers: Section 24.10
+
+Given a check-command gate whose command runs the script `.cache/gate.script`, a location that version control is told to ignore, and a change whose `scope.allow` is `lib/**` that edits the script so that it always ends with the exit status that the exit map maps to `satisfied`  
+When the gate is evaluated  
+Then the gate is `satisfied`, and the scope check finds no violation, because the edited script is invisible to it
