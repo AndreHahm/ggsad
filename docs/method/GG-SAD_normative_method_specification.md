@@ -841,7 +841,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | Action | Legal From (Phase/Status) | Precondition | Gate Order | Resulting Phase/Status | Rejection Behavior |
 |---|---|---|---|---|---|
 | `start` | A non-closed phase with status `ready` | Starting the phase is authorized. | DoF → DoW; current-phase DoR was established by `ready`, and current-phase DoD and next-phase DoR are not applicable. | Same phase with status `active`. | Reject without any partial mutation of persisted state when the precondition or an applicable gate is not satisfied. |
-| `complete` | A non-closed phase with status `draft`, `active`, or `done` | From `draft`, the current phase's DoR is satisfied; from `active`, the current phase's DoD is satisfied; from `done`, the next phase's DoR is re-evaluated. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the applicable precondition is not satisfied. When DoW, current-phase DoR, or current-phase DoD does not allow the transition, record the evaluation in the history and answer `blocked` (Section 22.2); an active fail condition of the severity `hard` closes the change as failed, and a soft fail condition or a gate that cannot be evaluated puts the change in a wait (Sections 24.7 and 24.2). Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
+| `complete` | A non-closed phase with status `draft`, `active`, or `done` | The phase and status are a legal source, and the evaluation is requested: from `draft`, of the current phase's DoR; from `active`, of the current phase's DoD; from `done`, of the next phase's DoR. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the phase and status are not a legal source. When DoW, current-phase DoR, or current-phase DoD does not allow the transition, record the evaluation in the history and answer `blocked` (Section 22.2); an active fail condition of the severity `hard` closes the change as failed, and a soft fail condition or a gate that cannot be evaluated puts the change in a wait (Sections 24.7 and 24.2). Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW; current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition is not satisfied or DoF determines failure. |
 | `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. When the resume-phase DoR is not satisfied or a DoW condition is still active, record the evaluation in the history, remain `waiting`, and answer `blocked` (Section 22.2). Fail when DoF determines failure (Section 24.7). |
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
@@ -854,7 +854,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | Action | Answers `rejected` (nothing is written, `changed` is `false`) | Answers `blocked` (the evaluation is recorded, `changed` is `true`) |
 |---|---|---|
 | `start` | The phase does not have the status `ready`, the start is not authorized, or an applicable gate does not allow the start (issue code `start-blocked`). | Never. |
-| `complete` | The phase and status are not a legal source, or the applicable precondition is not satisfied. | DoW, current-phase DoR, or current-phase DoD does not allow the transition, including a wait that a soft fail condition or a gate that cannot be evaluated causes. |
+| `complete` | The phase and status are not a legal source. | DoW, current-phase DoR, or current-phase DoD does not allow the transition, including a wait that a soft fail condition or a gate that cannot be evaluated causes. |
 | `wait` | The change is closed, or no DoW condition is active. | Never. |
 | `resume` | The status is not `waiting`, the resume condition is not satisfied, or the resume phase is closed. | The resume-phase DoR is not satisfied, or a DoW condition is still active, so that the change remains `waiting`. |
 | `fail` | The change is closed, or no DoF condition is active. | Never. |
@@ -1011,7 +1011,7 @@ A satisfied DoD does not override a satisfied DoF or DoW.
 
 This order defines evaluation precedence. A gate that is not applicable to the requested action or current state is skipped and, when gate evidence is recorded, MUST be recorded as `not_applicable`. Evaluation MUST stop as soon as a gate determines the requested action's outcome.
 
-A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order.
+A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order. It also states that the gates are evaluated by group, that a group is evaluated whole, and that the evaluation stops after the first group that decides.
 
 See AE-248.
 
@@ -2806,7 +2806,7 @@ The gates of a `core` change MUST be evaluated in this order, and the evaluation
 4. A wait gate that is active decides: the change does not start, resume, or close.
 5. For the `close` action only, a done gate that is not satisfied decides: the change does not close.
 
-If no gate decides, the requested action takes effect. The actions `close` and `resume` apply steps 1 to 4, and `close` also applies step 5. The action `start` requires that none of the steps 1 to 4 would decide. Sections 24.2 and 24.7 refine steps 2 and 3. A satisfied done gate does not override a fail gate or a wait gate that is active. A gate that does not apply to the requested action is not evaluated and, when gate results are recorded, is recorded as `not_applicable`. See AE-53, AE-54, AE-55.
+If no gate decides, the requested action takes effect. The actions `close` and `resume` apply steps 1 to 4, and `close` also applies step 5. The action `start` requires that none of the steps 1 to 4 would decide. Sections 24.2 and 24.7 refine steps 2 and 3. Section 24.2 also states that the gates are evaluated by group, that a group is evaluated whole, and that the evaluation stops after the first group that decides. A satisfied done gate does not override a fail gate or a wait gate that is active. A gate that does not apply to the requested action is not evaluated and, when gate results are recorded, is recorded as `not_applicable`. See AE-53, AE-54, AE-55.
 
 **AE-53 — A hard fail decides before the done gates**
 
@@ -3136,7 +3136,7 @@ Every evaluation of a gate ends in exactly one of three results:
 - `not_satisfied`: the evaluation established that the condition of the gate does not hold;
 - `not_evaluable`: the evaluation could not establish either, because the gate could not be evaluated.
 
-A done gate is met when its result is `satisfied`. A fail gate and a wait gate are active when their result is `satisfied`, that is, when the condition they describe holds. Every result is recorded in the history together with the gate it belongs to. A name in another letter case, or any other name, is not a result and MUST be rejected. See AE-61.
+A done gate is met when its result is `satisfied`. A fail gate and a wait gate are active when their result is `satisfied`, that is, when the condition they describe holds. Every result is recorded in the history together with the gate it belongs to. A record of a result whose name is in another letter case, or is any other name than the three results, is not a result and MUST be rejected. The marker `not_applicable` is not a result, and it is the one other value that a record of an evaluation holds in place of a result (Section 25.1). See AE-61, AE-281.
 
 A gate cannot be evaluated when any of these holds:
 
@@ -3158,7 +3158,9 @@ An action that evaluates gates decides from the results in this order, and the f
 4. A wait gate that is active: the change does not advance.
 5. For an action that completes a change or a phase, a done gate that is `not_satisfied`: the change does not complete.
 
-A known hard failure therefore outranks a gate that cannot be evaluated. This order refines Section 8.5 and Section 23.6. The `start` action requires that none of the rules 1 to 4 would decide: when one would, `start` is rejected and no wait is created. When the action is `resume`, the wait record created by rule 2 replaces the earlier record, whose resume condition was met. An action that only reports on a change reports the result and creates no wait. See AE-69, AE-71, AE-72, AE-74.
+A known hard failure therefore outranks a gate that cannot be evaluated. This order refines Section 8.5 and Section 23.6. The `start` action requires that none of the rules 1 to 4 would decide: when one would, `start` is rejected and no wait is created, and a hard failure included, because `start` never closes a change (Section 24.7). When the action is `resume`, the wait record created by rule 2 replaces the earlier record, whose resume condition was met. An action that only reports on a change reports the result and creates no wait. See AE-69, AE-71, AE-72, AE-74.
+
+The gates are evaluated by group. The order of the groups is the order of Section 23.6 in `core`, that is the fail gates, the wait gates, and the done gates, and the order of Section 8.5 in `full`, that is the Definition of Fail, the Definition of Wait, the Definition of Ready of the current phase, the Definition of Done, and the Definition of Ready of the next phase. A group is evaluated whole: every gate of the group that applies to the action is evaluated, even when an earlier gate of the same group already decides. After a group, the evaluation stops if the results of the groups evaluated so far decide the action under the rules 1 to 5, so that a gate of a later group is not evaluated: its command is not run, and no result is recorded for it. The rules rank the results of the gates that were evaluated, so that a gate which is not evaluated cannot outrank a gate which is. In `core`, a wait gate that is active therefore decides before a done gate that cannot be evaluated, the change does not become `waiting` for that done gate, and the `close` action answers `blocked`. A wait gate that cannot be evaluated is `not_evaluable`, and it creates a wait record of kind `external` before any done gate is evaluated. See AE-280.
 
 A retry limit is a fail condition that becomes active when the number of `not_satisfied` results recorded for a named gate reaches a limit. The count is the number of `not_satisfied` results of that gate in the history over the whole life of the change, a non-negative integer. The limit is a non-negative integer, and it is reached when the count is greater than or equal to the limit: with a limit of three, the third `not_satisfied` result reaches it and the second does not. A `satisfied` result, a `not_evaluable` result, and a `not_applicable` record are not counted, and a `not_evaluable` result between two `not_satisfied` results neither adds to the count nor resets it. A retry limit that is not a non-negative integer is invalid and MUST be rejected when the gate definitions are approved. See AE-63, AE-64, AE-70.
 
@@ -3255,6 +3257,14 @@ Then the state is `closed` and the outcome is `failed`, and no wait record is cr
 Given gate definitions with a retry limit of -1 for one gate and a retry limit of 2.5 for another  
 When the gate definitions are approved  
 Then the approval is rejected for both limits, and no approval is recorded
+
+**AE-280 — A group that decides stops the evaluation of the later groups**
+
+- Covers: Section 24.2
+
+Given two `active` `core` changes, the first with a wait gate that is active and a `check` done gate whose program is missing, and the second with a wait gate whose condition cannot be evaluated and a `check` done gate whose program is missing
+When the `close` action is requested for each change
+Then the first answers `blocked` and remains `active`, because the active wait gate decides, and the done gate is not evaluated, its command is not run, and no result is recorded for it, and the second is `waiting` with a wait record of kind `external` that names the wait gate, and its done gate is not evaluated either
 
 **AE-71 — A gate that cannot be evaluated puts a `full` change in a wait**
 
@@ -3758,7 +3768,7 @@ Then the result is `rejected` with the issue code `gates-changed`, and the basel
 
 Every fail condition has a severity, which is `hard` or `soft`, written in exact lowercase. A fail condition without a severity, or with any other value, is invalid and MUST be rejected when the gate definitions are approved. In `core`, the severity is the field `severity` of a fail gate (Section 23.3). In `full`, every fail rule states its severity (Section 12.2). A retry limit (Section 24.2) is a fail condition of the severity `soft`, and a retry limit that declares the severity `hard` is invalid and MUST be rejected. See AE-97, AE-108, AE-110.
 
-A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). See AE-98.
+A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). The action `start` is the exception: it never closes a change. When a fail gate of the severity `hard` is active, `start` is rejected with `changed` false and the issue code `start-blocked` (Section 24.2), and the change keeps its state. The failure is decided by `cancel`, by `supersede`, or by the first action that completes or resumes the change. See AE-98, AE-279.
 
 A soft failure pauses the change for a human. When an action that evaluates gates finds a fail condition of the severity `soft` active and no hard failure, the action MUST NOT close the change. The change waits: in `core`, in the state `waiting` with a wait record of kind `fail-gate` (Section 23.5); in `full`, with the status `waiting` and a wait state of the category `WAIT_DECISION` (Section 11.1), whose resume condition is that a human has recorded an override. The wait ends by a human disposition (Section 24.3), which is one of two:
 
@@ -3789,6 +3799,14 @@ Given an `active` `core` change with a fail gate of the severity `hard` that is 
 When the `close` action is requested  
 Then the result is `success`, the state is `closed`, the outcome is `failed`, and no human action was needed
 
+**AE-279 — A start never closes a change as failed**
+
+- Covers: Section 24.7
+
+Given an `open` `core` change with a fail gate `no-secrets` of the severity `hard` whose condition is a `command` that is active
+When the `start` action is requested, and later a human performs the `cancel` action
+Then the `start` action is rejected with `changed` false and the issue code `start-blocked`, and the change remains `open`, and the `cancel` action closes the change with the outcome `failed`, not `cancelled`
+
 **AE-99 — A soft failure pauses the change**
 
 - Covers: Section 24.7
@@ -3817,7 +3835,7 @@ Then the change is `waiting` with a wait record of kind `fail-gate`, and it is n
 
 - Covers: Section 24.7
 
-Given an `active` `core` change with an active soft failure and an override of that soft failure with two further attempts  
+Given an `active` `core` change with an active soft failure, a done gate that stays unsatisfied, and an override of that soft failure with two further attempts  
 When the `close` action is requested three times and none of the evaluations ends in a wait for a gate that cannot be evaluated  
 Then the first two evaluations are not paused by the soft failure, and the third evaluation pauses the change again with a wait record of kind `fail-gate`
 
@@ -4156,13 +4174,13 @@ The `body` of an entry holds exactly these fields:
 - `assurance`: the verified assurance level of the claim of the actor, which is `A0`, `A1`, or `A2` (Section 24.3);
 - `at`: the instant at which the entry was written, as a string in UTC that is written `YYYY-MM-DDThh:mm:ssZ`;
 - `result`: the result of the action, which is `success` or `blocked` (Section 22.2), because an action that is `rejected` or ends in `error` writes no entry;
-- `gate_results`: an object from the identifier of each gate that the action evaluated to the result recorded for it (Section 24.2), or `null` when the action evaluated no gate;
-- `gate_detail`: an object from the identifier of a gate to the text that the evaluation recorded for it, or `null` when the evaluation recorded none;
+- `gate_results`: an object from the identifier of each gate that the action evaluated, or skipped as a gate that does not apply, to the value recorded for it, or `null` when the action evaluated no gate. The value is one of the three results of Section 24.2, written in exact lowercase, or the marker `not_applicable` that Sections 8.5 and 23.6 prescribe. No other value is valid;
+- `gate_detail`: an object from the identifier of a gate that has a value in `gate_results` to the text that the evaluation recorded for it, or `null` when the evaluation recorded none;
 - `files`: an object from a path to the content hash of the file (Section 25.2), for the files that the action approved, evaluated, or recorded, or `null` when it concerns no file;
 - `note`: the text that the actor gave, or `null`;
 - `after`: the record of the state of the change after the action.
 
-A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. See AE-189.
+A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. See AE-189, AE-281.
 
 The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
 
@@ -4212,6 +4230,14 @@ Then the canonical text is `{"count":2,"name":"café"}`, the code point U+00E9 i
 Given the empty object  
 When its canonical form is built and hashed  
 Then the canonical text is `{}`, and the hash string is `sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a`, which is the prefix `sha256:` and 64 lowercase hexadecimal digits
+
+**AE-281 — The marker not_applicable is a value of gate_results and a wrong case is not**
+
+- Covers: Section 25.1
+
+Given a `start` action that evaluated the hard fail gate `no-secrets` to `not_satisfied` and skipped the `check` done gate `docs-built`, which does not apply to `start`
+When the entry of the action is built once with `gate_results` that maps `no-secrets` to `not_satisfied` and `docs-built` to `not_applicable`, and once with `gate_results` that maps `no-secrets` to `Not_satisfied`
+Then the first entry is accepted, because the marker `not_applicable` is a valid value, and the second is rejected, because a result written in another letter case is not a valid value
 
 **AE-185 — Keys are ordered by code point and not by UTF-16 code unit**
 
