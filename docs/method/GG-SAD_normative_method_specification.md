@@ -106,6 +106,8 @@ The gate definitions of a change are fixed when the change is approved (Section 
 
 A status MUST NOT be set solely by assertion. Verifiable evidence MUST exist for relevant completion criteria.
 
+The evidence for a requirement is executable and is bound to that requirement (Section 24.9).
+
 ### 3.5 One Fact, One Home
 
 Each piece of information SHOULD have exactly one authoritative location.
@@ -879,6 +881,8 @@ At minimum:
 
 A verification gate MAY carry a baseline of known failures (Section 24.6).
 
+Evidence is complete as Section 24.9 defines it.
+
 ### 10.8 Release-Done
 
 At minimum:
@@ -1135,6 +1139,8 @@ A check-command gate whose evidence is a test run MAY carry a baseline of known 
 
 The commands that produce evidence are run as Section 24.10 states.
 
+The evidence of a requirement is complete only with an executable check that is bound to that requirement (Section 24.9). The records that the list above names supplement that check and do not replace it.
+
 Minimal evidence template:
 
 ```markdown
@@ -1165,6 +1171,8 @@ Done.
 ```
 
 For small changes, evidence MAY be documented directly in `spec.md`.
+
+The executable check of Section 24.9 is still required when the evidence is documented in `spec.md`.
 
 ---
 
@@ -1264,6 +1272,8 @@ Then <result>
 ```
 
 The conditions listed under Flow Gates, together with the scope, are the gate definitions of the change and are fixed when the change is approved (Section 24.1).
+
+The evidence commands of a requirement of the change specification are bound to it as Section 24.9 states.
 
 ### 16.2 `plan.md`
 
@@ -1372,6 +1382,8 @@ The conditions listed under Flow Gates, together with the scope, are the gate de
 ```
 
 A gate that could not be evaluated is not recorded as Yes or No in the Final Gate Evaluation. It is listed by name with its cause (Section 24.2).
+
+The Evidence column of the requirement coverage table names the executable check that is bound to the requirement (Section 24.9). Other records MAY be added to it.
 
 ### 16.5 `project-brief.md`
 
@@ -1565,6 +1577,7 @@ A change transitions into the `closed` phase with the terminal status `done`, re
 - no DoW condition is active,
 - no soft failure awaits a human disposition (Section 24.7),
 - all required DoD criteria are satisfied,
+- the executable evidence of every requirement is complete (Section 24.9),
 - requirement and acceptance-example coverage is evidenced,
 - required Pair Review cycles are complete and blocking findings are resolved or formally dispositioned,
 - specification, implementation, tests, and documentation are consistent,
@@ -2347,6 +2360,8 @@ The re-approval MUST be performed by a human at the assurance level that Section
 A read-only operation does not write. While the hashes differ, it answers `rejected` with `changed` false and the issue code `gates-changed`, and it states in its report that the gates are not enforced. It never closes the change and never records a failure. See AE-82.
 
 The approval of gate definitions MUST be rejected when the change definition has no gate definitions at all (in `core`, no `gates` field; in `full`, no Flow Gates). A definition that holds empty lists of additional gates is valid and is fixed as it is: an empty list is a definition, and a gate added to it later is a difference. See AE-83, AE-84.
+
+The requirement identifiers and the evidence commands that are bound to them are also fixed with the gate definitions (Section 24.9). See AE-169.
 
 **AE-75 — An unchanged fixed set passes the comparison**
 
@@ -3188,6 +3203,88 @@ Then the approval is rejected, because no default number exists, and no override
 Given a change definition whose fail gate `no-secrets` has the severity `Hard`  
 When the gate definitions are approved  
 Then the approval is rejected, because only the exact lowercase values `hard` and `soft` are severities
+
+### 24.9 Executable Evidence
+
+The evidence for a requirement is executable and is bound to that requirement. An evidence command is a check command as Section 24.2 defines it: an argument list, an exit map, and OPTIONALLY a time limit. It is run as Section 24.10 states. A requirement lists the evidence commands that are bound to it: in `core`, in the field `requirements` of the change definition (Section 23.1); in `full`, in the change specification (Section 16.1), where the Evidence cell of the requirement coverage table (Section 16.4) names them.
+
+The evidence of a change is complete only when all of these hold:
+
+- the change declares at least one requirement;
+- every requirement has at least one evidence command that is bound to it;
+- when the evidence commands are run at closure, each of them has the result `satisfied`.
+
+Closure is the evaluation that decides whether the change completes: in `core`, the `close` action (Section 23.4); in `full`, the evaluation of Verify-Done (Section 10.7) and of the completion criteria (Section 20). In `core`, the incomplete evidence gate (Section 23.7) is satisfied only when the evidence is complete. See AE-163.
+
+A change with no requirements has no complete evidence: its evidence is not complete, and the record states that no requirements are declared. A requirement without an evidence command makes the evidence not complete, and the record names the requirement. An evidence command with the result `not_satisfied` makes the evidence not complete. An evidence command that cannot run has the result `not_evaluable` (Section 24.2): that is not a failure, it does not count toward a retry limit, the change waits as Section 24.2 states, and the evidence is not complete until the command has run and is `satisfied`. See AE-164, AE-165, AE-166, AE-167.
+
+The other records that Section 15 names, for example reviews, logs, screenshots, measurements, and references to commits, MAY be kept. They supplement the executable check and never replace it. A requirement whose only evidence is such a record has no evidence command, and its evidence is not complete. See AE-168, AE-170.
+
+The requirement identifiers and the evidence commands that are bound to them are fixed with the gate definitions (Section 24.1), because the incomplete evidence gate judges the change by them. A difference between them and the approved ones is a difference of the gate definitions. See AE-169.
+
+**AE-163 — Complete evidence**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change with the requirements R1 and R2, each with one evidence command  
+When the `close` action runs both evidence commands and both have the result `satisfied`  
+Then the evidence is complete, and the incomplete evidence gate is satisfied
+
+**AE-164 — A change with no requirements has no complete evidence**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change whose definition declares no requirement  
+When the `close` action is requested  
+Then the evidence is not complete, the record states that no requirements are declared, the incomplete evidence gate is not satisfied, and the result is `blocked`
+
+**AE-165 — A requirement without an evidence command is not evidenced**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change with the requirements R1 and R2, where R1 has an evidence command and R2 has none  
+When the `close` action is requested  
+Then the evidence is not complete, and the record names R2
+
+**AE-166 — A command that cannot run is not evaluable**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change with the requirement R1 whose evidence command names a program that is missing  
+When the `close` action is requested  
+Then the result of the command is `not_evaluable`, no failure is recorded, nothing is counted toward a retry limit, the change waits with a wait record of kind `external`, and the evidence is not complete
+
+**AE-167 — A failing evidence command leaves the evidence incomplete**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change with the requirement R1 whose evidence command ends with an exit status that the exit map maps to `not_satisfied`  
+When the `close` action is requested  
+Then the evidence is not complete, and the change does not close
+
+**AE-168 — Other records supplement the executable check**
+
+- Covers: Section 24.9
+
+Given an `active` `core` change with the requirement R1 whose only evidence is a screenshot and a review approval  
+When the `close` action is requested, and later an evidence command that is `satisfied` is bound to R1 and the action is requested again  
+Then the evidence is not complete at the first request, and complete at the second, where the screenshot and the review approval remain as supplements
+
+**AE-169 — A changed evidence command needs a new approval**
+
+- Covers: Section 24.9
+
+Given a `core` change whose gate definitions were approved with the evidence command of R1, and the command of R1 was replaced after the approval by a command that always ends with the exit status that the exit map maps to `satisfied`  
+When the `close` action is requested  
+Then the result is `rejected` with the issue code `gates-changed`, and the replaced command has no effect until a human approves the gate definitions again
+
+**AE-170 — A `full` change needs an executable check for Verify-Done**
+
+- Covers: Section 24.9
+
+Given a `full` change in the verify phase with the status `active`, whose requirement R1 has only a screenshot in the Evidence cell of its requirement coverage table  
+When the `complete` action evaluates the Definition of Done of the phase  
+Then the criterion that evidence is complete is not satisfied, and the phase is not completed
 
 ### 24.10 Gate-Command Interpreter
 
