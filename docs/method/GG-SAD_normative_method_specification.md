@@ -1662,6 +1662,7 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - create a goal-bound change;
 - validate governing configuration, artifacts, references, and state;
 - record a human decision (an approval, a sign-off, an override, or an answer) in the history of a change;
+- migrate a schema-governed file to a newer schema version, as an explicit operation whose steps are recorded (Section 25.3);
 - evaluate and execute one controlled state transition under the Section 8 Transition Table.
 
 The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
@@ -1682,6 +1683,8 @@ A `rejected` result with `changed` true and a `blocked` result with `changed` fa
 The `state` field contains the resulting state of the change and is included when applicable to the operation; it is omitted when the operation produces no state result. For a `full` change it contains the phase and status. As defined in Section 8, the phase may be `closed`, while the status carries the terminal outcome. For a `core` change it contains the state and the outcome (Section 23.2). The `issues` field contains stable codes plus human-readable messages. It is included whenever `result` is `rejected`, `blocked`, or `error`, and it then contains at least one issue; it is omitted whenever `result` is `success`. A result other than `success` without an issue is invalid. The `data` field is always optional operation-specific output and is present only when relevant to the operation. See AE-114, AE-115.
 
 A goal summary, specification anchor, gate outcome, evidence references, and timestamp are not universally required envelope fields. They MAY appear inside `data` when relevant to a specific operation.
+
+An operation that uses a schema-governed file whose `schema_version` the implementation cannot use is refused with the result `rejected`, `changed` false, and nothing written. The stable issue code is `migration-required` when the version is older and can be migrated, `schema-version-unsupported` for every other unusable value, and `schema-version-mismatch` when the version of a state document differs from the latest recorded one (Section 25.3). See AE-204, AE-205, AE-206, AE-211.
 
 **AE-111 — A blocked result is recorded and changes state**
 
@@ -3721,3 +3724,125 @@ Then both orders give the same content hash, which is the hash string of the can
 Given the same gate definitions and two gate identifiers, `review-ok` and `release-ok`  
 When the content hash of the gate definitions together with each identifier is computed  
 Then the two content hashes differ, because the member `gate` of the hashed object differs
+
+### 25.3 Schema Versions and Migration
+
+Every machine-readable file that a schema governs carries the top-level field `schema_version`. These files are the project configuration (`.ggsad/config.yaml`), the integration mappings, the change definition (Section 23.1), and the state document (Section 25.1). A Markdown document, such as the specification of a change or the change specification of a `full` change, has no schema and no schema version.
+
+The value of `schema_version` is a string of two non-negative integers that are written in decimal digits and joined by one dot, such as `0.1`. Neither integer has a sign or a leading zero, except that the integer zero is written `0`. Two versions are compared one integer at a time, from left to right, by the numeric value of each integer, so that `0.9` is older than `0.10` and `0.10` is older than `1.0`. A value that is not a string, for example the number 0.1 that a YAML file holds when the value is not quoted, is not a version.
+
+An implementation supports one or more versions of each kind of file: it reads and writes a file of a supported version as it is. It MAY also hold migration steps, and each step converts a file from one version to the next higher version. A version is migratable when it is not supported, when it is lower than the highest supported version, and when a chain of steps leads from it to a supported version. See AE-208.
+
+Before an implementation uses a governed file for an operation, it MUST check the `schema_version` of the file:
+
+- a version that equals a supported version is accepted;
+- a migratable version is refused until the file is migrated explicitly: the operation answers `rejected` with the stable issue code `migration-required`;
+- every other value is refused with the result `rejected` and the stable issue code `schema-version-unsupported`: a version that is newer than every supported version, a version that is unknown, a missing field, the value `null`, an empty string, a value that is not a string, and a string that is not a version.
+
+A refusal writes nothing and leaves `changed` false (Section 22.2). It applies to every operation that uses the file, including a read-only operation and the validation of the file, and it applies to the state document of a change in the same way as to the other files. The one exception is the `migrate` operation, which accepts a migratable version. An implementation MUST NOT guess the content of a file of a version that it does not support, and MUST NOT write such a file. See AE-203, AE-204, AE-205, AE-206, AE-207.
+
+The `migrate` operation (Section 22.1) is the only way to change the version of a file. It is explicit and it is never carried out silently as a part of another operation. It takes the file and optionally a target version, which is a supported version that is higher than the version of the file and which is the highest supported version when it is not given. It applies the steps of the chain one at a time in ascending order of version, so that no step is skipped and no step is applied twice, and it records each step. When a step cannot be applied, the operation writes nothing and answers `error`; the steps that were applied before it are not kept. A file that already has the target version, or a higher one, is not migrated, and the operation answers `rejected`. See AE-209.
+
+A migration of the state document appends one entry to the history for each step. The body of the entry has the action `migrate` and the result `success`, and in addition to the fields of Section 25.1 it holds `source_version`, the version before the step, `target_version`, the version after the step, and `source_hash`, the source content hash, which is the content hash (Section 25.2) of the state document before the step, taken as a parsed value for a state document written in JSON and as a text file for a state document written in YAML. The `after` record of the entry holds the target version in `schema_version`, and the field `schema_version` of the state document is set to the version after the last step. The entries that the history already holds are kept as they are: a migration appends to the history and MUST NOT rewrite an entry, and the `n`, `prev`, `body`, and `hash` of every earlier entry are unchanged. See AE-209, AE-210.
+
+The version of the state document MUST equal the latest recorded version, which is the `schema_version` of the `after` record of the last entry. A state document whose version differs from it, whether lower or higher, is not consistent in the sense of Section 24.4. An implementation MUST NOT act on it, and its result is `rejected` with the stable issue code `schema-version-mismatch`. This detects a state document whose version was lowered by hand in order to run a migration again, or to make a refusal disappear. See AE-211.
+
+A project-level artifact, that is, the project configuration or the integration mappings, is migrated inside a change: the `migrate` operation names a change that is not `closed`, and the migration is recorded in the history of that change, in an entry whose `files` field maps the path of the artifact to its content hash after the step, and whose `source_hash` is its content hash before the step. The change definition and the state document of a change are migrated as part of that change. A migration that changes the parsed gate definitions of a change makes them differ from the approved ones, and Section 24.1 then requires that a human approves them again. The `migrate` operation does not change the state or the outcome of a change. Applied to the state document or the change definition of a change, it is therefore legal from every state of that change, and it is not a row of a transition table. See AE-212, AE-213.
+
+A state document that an earlier version of this method wrote as a YAML document named `state.yaml` is migrated by the `migrate` operation, which converts it to `state.json` as a step of the chain. The first entry of the new state document is a `migrate` entry with `n` 1 and the `prev` of Section 25.1, whose `source_hash` is the content hash of the old file as a text file and whose `after` record holds the state that was taken over from the old document. The operation neither changes nor deletes the old file, and once `state.json` exists the old file is not read. The chain of hashes starts at that entry: the earlier history is not covered by it, and an anchor that exists for the change makes a history that was restarted in this way detectable (Section 24.4). See AE-214.
+
+**AE-203 — A version that equals a supported version is accepted**
+
+- Covers: Section 25.3
+
+Given an implementation that supports the version `0.1`, and a project configuration with `schema_version` set to `"0.1"`  
+When an operation reads the project configuration  
+Then the version is accepted, and the operation goes on
+
+**AE-204 — An older migratable version is refused until it is migrated**
+
+- Covers: Section 25.3
+
+Given an implementation that supports only the version `1.0` and holds a step from `0.1` to `1.0`, and a change definition with `schema_version` set to `"0.1"`  
+When the `validate` operation is requested for the change  
+Then the result is `rejected` with `changed` false and the issue code `migration-required`, nothing is written, and after an explicit `migrate` the same operation accepts the change definition
+
+**AE-205 — A newer version is refused**
+
+- Covers: Section 25.3
+
+Given an implementation that supports only the version `1.0`, and a state document with `schema_version` set to `"1.1"`  
+When any operation, including a read-only one, uses the state document  
+Then the result is `rejected` with `changed` false and the issue code `schema-version-unsupported`, and nothing is written
+
+**AE-206 — A missing, null, or empty version is refused**
+
+- Covers: Section 25.3
+
+Given three project configurations, the first without the field `schema_version`, the second with `schema_version` set to `null`, and the third with `schema_version` set to the empty string  
+When an operation reads each of them  
+Then each read is refused with the result `rejected` and the issue code `schema-version-unsupported`, and nothing is written
+
+**AE-207 — A value that is not a version string is refused**
+
+- Covers: Section 25.3
+
+Given a project configuration with the unquoted value 0.1, which the YAML file holds as a number, a second one with the string `"01.1"`, and a third with the string `"1.0.0"`  
+When an operation reads each of them  
+Then each read is refused with the result `rejected` and the issue code `schema-version-unsupported`, because none of the values is a string of two integers without a leading zero joined by one dot
+
+**AE-208 — Versions are compared one integer at a time**
+
+- Covers: Section 25.3
+
+Given an implementation that supports only the version `0.10` and holds a step from `0.9` to `0.10`, and two change definitions with the versions `"0.9"` and `"0.100"`  
+When an operation reads each of them  
+Then the version `0.9` is migratable and is refused with the issue code `migration-required`, and the version `0.100` is newer than the supported version and is refused with the issue code `schema-version-unsupported`
+
+**AE-209 — A migration applies its steps in ascending order and records each**
+
+- Covers: Section 25.3
+
+Given an implementation that supports only the version `2.0` and holds the steps `1.0` to `1.1` and `1.1` to `2.0`, and a state document of six entries with `schema_version` set to `"1.0"`  
+When the `migrate` operation is requested for the state document without a target version  
+Then the step from `1.0` to `1.1` is applied and recorded as entry 7, the step from `1.1` to `2.0` is applied and recorded as entry 8, each entry names its source version, its target version, and its source content hash, and the version of the state document is `"2.0"`
+
+**AE-210 — A migration appends and does not rewrite an entry**
+
+- Covers: Section 25.3
+
+Given a state document of six entries that is consistent, and a migration of it to a newer version  
+When the history is read again after the migration  
+Then the entries 1 to 6 have the same `prev`, `body`, and `hash` as before, the entries 7 and later are the migration entries, and the history is consistent
+
+**AE-211 — A lowered version of the state document is detected**
+
+- Covers: Section 25.3
+
+Given a state document whose last entry records the version `"1.1"`, and a hand edit that sets the field `schema_version` of the document to `"1.0"`  
+When any operation is requested for the change  
+Then the result is `rejected` with the issue code `schema-version-mismatch`, nothing is written, and the implementation does not act on the change
+
+**AE-212 — A project-level artifact is migrated inside a change and recorded in it**
+
+- Covers: Section 25.3
+
+Given a migratable project configuration, an `active` change `c-1`, and a `closed` change `c-0`  
+When the `migrate` operation for the project configuration names `c-1`, and then another `migrate` operation names `c-0`, and then a third names no change  
+Then the first migration succeeds and the history of `c-1` gets an entry whose `files` field maps the path of the project configuration to its content hash after the step and whose `source_hash` is its content hash before the step, and the second and the third operation are rejected and write nothing
+
+**AE-213 — A migration that changes the gate definitions needs a new approval**
+
+- Covers: Section 25.3
+
+Given an `active` `core` change whose gate definitions were approved, and a change definition whose migration changes its parsed gate definitions  
+When the change definition is migrated and then the `close` action is requested  
+Then the migration is recorded, and the `close` action is rejected with the issue code `gates-changed` until a human approves the gate definitions again
+
+**AE-214 — A YAML state document is converted by an explicit migration**
+
+- Covers: Section 25.3
+
+Given a change directory with a YAML state document named `state.yaml` and no `state.json`  
+When the `migrate` operation is requested for the change  
+Then `state.json` is created with a first entry that is a `migrate` entry with `n` 1 and the `prev` of the first entry, whose `source_hash` is the content hash of the old file as a text file, the old file is neither changed nor deleted, and later operations read only `state.json`
