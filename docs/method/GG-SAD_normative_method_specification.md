@@ -1,8 +1,8 @@
 # GG-SAD — Normative Method Specification
 
-**Version:** 1.3
+**Version:** 1.4
 **Status:** Normative Baseline  
-**Revision:** 2026-08-21 — Clarified transition, phase-gate, release-approval, Pair Review evidence, and implementation-alignment contracts.
+**Revision:** 2026-10-24 — Added the method profiles `core` and `full`, the protections that both method profiles share, JSON state with a canonical form, and schema versions with explicit migration.
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
 
 ---
