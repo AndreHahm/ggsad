@@ -91,7 +91,7 @@ Recent decisions affecting current work:
 - Roadmap (v1.1): Phase 3 (Owner Approval) and Phase 4 (Independent Review) are hard gates, never bundled with other work; Phases 5–8 do not start until Phase 4 passes
 - Roadmap (v1.1): Phase 4 reviewer decided — Requestor Claude Code, independent reviewer Devin CLI (`devin -p`); a fresh context or subagent of the Requestor does not satisfy independence
 - Roadmap (v1.1): Suggestion, not an owner decision — require a plan before work in every phase, with no retroactive closure (v1.0 finding PROC-01)
-- [Phase ?]: Phase 01-02: owner confirmed all eleven decision record entries (O-1 to O-11) on 2026-10-24; no changes, no rationale added
+- [Phase 01]: Phase 01-02: owner confirmed all eleven decision record entries (O-1 to O-11) on 2026-10-24; no changes, no rationale added
 
 ### Pending Todos
 
