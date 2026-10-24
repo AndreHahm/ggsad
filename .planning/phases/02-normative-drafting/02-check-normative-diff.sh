@@ -31,6 +31,10 @@
 # specification or in the notes of the phase, and A1 the identity facts of the text (printed, not
 # judged).
 #
+# Two checks fail in every mode: R9 the acceptance example ids (lines "**AE-nn — ") are exactly AE-1
+# to AE-N with no gap and no repeat (N is printed), and J1 every json code fence parses (python3 with
+# -I, else python, else node; with none of them a "WARN J1" line is printed and not counted).
+#
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are
 # not counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check,
 # 2 on a usage error, an unreadable input, or a failing git listing.
@@ -389,6 +393,64 @@ if [ -s "$TMP/r2.warn" ]; then
   warn_or_fail "$TMP/r2.warn"
 else
   pass R2 "every acceptance example block has Covers, Given, When and Then, is cited and has a unique id ($(sed -n 's/^NOTE //p' "$TMP/r2.out") blocks); every subsection of sections 23 to 25 cites an example"
+fi
+
+# R9 (fails in every mode): the ids of the lines "**AE-nn — " outside code fences are exactly AE-1
+# to AE-N, with no gap and no repeat.
+awk '
+  /^```/ { infence = !infence; next }
+  infence { next }
+  /^\*\*AE-[0-9]+ — / {
+    id = $1; sub(/^\*\*AE-/, "", id); id += 0
+    if (id in seen) { if (rep == "") rep = id; next }
+    seen[id] = 1; n++; if (id > max) max = id
+  }
+  END {
+    if (rep != "") print "FAIL R9 AE-" rep " is defined more than once"
+    else {
+      for (k = 1; k <= max; k++) if (!(k in seen)) { print "FAIL R9 AE-" k " is missing (the ids stop at AE-" max ", " n " blocks)"; exit }
+      if (n == 0) print "FAIL R9 no acceptance example block found"
+      else print "PASS R9 the ids AE-1 to AE-" max " are defined exactly once, no gap (N = " max ")"
+    }
+  }
+' "$REC" > "$TMP/r9.out" || { echo "internal error in R9" >&2; exit 2; }
+while IFS= read -r line; do
+  echo "$line"
+  case "$line" in FAIL*) FAILS=$((FAILS + 1)) ;; esac
+done < "$TMP/r9.out"
+
+# J1 (fails in every mode): each code fence with the info string json parses. The parser is python3
+# (with -I), else python, else node; with none of them the check prints a warning and does not count.
+awk -v dir="$TMP" '
+  /^```/ {
+    if (!infence) { infence = 1; isjson = ($0 ~ /^```json[ ]*$/); if (isjson) { nj++; out = dir "/j1-" nj ".json"; startline[nj] = NR; printf "" > out } }
+    else { if (isjson) close(out); infence = 0; isjson = 0 }
+    next
+  }
+  infence && isjson { print >> out }
+  END { for (k = 1; k <= nj; k++) print k "\t" startline[k] > (dir "/j1.index"); if (nj == 0) printf "" > (dir "/j1.index") }
+' "$REC" || { echo "internal error in J1" >&2; exit 2; }
+j1py=""
+for cand in python3 python; do
+  if command -v "$cand" > /dev/null 2>&1 && "$cand" -I -c 'import json' > /dev/null 2>&1; then j1py="$cand"; break; fi
+done
+j1node=""
+if [ -z "$j1py" ] && command -v node > /dev/null 2>&1; then j1node=node; fi
+if [ -z "$j1py" ] && [ -z "$j1node" ]; then
+  warn J1 "no JSON parser, blocks not parsed"
+else
+  j1bad=""
+  j1n=0
+  while IFS="$(printf '\t')" read -r k ln; do
+    [ -n "$k" ] || continue
+    j1n=$((j1n + 1))
+    if [ -n "$j1py" ]; then
+      "$j1py" -I -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' "$TMP/j1-$k.json" > /dev/null 2>&1 || { j1bad="the json block at line $ln does not parse"; break; }
+    else
+      node -e 'JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"))' "$TMP/j1-$k.json" > /dev/null 2>&1 || { j1bad="the json block at line $ln does not parse"; break; }
+    fi
+  done < "$TMP/j1.index"
+  if [ -n "$j1bad" ]; then fail J1 "$j1bad"; else pass J1 "$j1n json block(s) parse"; fi
 fi
 
 # R3: warning only. Unfinished-text markers outside code fences: TODO, FIXME, TBD, XXX, the word
