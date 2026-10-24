@@ -92,7 +92,7 @@ fresh context or subagent of the Requestor.
   2. O-4 (state moves to JSON) is recorded as departing from the proposal's recommendation to keep YAML (DEC-01)
   3. The record exists before any normative text for this milestone is drafted (DEC-01)
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -105,7 +105,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion)*
 
-- [ ] 01-03-PLAN.md — Readiness check, owner authorizes the push, open the pull request to main (no merge, no push to main), owner rebase-merges, verify the confirmed record on origin/main before Phase 2 starts
+- [x] 01-03-PLAN.md — Readiness check, owner authorizes the push, open the pull request to main (no merge, no push to main), owner rebase-merges, verify the confirmed record on origin/main before Phase 2 starts
 
 #### Phase 2: Normative Drafting
 
@@ -222,7 +222,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Decision Record | v1.1 | 2/3 | In Progress|  |
+| 1. Decision Record | v1.1 | 3/3 | In Progress|  |
 | 2. Normative Drafting | v1.1 | 0/TBD | Not started | - |
 | 3. Owner Approval | v1.1 | 0/TBD | Not started | - |
 | 4. Independent Review | v1.1 | 0/TBD | Not started | - |
