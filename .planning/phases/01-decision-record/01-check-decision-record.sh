@@ -143,6 +143,8 @@ else
 fi
 
 # H1, F1, F2, D1, S1: structure of the entries.
+# The awk program is deliberately single-quoted: its $ and fields must not be expanded by the shell.
+# shellcheck disable=SC2016
 AWK_ENTRIES='
 function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
 function fail(id, msg) { if (!(id in fmsg)) fmsg[id] = msg }
