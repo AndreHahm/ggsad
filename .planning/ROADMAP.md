@@ -66,6 +66,7 @@ fresh context or subagent of the Requestor.
   ratify them retroactively (finding PROC-01 in
   `milestones/v1.0-phases/06-implementation-conformance-audit/06-RETROACTIVE-REVIEW.md`). Require a
   plan before work in every v1.1 phase, with no retroactive closure.
+
 - *Decided:* the Phase 4 reviewer. Requestor is Claude Code; the independent reviewer is Devin CLI
   (`devin -p`), recorded in `PROJECT.md` Key Decisions.
 
@@ -91,7 +92,20 @@ fresh context or subagent of the Requestor.
   2. O-4 (state moves to JSON) is recorded as departing from the proposal's recommendation to keep YAML (DEC-01)
   3. The record exists before any normative text for this milestone is drafted (DEC-01)
 
-**Plans**: TBD
+**Plans**: 0/3 plans executed
+
+Plans:
+**Wave 1**
+
+- [ ] 01-01-PLAN.md — Write the decision record: tracer (frame, the O-4 entry with its explicit departure from the YAML recommendation, first checks), then the other ten entries in Proposed wording and the lean read-only check script, committed on a branch other than main
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 01-02-PLAN.md — Owner review packet and checkpoint on the committed text, then a separate follow-up commit setting each entry to Decided (owner-confirmed date)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+
+- [ ] 01-03-PLAN.md — Readiness check, owner authorizes the push, open the pull request to main (no merge, no push to main), owner rebase-merges, verify the confirmed record on origin/main before Phase 2 starts
 
 #### Phase 2: Normative Drafting
 
