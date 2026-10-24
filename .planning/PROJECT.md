@@ -39,12 +39,9 @@ are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
 
 ### Out of Scope
 
-- Profile resolution — explicit non-goal of the approved transition design
-- A full gate engine — explicit non-goal
 - GG-SAD project memory — explicit non-goal
 - MCP integration — explicit non-goal
 - A web UI — explicit non-goal
-- CI integration — explicit non-goal
 - Multi-agent orchestration — explicit non-goal
 - Preserving prior roadmap ordering or change-closure claims — `specs/CHG-*` and legacy roadmap/status docs are not active development governance
 - Using GG-SAD and GSD simultaneously as development methods for this repository — GSD Core is the sole development method (non-goal, explicit)
@@ -63,10 +60,10 @@ are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
 ## Constraints
 
 - **Method:** GSD Core 1.10.0 (pinned) is the sole development method for this repository. GG-SAD MUST NOT be used to govern this repository's own development.
-- **Normative spec changes:** Require explicit repository-owner approval of the exact diff, plus independent Claude Code review. A fresh context or subagent of the Requestor does not satisfy independence.
+- **Normative spec changes:** Require explicit repository-owner approval of the exact diff, plus independent review by a reviewer that is not the Requestor. A fresh context or subagent of the Requestor does not satisfy independence.
 - **Milestone state:** v1.0 is shipped and archived. New product or normative changes require a new GSD milestone and the applicable approval/review gates.
 - **Evidence:** Prior GG-SAD/CHG-001 completion evidence and `specs/CHG-*` state are historical context, not proof of current conformance. Retained code is retained only when it conforms to the clarified product contract and passes verification.
-- **Scope:** No profile resolution, gate engine, memory, MCP, web UI, CI integration, or multi-agent orchestration in this milestone (see Out of Scope).
+- **Scope:** No memory, MCP, web UI, or multi-agent orchestration (see Out of Scope). Profile resolution, a gate engine and CI integration are in scope for the next milestone (see Key Decisions).
 - **Tech stack (baseline, unchanged by this milestone):** Python 3.13, `uv`, Typer 0.27, Pydantic 2.13 (frozen models), `ruamel.yaml`, JSON Schema (Draft 2020-12), pytest 9.1 / pytest-cov / Hypothesis, Ruff 0.16, `ty` 0.0.65 (strict).
 - **Execution mode:** Manual phase advancement with explicit confirmation at each gate; sequential (non-parallel, non-autonomous) execution; model tier inherited from the active session rather than pinned.
 - **Planning history:** completed v1.0 phase artifacts and requirements are archived under `.planning/milestones/`; active requirements are created afresh for the next milestone.
@@ -82,6 +79,8 @@ are preserved in `.planning/milestones/v1.0-REQUIREMENTS.md`.
 | Research only when a phase has a genuine unresolved external fact (not blanket upfront research) | Most phases are internal governance/audit work already grounded in derived intel and codebase context | ✓ Good — targeted TLS investigation resolved the only external blocker |
 | Model tier inherited from configured session rather than hard-pinned | User preference | ✓ Good — no repository model coupling introduced |
 | `.planning/` artifacts tracked in Git, but not committed during initialization | Approved plan required a single onboarding commit after external verification | ✓ Good — completed as planned |
+| Profile resolution, a gate engine and CI integration removed from Out of Scope | Owner decision O-2 in the next-milestone proposal: the v1.0 non-goals applied to the clarification-only milestone, and the next milestone needs them. Memory, MCP, a web UI and multi-agent orchestration stay out of scope. | — Pending (milestone not yet started) |
+| Independent reviewer is any reviewer that is not the Requestor, not specifically Claude Code; next milestone: Requestor Claude Code, independent reviewer Devin CLI (`devin -p`) | v1.0 used Codex as Requestor and Claude Code as reviewer; roles are now swapped, so a rule naming Claude Code would be unsatisfiable. Owner decision. A fresh context or subagent of the Requestor still does not satisfy independence. | — Pending (first used in the next milestone's review phase) |
 
 ## Evolution
 
@@ -101,4 +100,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-22 after v1.0 milestone*
+*Last updated: 2026-10-24 — Out of Scope revised ahead of the next milestone (previously 2026-08-22 after v1.0)*
