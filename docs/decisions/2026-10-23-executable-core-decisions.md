@@ -4,7 +4,7 @@
 
 - Decision owner: repository owner
 - Decisions made: 2026-10-23
-- Owner confirmation: pending
+- Owner confirmation: 2026-10-24
 - Requestor: Claude Code
 - Applies to: the Executable Core milestone (v1.1)
 - Source: The decided outcomes and the consequences are copied from `MILESTONE-PROPOSAL.md` in the
@@ -45,7 +45,7 @@ requirement.
 
 ### O-1: Fate of the heavy machinery
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The specification defines eight phases, DoR/DoD pairs, size classes and a ten-rank
   hierarchy; the prototype ran four governed changes without any of them.
@@ -60,7 +60,7 @@ requirement.
 
 ### O-2: Milestone 1 non-goals that are reversed
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: Milestone 1 (v1.0) listed profile resolution, a full gate engine, memory, MCP, a web UI,
   CI integration and multi-agent orchestration as out of scope; the question is which of these are
@@ -82,7 +82,7 @@ requirement.
 
 ### O-3: Trust model
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The question is whether assurance levels and signed approvals are normative or optional
   guidance.
@@ -96,7 +96,7 @@ requirement.
 
 ### O-4: State format
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The prototype hashes a canonical JSON state, while the examples in the specification are
   YAML; the question is which format state should use.
@@ -118,7 +118,7 @@ requirement.
 
 ### O-5: A fourth result, blocked
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The question is whether the result envelope gains a fourth result named `blocked`.
 - Options considered: Two, from an earlier draft of the proposal: make it normative, or state that
@@ -131,7 +131,7 @@ requirement.
 
 ### O-6: Reopen
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The specification requires `reopen`; the prototype replaced it with "follow with a new
   change".
@@ -146,7 +146,7 @@ requirement.
 
 ### O-7: Compatibility and schema versions
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The schemas are pinned to `0.1` with no migration path.
 - Options considered: One, from an earlier draft of the proposal: define `schema_version` handling
@@ -160,7 +160,7 @@ requirement.
 
 ### O-8: How much of the full profile this milestone builds
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: This question was created by O-1. Implementing the eight-phase model is the large piece
   that Milestone 1 (v1.0) left unbuilt.
@@ -180,7 +180,7 @@ requirement.
 
 ### O-9: Whether the new protections apply to both profiles
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: The question is whether the new protections (frozen gates, tri-state results, trust
   levels, the scope gate and known-failure baselines) apply to both profiles.
@@ -194,7 +194,7 @@ requirement.
 
 ### O-10: Resolution layers that core implements
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: Raised by O-2. Section 5.3 of the normative specification defines six resolution
   layers; the question is which of them core implements.
@@ -210,7 +210,7 @@ requirement.
 
 ### O-11: What CI integration means
 
-- Status: Proposed wording
+- Status: Decided (owner-confirmed 2026-10-24)
 - Decision date: 2026-10-23, by the repository owner
 - Context: Raised by O-2. A change's check commands are code supplied by the pull request.
 - Options considered: alternatives not recorded; the decided text excludes one approach, executing
