@@ -22,14 +22,14 @@ bundled with other work. Implementation follows approved text, never the reverse
 Scope of the amendment is the set of protections the prototype exercised, plus the structural
 decisions of O-1 to O-11. Changes are proposed text only (SPEC-13).
 
-- [ ] **SPEC-01**: The proposed text states that a change's gate definitions are fixed when the change is approved, and that any later edit to them blocks every operation except cancellation until a human re-approves (MAPPING P-01)
-- [ ] **SPEC-02**: The proposed text defines gate results as three-valued (satisfied, not satisfied, could not be evaluated); a gate that cannot be evaluated is never treated as a failure and never counts toward a retry limit (MAPPING P-02)
-- [ ] **SPEC-03**: The proposed text adds a normative fourth result, `blocked`, to the result envelope (section 22.2): a recorded evaluation that did not close the change, always `changed: true`; `rejected` means nothing was written and is never `changed` (MAPPING P-03; O-5)
+- [x] **SPEC-01**: The proposed text states that a change's gate definitions are fixed when the change is approved, and that any later edit to them blocks every operation except cancellation until a human re-approves (MAPPING P-01)
+- [x] **SPEC-02**: The proposed text defines gate results as three-valued (satisfied, not satisfied, could not be evaluated); a gate that cannot be evaluated is never treated as a failure and never counts toward a retry limit (MAPPING P-02)
+- [x] **SPEC-03**: The proposed text adds a normative fourth result, `blocked`, to the result envelope (section 22.2): a recorded evaluation that did not close the change, always `changed: true`; `rejected` means nothing was written and is never `changed` (MAPPING P-03; O-5)
 - [ ] **SPEC-04**: The proposed text defines assurance levels A0 to A2 and the signed-approval statement (operation, change, position in the change's history, signer, exact content approved) as normative, leaves verifiers (for example SSH signature, platform review) optional, and states that an agent able to use a human's credentials can act as that human (MAPPING P-04; O-3)
 - [ ] **SPEC-05**: The proposed text distinguishes history consistency from history completeness and requires an external anchor, or an equivalent, to detect truncation where a profile demands high assurance (MAPPING P-05)
 - [ ] **SPEC-06**: The proposed text defines a change's scope, how it is measured (against the commit the change started from), that work outside it is a hard failure, and that a change runs isolated from unrelated uncommitted work (MAPPING P-06)
-- [ ] **SPEC-07**: The proposed text lets a verification gate carry a recorded baseline of already-failing tests: the gate passes when every failure is on the baseline, fails and names any new failure, and is not evaluable when the failures cannot be read (MAPPING P-07)
-- [ ] **SPEC-08**: The proposed text distinguishes hard failure (the change closes as failed without human action) from soft failure (the change pauses for a human disposition: close as failed, or a recorded override that grants a bounded number of further attempts and lapses when the gates are amended) (MAPPING P-08)
+- [x] **SPEC-07**: The proposed text lets a verification gate carry a recorded baseline of already-failing tests: the gate passes when every failure is on the baseline, fails and names any new failure, and is not evaluable when the failures cannot be read (MAPPING P-07)
+- [x] **SPEC-08**: The proposed text distinguishes hard failure (the change closes as failed without human action) from soft failure (the change pauses for a human disposition: close as failed, or a recorded override that grants a bounded number of further attempts and lapses when the gates are amended) (MAPPING P-08)
 - [ ] **SPEC-09**: The proposed text records open questions as change state, supports structured answers (a choice among declared options), and blocks specification approval and closure while any question is unanswered (MAPPING P-09)
 - [ ] **SPEC-10**: The proposed text defines evidence as executable and tied to a requirement; a change with no requirements has no complete evidence (MAPPING P-10)
 - [ ] **SPEC-11**: The proposed text makes the interpreter that runs gate commands explicit and opt-in, and states the trust consequence: code in git-ignored locations is invisible to the scope check (MAPPING P-12)
@@ -115,14 +115,14 @@ they are not the archived v1.0 phases of the same number.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | DEC-01 | Phase 1 | Complete |
-| SPEC-01 | Phase 2 | Pending |
-| SPEC-02 | Phase 2 | Pending |
-| SPEC-03 | Phase 2 | Pending |
+| SPEC-01 | Phase 2 | Complete |
+| SPEC-02 | Phase 2 | Complete |
+| SPEC-03 | Phase 2 | Complete |
 | SPEC-04 | Phase 2 | Pending |
 | SPEC-05 | Phase 2 | Pending |
 | SPEC-06 | Phase 2 | Pending |
-| SPEC-07 | Phase 2 | Pending |
-| SPEC-08 | Phase 2 | Pending |
+| SPEC-07 | Phase 2 | Complete |
+| SPEC-08 | Phase 2 | Complete |
 | SPEC-09 | Phase 2 | Pending |
 | SPEC-10 | Phase 2 | Pending |
 | SPEC-11 | Phase 2 | Pending |
