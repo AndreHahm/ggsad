@@ -300,6 +300,8 @@ specs/<change-id>/
 
 `spec.md` remains the mandatory file for normal (Class M and Class L) changes as defined in Section 6.
 
+The identifier of a change, which is the `id` of a `core` change definition (Section 23.1) and the Change ID of a `full` change specification (Section 16.1), names the directory `specs/<change-id>/` of the change. The whole identifier MUST match `[A-Za-z0-9][A-Za-z0-9._-]*`, so that it holds no path separator. It MUST NOT end with the character `.`. It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case. Two identifiers that are equal after that folding name the same directory on a file system that ignores letter case, so an identifier MUST also be unique among the changes of the project after the folding: an identifier that differs from the identifier of an existing change only in the case of ASCII letters is not unique. The same syntax applies to the values of `follows` and `replaced_by`, which name a change by its identifier. A definition with an identifier that does not follow these rules is rejected, and nothing is written. See AE-288.
+
 Every change carries mandatory information regardless of file layout: the goal, specification anchor, gate outcome, evidence, wait or fail behavior when applicable, and final status.
 
 `state.json` is the state document of the change (Section 25.1), and it is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`. The rules of Sections 24.1 to 24.5, 24.7, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document.
@@ -319,6 +321,14 @@ specs/<change-id>/
 In a `full` change, `plan.md`, `tasks.md`, `evidence.md`, and `review.md` remain conditional files. They are required only when the change's size, risk, evidence needs, or review-depth needs call for them.
 
 Inline storage of any of this information is permitted only when its authoritative location and required fields are unambiguous.
+
+**AE-288 — An identifier that can leave the change directory or collide is rejected**
+
+- Covers: Section 4.3
+
+Given a project that holds the change `Task-7`, and five change definitions whose identifiers are `../x`, `a/b`, `task-7`, `nul`, and `c-1`  
+When the `new` action receives each definition  
+Then the first four are rejected and nothing is written, because `../x` and `a/b` hold a path separator, `task-7` differs from `Task-7` only in letter case, and `nul` is a reserved name, and the definition with the identifier `c-1` is accepted
 
 ---
 
@@ -1725,6 +1735,8 @@ Then <result>
 
 The conditions listed under Flow Gates, together with the scope, are the gate definitions of the change and are fixed when the change is approved (Section 24.1).
 
+The Change ID follows the syntax of the identifier of a change in Section 4.3.
+
 The list under the heading Allowed Paths of the Scope is the allowed path list of the change. It holds path patterns that can be checked by machine, and Section 24.5 states how they are written and measured. The Included and Excluded lists describe the scope in words and are not measured.
 
 The list under the heading Evidence Commands of a requirement holds the evidence commands that are bound to it as Section 24.9 states. Each list item states the argument list, the exit map, and optionally the time limit of one command. The requirement identifiers and these lists are fixed with the gate definitions (Section 24.1), and a requirement without a list item has no evidence command.
@@ -2102,7 +2114,18 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - validate governing configuration, artifacts, references, and state;
 - record a human decision (an approval, a sign-off, an override, or an answer) in the history of a change;
 - migrate a schema-governed file to a newer schema version, as an explicit operation whose steps are recorded (Section 25.3);
-- evaluate and execute one controlled state transition under the Section 8 Transition Table.
+- record a question of a change (Section 24.8);
+- adopt the history of a change (Section 24.4);
+- report on a change, as the read-only actions `check`, `review`, and `guard` do;
+- evaluate and execute one controlled state transition under the transition table of the method profile of the change (Section 8.3 or Section 23.4). See AE-287.
+
+**AE-287 — Asking a question is an operation of the contract**
+
+- Covers: Section 22.1
+
+Given an implementation of the contract, an `active` `core` change, and a `full` change in the build phase with the status `active`  
+When a participant records a question for each change  
+Then the operation is the contract operation that records a question, it appends an entry whose `action` is `ask` to the history of each change, and the transitions of the `core` change are judged under the table of Section 23.4 and the transitions of the `full` change under the table of Section 8.3
 
 The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
 
@@ -2179,7 +2202,7 @@ An invalid operation MUST be rejected without any partial mutation of persisted 
 
 A valid operation whose evaluation says that the requested transition does not occur is not an invalid operation. When the evaluation is recorded in the history, its result is `blocked` and `changed` is `true`; recording it is what makes the attempts countable under Section 24.2. An operation that is invalid, or whose precondition is not met, stays `rejected` or `error` with `changed` false. Sections 8.3 and 23.4 state per action which result applies. See AE-111, AE-112.
 
-For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the Section 8 Transition Table and Section 15 Evidence Model.
+For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the transition table of the method profile of the change (Section 8.3 or Section 23.4) and Section 15 Evidence Model.
 
 ---
 
@@ -2205,7 +2228,7 @@ specs/<change-id>/
 The change definition MUST contain these fields:
 
 - `schema_version`: the version of the schema of the change definition (Section 25.3);
-- `id`: the identifier of the change, unique among the changes of the project;
+- `id`: the identifier of the change, which follows the syntax of Section 4.3 and is unique among the changes of the project;
 - `method_profile`: the method profile of the change, which is `core` (Section 5.6);
 - `compliance_profile`: the compliance profile of the change (Section 5.1);
 - `author` and `owner`: the participant that wrote the change and the participant responsible for it;
@@ -2214,7 +2237,7 @@ The change definition MUST contain these fields:
 - `requirements`: the requirements of the change, each with text, examples, and evidence commands (Section 24.9);
 - `gates`: with the three lists `fail`, `wait`, and `done` (Section 23.3).
 
-The change definition MAY contain `follows`, the identifier of one earlier change that this change continues. The change named in `follows` MUST exist and MUST be in the state `closed`. The field is a reference only: it never changes the state or the outcome of the named change. See AE-09, AE-11, AE-12.
+The change definition MAY contain `follows`, the identifier of one earlier change that this change continues, which follows the syntax of Section 4.3. The change named in `follows` MUST exist and MUST be in the state `closed`. The field is a reference only: it never changes the state or the outcome of the named change. See AE-09, AE-11, AE-12.
 
 A `core` change has no size class (Section 6), no phase (Section 7), no Definition of Ready or Definition of Done per phase (Sections 9 and 10), and no ranking of change documents (Section 4.1). The invariant core of Section 3.7 applies to it: the goal is `goal`, the specification anchor is `spec.md`, gate evaluation is Section 23.6, evidence is the requirement evidence of Section 24.9, controlled wait and fail behavior are Sections 23.5 and 24.7, and the traceable final status is the outcome of Section 23.2. See AE-59.
 
@@ -2381,7 +2404,7 @@ A `core` change changes state only through the actions of the table below. An ac
 
 | Action | Legal From | Precondition | Resulting State |
 |---|---|---|---|
-| `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2, and the anchor at position 1 where an anchor is kept or required (Section 24.4). See AE-19, AE-20, AE-278. |
+| `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier follows the syntax of Section 4.3 and is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2, and the anchor at position 1 where an anchor is kept or required (Section 24.4). See AE-19, AE-20, AE-278. |
 | `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8). For `gates`, the gate definitions are valid under Section 23.3. For `all`, both conditions hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-21, AE-22, AE-23, AE-24. |
 | `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), and the evaluation of Section 23.6 finds no fail gate and no wait gate active. | The state `active`, with the base revision recorded. See AE-25, AE-26. |
 | `wait` | `active` | A reason, an owner, and a resume condition are given, or an unanswered question is named. A named question exists and is unanswered, and the action never creates a question. When a question is named, the owner of the wait is the owner of the question and a different owner is rejected, and the reason and the resume condition default to awaiting the answer to the question (Section 24.8). | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action names a question (Section 23.5). See AE-27, AE-28, AE-29, AE-275. |
@@ -2406,7 +2429,7 @@ A `follows` field is a reference and not a state transition: it never changes th
 
 | Action | Answers `rejected` (nothing is written, `changed` is `false`) | Answers `blocked` (the evaluation is recorded, `changed` is `true`) |
 |---|---|---|
-| `new` | The change definition is invalid, the identifier is not unique, `follows` does not name a closed change, or no method profile is selected. | Never. |
+| `new` | The change definition is invalid, the identifier does not follow the syntax of Section 4.3 or is not unique, `follows` does not name a closed change, or no method profile is selected. | Never. |
 | `approve` | The target is invalid or its preconditions are not met, the approver is not a human where Section 24.3 requires one, or the gate definitions differ from the approved ones and the target is not the gate definitions (Section 24.1). | Never. |
 | `start` | The state is not `open`, or a precondition is not met, including a fail gate, a wait gate, or a gate that cannot be evaluated that would decide against the start (issue code `start-blocked`). | Never. |
 | `wait` | The state is not `active`; or the reason, the owner, or the resume condition is missing and no question is named; or the named question does not exist, is already answered, or has another owner than the owner given. | Never. |
