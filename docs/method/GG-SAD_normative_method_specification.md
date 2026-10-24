@@ -59,6 +59,7 @@ A GG-SAD implementation MAY be developed using another development method. That 
 | 22. Minimal Automation Contract | Reference-Implementation Requirements |
 | 23. The `core` Profile | Method Semantics |
 | 24. Protections Shared by Both Profiles | Method Semantics |
+| 25. State, Hashing, and Schema Versions | Reference-Implementation Requirements |
 
 ---
 
@@ -271,9 +272,11 @@ Contains durable architecture decisions. Existing accepted ADRs take precedence 
 
 ### 4.3 Change-Specific Documents
 
+A `full` change keeps its documents in this layout:
+
 ```text
 specs/<change-id>/
-├── state.yaml
+├── state.json
 ├── spec.md
 ├── plan.md
 ├── tasks.md
@@ -285,7 +288,19 @@ specs/<change-id>/
 
 Every change carries mandatory information regardless of file layout: the goal, specification anchor, gate outcome, evidence, wait or fail behavior when applicable, and final status.
 
-`state.yaml` is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`.
+`state.json` is the state document of the change (Section 25.1), and it is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`. The rules of Sections 24.1, 24.3, 24.4, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document.
+
+A `core` change (Section 23.1) always has a state document, and it keeps its documents in this layout:
+
+```text
+specs/<change-id>/
+├── change.yaml
+├── spec.md
+├── state.json
+└── review.md
+```
+
+`change.yaml`, `spec.md`, and `state.json` are the three documents of a `core` change. `review.md` and other review files are conditional, they are not documents of the change, and the scope check of Section 24.5 measures them like any other file that is not a record file.
 
 `plan.md`, `tasks.md`, `evidence.md`, and `review.md` remain conditional files. They are required only when the change's size, risk, evidence needs, or review-depth needs call for them.
 
@@ -597,13 +612,17 @@ superseded
 
 Recommended metadata format:
 
-```yaml
-phase: build
-status: waiting
-reason: user-approval-required
-owner: requestor
-resume_when: approval-recorded
+```json
+{
+  "phase": "build",
+  "status": "waiting",
+  "reason": "user-approval-required",
+  "owner": "requestor",
+  "resume_when": "approval-recorded"
+}
 ```
+
+In the state document, `phase` and `status` are fields of the `after` record of an entry, and the other fields are held in its field `wait` (Section 25.1).
 
 `closed` is the terminal phase defined in Section 7; it is never a status value. When a change is in the `closed` phase, its terminal outcome is recorded in `status` as `done`, `failed`, `cancelled`, or `superseded`.
 
@@ -929,15 +948,19 @@ Every wait state MUST include:
 
 Template:
 
-```yaml
-status: waiting
-reason: architecture-decision-required
-waiting_for: requestor
-resume_when: ADR-approved
-safe_state: no-uncommitted-destructive-change
-resume_at: planning
-next_action: update-plan
+```json
+{
+  "status": "waiting",
+  "reason": "architecture-decision-required",
+  "waiting_for": "requestor",
+  "resume_when": "ADR-approved",
+  "safe_state": "no-uncommitted-destructive-change",
+  "resume_at": "planning",
+  "next_action": "update-plan"
+}
 ```
+
+In the state document, `status` is a field of the `after` record of an entry, and the other fields of this content are the value of its field `wait` (Section 25.1).
 
 ### 11.3 AI Agent Behavior in a Wait State
 
@@ -3462,3 +3485,239 @@ Then the configured interpreter is used, and the implementation warns that it li
 Given a check-command gate whose command runs the script `.cache/gate.script`, a location that version control is told to ignore, and a change whose `scope.allow` is `lib/**` that edits the script so that it always ends with the exit status that the exit map maps to `satisfied`  
 When the gate is evaluated  
 Then the gate is `satisfied`, and the scope check finds no violation, because the edited script is invisible to it
+
+---
+
+## 25. State, Hashing, and Schema Versions
+
+This section defines the state document, the canonical form and the content hash that the protections of Section 24 rely on, and the versions of the schema-governed files. It applies to both method profiles (Section 5.6). The history, the entry hash, and the approvals that Section 24 describes are stored and hashed as this section states.
+
+### 25.1 State Document and Canonical Form
+
+The state document of a change is the JSON file `state.json` in the change directory (Section 4.3). It holds the history of the change (Section 24.4). The implementation owns it, and a human MUST NOT edit it by hand (Section 23.1). The definitions that humans own, such as the change definition and the project configuration, stay YAML documents. In `core`, every change has a state document. In `full`, the state document is kept where the project persists workflow state (Section 4.3). The rules of Sections 24.1, 24.3, 24.4, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document, and an implementation MUST NOT report any of them as enforced for a change whose record is kept inline. See AE-195.
+
+The state document is a JSON object with two fields. `schema_version` holds the version of the schema of the document, and Section 25.3 defines its form and the checks on it. `entries` holds the history: a list of entries in ascending order of `n`, each with the four fields `n`, `prev`, `body`, and `hash` that Section 24.4 defines.
+
+The `body` of an entry holds exactly these fields:
+
+- `action`: the name of the action that the entry records, which is an action of the transition table of the method profile (Section 23.4 or Section 8.3) or `migrate` (Section 25.3);
+- `actor`: the identity of the participant that performed the action (Section 24.3);
+- `assurance`: the verified assurance level of the claim of the actor, which is `A0`, `A1`, or `A2` (Section 24.3);
+- `at`: the instant at which the entry was written, as a string in UTC that is written `YYYY-MM-DDThh:mm:ssZ`;
+- `result`: the result of the action, which is `success` or `blocked` (Section 22.2), because an action that is `rejected` or ends in `error` writes no entry;
+- `gate_results`: an object from the identifier of each gate that the action evaluated to the result recorded for it (Section 24.2), or `null` when the action evaluated no gate;
+- `gate_detail`: an object from the identifier of a gate to the text that the evaluation recorded for it, or `null` when the evaluation recorded none;
+- `files`: an object from a path to the content hash of the file (Section 25.2), for the files that the action approved, evaluated, or recorded, or `null` when it concerns no file;
+- `note`: the text that the actor gave, or `null`;
+- `after`: the record of the state of the change after the action.
+
+A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. See AE-189.
+
+The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
+
+- `state` and `outcome` (Section 23.2);
+- `approvals`: the approvals recorded so far, in the order of their recording, each naming its target, the identity, the verified assurance level, and the content hash that was approved (Section 24.3), and for a sign-off, an override, and a re-approval also the fields that Sections 24.1 and 24.7 call for;
+- `questions`: the questions recorded so far, with the fields of Section 24.8;
+- `wait`: the wait record (Section 23.5), or `null`;
+- `base_revision`: the base revision (Section 24.5), or `null` before it is recorded;
+- `replaced_by`: the identifier given to `supersede`, or `null`;
+- `schema_version`: the version of the schema of the document after the action (Section 25.3).
+
+In `full`, the `after` record holds `phase` and `status` (Section 8.1) in place of `state` and `outcome`. Its field `wait` holds the wait content of Section 11.2 and the other metadata of Section 8.1, or `null`, and its other fields are those of `core`. See AE-190.
+
+The file is a JSON text in UTF-8. Its layout, that is, indentation and line breaks, is free, and a writer SHOULD pretty-print it so that a human can read it. The file is not the hashed form: a hash is computed over the canonical form defined below and never over the text of the file, so the layout has no effect on a hash. A JSON object that holds the same key twice is not a valid state document. See AE-188.
+
+The values of a state document, and every value that is hashed, belong to a small domain: strings, integers, booleans, `null`, arrays, and objects whose keys are strings. A string is a sequence of Unicode code points that holds no surrogate code point. An integer is a whole number written in decimal digits, without a fraction or an exponent, and its magnitude does not exceed 2 to the power 53, minus 1, so that implementations that store numbers as double-precision values agree. A floating-point number is not in the domain. An implementation that is about to write or hash a value outside the domain MUST stop with the result `error` and MUST write nothing. See AE-187.
+
+The canonical form of a value is the text built by these rules:
+
+- no whitespace is written outside a string, the elements of an array and the members of an object are separated by `,`, and a key is separated from its value by `:`;
+- the members of an object are written in ascending order of their keys, compared as sequences of Unicode code points as defined below, and an object does not hold the same key twice;
+- a string is enclosed in `"`; the code point `"` is written `\"` and the code point `\` is written `\\`; the code points U+0008, U+0009, U+000A, U+000C, and U+000D are written `\b`, `\t`, `\n`, `\f`, and `\r`; every other code point below U+0020 is written `\u` followed by four lowercase hexadecimal digits; every other code point is written as itself, so that no code point is written as an escape because it is outside ASCII, and the code points U+007F and `/` are written as themselves;
+- an integer is written in decimal digits, with a leading `-` when it is negative, without a leading `+`, without a leading zero, and the integer zero is written `0`; the other values are written `true`, `false`, and `null`.
+
+The canonical bytes of a value are the UTF-8 encoding of its canonical form, without a byte order mark and without a final line feed. See AE-183, AE-184, AE-186.
+
+Strings are compared as sequences of Unicode code points: the first code point at which two strings differ decides the order by its numeric value, and a string that is a prefix of a longer string comes first. Letter case matters, and nothing is normalized. The comparison is not a comparison by UTF-16 code units, which orders some characters above U+FFFF differently. Every comparison of identifiers, paths, and values that Section 24 makes is made in this way. See AE-185.
+
+A hash is written as a hash string: the prefix `sha256:` followed by the 64 lowercase hexadecimal digits of the SHA-256 digest of some bytes. The hash string of a value is the hash string of its canonical bytes. The hash of an entry is the hash string of the object that holds `prev` and `body` (Section 24.4), and the `prev` of the first entry is the prefix `sha256:` followed by 64 digits 0. A hash string is compared as a string, so that a hash written with an uppercase digit differs from the same hash written with lowercase digits. See AE-184, AE-196.
+
+An implementation MUST write the state document with an atomic replacement. It writes the whole new document to a temporary file in the same directory, flushes it to storage when the system allows, and then replaces the state document with the temporary file in a single step of the file system. Until that step, the state document is the previous one. An interruption at any moment, such as a crash, a power loss, or a failed write, therefore leaves the previous state document intact, and a temporary file that is left behind is not state: an implementation MUST ignore it and MAY remove it. When the file system cannot replace a file in a single step, the implementation MUST NOT write, and its result is `error`. The creation of the first state document of a change is a replacement in the same way: an interrupted creation leaves no state document. See AE-193, AE-194.
+
+An implementation MUST also protect a write against a second writer. The writer names the version it read, which is the number of entries of the state document at that time, and zero for a change that has no state document yet. It takes an exclusive lock on the state document of the change, or, when the change has none yet, on the place where the document will be created, and keeps the lock until its replacement has finished. Under the lock it compares the number of entries that the document holds now with the version it read. When the two differ, the operation MUST write nothing and its result MUST be `error` with the stable issue code `state-conflict`, whose message states that another writer changed the change and that the operation can be repeated after reading it again. A writer that cannot take the lock MUST NOT write, and its result is `error`. This applies to the creation of a change and to every operation that records an evaluation, in `core` and in `full`. See AE-191, AE-192.
+
+**AE-183 — The canonical form sorts the keys, drops whitespace, and keeps non-ASCII characters**
+
+- Covers: Section 25.1
+
+Given an object with the member `name`, whose value is `café` written with the single code point U+00E9, and the member `count`, whose value is the integer 2, listed in that order  
+When its canonical form is built and hashed  
+Then the canonical text is `{"count":2,"name":"café"}`, the code point U+00E9 is written as itself and encoded in UTF-8 as the two bytes C3 and A9, and the hash string is `sha256:29775eba68050199f13058db83b4c14ba4b6a6a26666d6373a3cc47481bf6471`
+
+**AE-184 — The hash string of the empty object**
+
+- Covers: Section 25.1
+
+Given the empty object  
+When its canonical form is built and hashed  
+Then the canonical text is `{}`, and the hash string is `sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a`, which is the prefix `sha256:` and 64 lowercase hexadecimal digits
+
+**AE-185 — Keys are ordered by code point and not by UTF-16 code unit**
+
+- Covers: Section 25.1
+
+Given an object with two members whose keys are the single code points U+1F600 and U+FF5E, listed with U+1F600 first  
+When its canonical form is built  
+Then the member with the key U+FF5E is written first, because U+FF5E is the lower code point, although an order by UTF-16 code units would place U+1F600 first
+
+**AE-186 — Only the code points that JSON requires are escaped**
+
+- Covers: Section 25.1
+
+Given a string value that holds a line feed, the code point U+0001, a quotation mark, a backslash, a solidus, and the code point U+007F  
+When its canonical form is built  
+Then the line feed is written `\n`, U+0001 is written `\u0001`, the quotation mark is written `\"`, the backslash is written `\\`, and the solidus and U+007F are written as themselves
+
+**AE-187 — A value outside the domain is neither written nor hashed**
+
+- Covers: Section 25.1
+
+Given an entry body in which one value is the floating-point number 1.5  
+When the implementation is about to write the entry  
+Then the operation ends with the result `error`, and nothing is written
+
+**AE-188 — The layout of the file does not change a hash**
+
+- Covers: Section 25.1
+
+Given a state document of three entries, and the same document written again with other indentation and other line breaks but with the same values  
+When the history is verified  
+Then both documents give the same entry hashes, and both histories are consistent
+
+**AE-189 — Every body field is present and a field that does not apply is null**
+
+- Covers: Section 25.1
+
+Given an `ask` action that evaluates no gate, concerns no file, and gives no note  
+When the entry is written  
+Then the body holds the ten fields `action`, `actor`, `assurance`, `at`, `result`, `gate_results`, `gate_detail`, `files`, `note`, and `after`, and `gate_results`, `gate_detail`, `files`, and `note` are `null`
+
+**AE-190 — The record after an action is worded per method profile**
+
+- Covers: Section 25.1
+
+Given a closed `core` change with the outcome `done` and a `full` change in the build phase with the status `done`  
+When the `after` record of the last entry of each change is read  
+Then the `after` record of the `core` change holds `state` set to `closed` and `outcome` set to `done`, the `after` record of the `full` change holds `phase` set to `build` and `status` set to `done`, and neither record holds the fields of the other
+
+**AE-191 — The second of two writers with the same version fails when a change is created**
+
+- Covers: Section 25.1
+
+Given a `core` project and a `full` project, and in each of them two writers that both read that no state document of the change `c-1` exists, and the first writer of the project has created the state document  
+When the second writer of the project tries to create it with the version zero  
+Then the second writer writes nothing, its result is `error` with the issue code `state-conflict`, and the state document is the one that the first writer created
+
+**AE-192 — The second of two writers with the same version fails when an evaluation is recorded**
+
+- Covers: Section 25.1
+
+Given an `active` `core` change and a `full` change in the build phase with the status `active`, each with a state document of six entries, and for each change two writers that both read the version 6  
+When both writers request the action that completes the change (`close` or `complete`) and the first writer records its evaluation as entry 7  
+Then the second writer writes nothing, its result is `error` with the issue code `state-conflict`, and the state document holds seven entries
+
+**AE-193 — An interrupted creation leaves no state document**
+
+- Covers: Section 25.1
+
+Given a new `core` change and a new `full` change whose state documents are being created, and the process stops after the temporary file is written and before the replacement  
+When the project is read again  
+Then neither change has a state document, the temporary file is ignored, and the creation can be repeated
+
+**AE-194 — An interrupted write of an evaluation leaves the previous state intact**
+
+- Covers: Section 25.1
+
+Given an `active` `core` change and a `full` change in the build phase with the status `active`, each with a state document of six entries, and the process stops while the entry 7 that records an evaluation is being written  
+When each state document is read again  
+Then each document is the previous one of six entries, it is consistent, and no part of the entry 7 is in it
+
+**AE-195 — A change whose record is inline is not reported as enforced**
+
+- Covers: Section 25.1
+
+Given a `full` change of Class S whose record is kept inline in an issue, in a project that persists no workflow state  
+When the implementation reports which protections are enforced for it  
+Then the report does not list Sections 24.1, 24.3, 24.4, and 24.8 as enforced, because the change has no state document
+
+**AE-196 — A hash is compared as a string**
+
+- Covers: Section 25.1
+
+Given an entry whose stored `hash` is the correct hash written with an uppercase hexadecimal digit  
+When the consistency of the history is verified  
+Then the stored hash differs from the hash that is computed again, and the history is not consistent
+
+### 25.2 Content Hash
+
+The content hash is the hash string (Section 25.1) that identifies some content. An approval binds the content hash of what it approves (Section 24.3), and the identity of fixed gate definitions is a content hash (Section 24.1). This section defines the content hash of the content that those sections name.
+
+The content hash of a text file is the hash string of the bytes of the file after its line endings are normalized: every pair of a carriage return followed by a line feed, and every carriage return that is not followed by a line feed, is replaced by a line feed. Nothing else is changed. A file with the same text and different line endings therefore has the same content hash. See AE-197.
+
+The content hash of a binary file is the hash string of the bytes of the file, exactly. See AE-198.
+
+Whether a file is text or binary is decided by the implementation. The decision MUST depend only on the bytes of the file, so that the same bytes are always classified in the same way, and an implementation SHOULD classify a file as text only when its bytes are valid UTF-8 and hold no zero byte. The hash string does not state which kind was applied. A content hash is therefore comparable only with a content hash that an implementation computed with the same decision, and a content hash that differs from the recorded one is a difference. See AE-198.
+
+The content hash of a parsed definition, such as the gate definitions of a change (Section 24.1), is the hash string of the canonical bytes of the parsed value (Section 25.1) and not of the text of the file. A YAML document is read as YAML 1.2 with its core schema, and an alias is replaced by the value it refers to. Comments, layout, the order of the keys of a mapping, and the quoting of a scalar that reads as the same value therefore have no effect, and the order of the elements of a sequence has an effect. A parsed value that is outside the domain of Section 25.1 has no content hash: this holds for a floating-point number, a timestamp, a mapping key that is not a string, a mapping that repeats a key, and a scalar that the core schema reads as a type that the domain does not hold. An operation that needs the content hash of such a definition MUST be rejected, and its issue states which value is outside the domain. See AE-199, AE-200.
+
+The content hash of a set of files is the hash string of the canonical bytes of an object that maps the path of each file to its content hash. A path is written relative to the root of the repository, with `/` as the separator (Section 24.5). The order in which the files are listed has no effect. See AE-201.
+
+The content hash of the gate definitions together with the identifier of a gate, which binds the sign-off of a gate and an override (Section 24.3), is the hash string of the canonical bytes of an object with the member `definitions`, which holds the content hash of the gate definitions, and the member `gate`, which holds the identifier. See AE-202.
+
+**AE-197 — Text with different line endings has one content hash**
+
+- Covers: Section 25.2
+
+Given two text files that hold the same two lines, the first with the line ending carriage return and line feed and the second with the line ending line feed alone  
+When the content hash of each file is computed  
+Then the two content hashes are equal
+
+**AE-198 — A binary file is hashed byte for byte**
+
+- Covers: Section 25.2
+
+Given two binary files that differ only in that the first holds the bytes 0D 0A where the second holds the byte 0A, and a file whose bytes are not valid UTF-8  
+When the content hash of each file is computed  
+Then the content hashes of the two files differ, the file whose bytes are not valid UTF-8 is hashed on its exact bytes, and the same bytes give the same content hash each time
+
+**AE-199 — Layout and comments do not change the hash of a parsed definition, and a list order does**
+
+- Covers: Section 25.2
+
+Given a gate definition file, a copy with an added comment, other indentation, the keys of a mapping in another order, and a quoted scalar that reads as the same string, and a third copy in which the order of two elements of a list is exchanged  
+When the content hash of each file is computed as a parsed definition  
+Then the first copy has the same content hash as the original, and the third copy has a different content hash
+
+**AE-200 — A definition with a value outside the domain has no content hash**
+
+- Covers: Section 25.2
+
+Given a gate definition in which a retry limit is written as the floating-point number 1.5, and the same definition in which the value is the quoted string `1.5`  
+When the approval of the gate definitions is requested for each  
+Then the first approval is rejected and its issue names the value outside the domain, and the second definition has a content hash
+
+**AE-201 — The order of the files has no effect on the hash of a set**
+
+- Covers: Section 25.2
+
+Given a set of the two files `lib/a.py` and `docs/b.md`, listed in the first order and then in the reverse order  
+When the content hash of the set is computed  
+Then both orders give the same content hash, which is the hash string of the canonical bytes of the object that maps `docs/b.md` and `lib/a.py` to their content hashes
+
+**AE-202 — The identifier of the gate is part of the hash of a sign-off**
+
+- Covers: Section 25.2
+
+Given the same gate definitions and two gate identifiers, `review-ok` and `release-ok`  
+When the content hash of the gate definitions together with each identifier is computed  
+Then the two content hashes differ, because the member `gate` of the hashed object differs
