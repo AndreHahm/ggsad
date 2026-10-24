@@ -536,8 +536,8 @@ The following table states which of Sections 1 to 22 apply to which method profi
 
 | Sections | Applies To |
 |---|---|
-| 4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 11.1, 16.1 to 16.4, and the diagram of Section 21 | `full` only |
-| 11.2 and 12.2 | Both method profiles, except that the safe current state and the next action of a wait state in 11.2 and the final status code of a fail rule in 12.2 apply to `full` only. Sections 23.5 and 23.2 give the `core` equivalents. |
+| 4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 16.1 to 16.4, and the diagram of Section 21 | `full` only |
+| 11.2 and 12.2 | Both method profiles, except that the safe current state and the next action of a wait state in 11.2 and the final status code of a fail rule in 12.2 apply to `full` only. A `core` change is also exempt from the required response, the permitted preservation actions, and the required documentation of a fail rule in 12.2: Section 23.3 states what a `core` fail gate holds, and Section 24.7 fixes the response to an active fail condition. Sections 23.5 and 23.2 give the `core` equivalents. |
 | Every other section of Sections 1 to 22 | Both method profiles |
 
 **AE-01 — Select the `core` method profile at creation**
@@ -1346,13 +1346,16 @@ Template:
 {
   "status": "waiting",
   "reason": "architecture-decision-required",
-  "waiting_for": "requestor",
+  "outstanding": "architecture-decision",
+  "owner": "requestor",
   "resume_when": "ADR-approved",
   "safe_state": "no-uncommitted-destructive-change",
-  "resume_at": "planning",
+  "resume_at": "plan",
   "next_action": "update-plan"
 }
 ```
+
+The fields of the template are `reason`, `outstanding` (the outstanding information or decision), `owner` (the responsible person or source), `resume_when`, `safe_state`, and `next_action`. The field `resume_at` names the phase at which the change resumes, and it holds a phase identifier of Section 7.
 
 In the state document, `status` is a field of the `after` record of an entry, and the other fields of this content are the value of its field `wait` (Section 25.1).
 
@@ -1362,9 +1365,9 @@ See AE-268.
 
 - Covers: Section 11.2
 
-Given a `full` change with the status `active` and an active Definition of Wait condition, and a request to wait that gives a reason, the outstanding decision, the responsible person, and the resume condition, with the safe current state and the next action in one request and without them in the other  
+Given a `full` change with the status `active` and an active Definition of Wait condition, and a request to wait that gives the fields `reason`, `outstanding`, `owner`, and `resume_when`, with the fields `safe_state` and `next_action` in one request and without them in the other  
 When the `wait` action is requested twice, once with and once without the safe current state and the next action  
-Then the request that gives all six items is recorded as a wait state, and the request that gives no safe current state and no next action is rejected with `changed` false, because every wait state of a `full` change includes them
+Then the request that gives all six fields is recorded as a wait state, and the request that gives no safe current state and no next action is rejected with `changed` false, because every wait state of a `full` change includes them
 
 ### 11.3 AI Agent Behavior in a Wait State
 
@@ -1395,7 +1398,7 @@ The obligation to terminate applies to a fail condition of the severity `hard`. 
 - unauthorized breaking change,
 - violation of the constitution or an ADR,
 - action outside the approved scope,
-- exceeding hard budget, cost, or retry limits,
+- exceeding a hard budget or cost limit,
 - unrecoverable build or migration state,
 - permanently unsatisfiable acceptance conditions.
 
@@ -2003,6 +2006,16 @@ In steps 3 to 5, a gate that cannot be evaluated is neither failed nor satisfied
 
 In step 9, the approved scope is the allowed path list, and it is measured as Section 24.5 states.
 
+For a `core` change, the steps 3 to 8 are carried out as Section 23.6 states, because the change has no phase, no Definition of Ready, no Definition of Done, and no next phase. The evaluation of the gates of Section 23.6 takes the place of the steps 3 to 5, the step 6 is the preservation of the evidence of Section 24.9, and the steps 7 and 8 do not exist. The change ends through the `close` action of Section 23.4. See AE-270.
+
+**AE-270 — A `core` agent closes through the gates of Section 23.6**
+
+- Covers: Sections 19 and 20
+
+Given an `active` `core` change whose done gates are all satisfied and for which no fail gate and no wait gate is active  
+When an agent follows the execution algorithm of Section 19 and the completion criteria of Section 20  
+Then the agent evaluates the gates of Section 23.6, requests no Definition of Ready or Definition of Done, and starts no next phase, and the change ends through the `close` action in the state `closed` with the outcome `done`
+
 ### 19.1 Agent Prohibitions
 
 An AI agent MUST NOT:
@@ -2033,6 +2046,8 @@ A change transitions into the `closed` phase with the terminal status `done`, re
 - specification, implementation, tests, and documentation are consistent,
 - relevant roadmap, architecture, or ADR references have been updated,
 - the final status is documented traceably.
+
+For a `core` change, each of these conditions has a counterpart in Section 23. An active fail condition is a fail gate that decides, an active wait condition is a wait gate that decides or a gate that cannot be evaluated, and a soft failure that awaits a human disposition is a fail gate of the severity `soft` (Section 23.6). An unanswered question is the unanswered question gate, the criteria of a Definition of Done are the done gates of the change, and the executable evidence is the incomplete evidence gate (Section 23.7). The final status is the outcome of the change (Section 23.2). The conditions about the requirement coverage table, Pair Review, the consistency of documents, and references are met in a `core` change through its requirements and gates, and a `core` change is not required to produce a document of the `full` method profile for them. A `core` change is completed by the `close` action of Section 23.4, which ends it in the state `closed` with the outcome `done`; it has no `closed` phase and no terminal status. See AE-270.
 
 ---
 
@@ -2296,7 +2311,17 @@ The field `gates` of a `core` change holds three lists:
 
 There is no ready gate. Readiness to start is a precondition of the `start` action (Section 23.4).
 
+A `core` fail gate holds an `id`, a `severity`, and a condition. It states no required response, no permitted preservation actions, and no documentation: the response to an active fail gate is fixed by Section 24.7, a closure as failed for the severity `hard` and a wait for a human disposition for the severity `soft`, and the preservation of the history and the evidence is the work of Sections 24.4 and 24.9. See AE-271.
+
 Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate and a wait gate are predicate gates: each evaluates a condition to one of the three results of Section 24.2. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `review`, satisfied by a recorded review result from a participant other than the participant that requested the reviewed work (Section 3.10); or `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3). A change definition with a duplicate gate identifier, a gate without a kind, a gate with more than one kind, or a fail gate without a severity MUST be rejected. See AE-16, AE-17, AE-18.
+
+**AE-271 — A `core` fail gate needs no response, preservation actions, or documentation**
+
+- Covers: Section 12.2
+
+Given a `core` change definition whose fail gate `no-secrets` states an `id`, the `severity` `hard`, and a condition, and states no required response, no permitted preservation actions, and no documentation  
+When the gate definitions are approved  
+Then the gate is valid, because a `core` fail gate is not required to state those items of Section 12.2, and an active `no-secrets` closes the change as failed as Section 24.7 states
 
 **AE-16 — Reject a duplicate gate identifier**
 
