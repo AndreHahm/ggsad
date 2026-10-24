@@ -1671,6 +1671,10 @@ The executable check of Section 24.9 is still required when the evidence is docu
 
 <verifiable requirement>
 
+#### Evidence Commands
+
+- <argument list and exit map>
+
 ## Acceptance Examples
 
 ### E1 — <Title>
@@ -1723,7 +1727,7 @@ The conditions listed under Flow Gates, together with the scope, are the gate de
 
 The list under the heading Allowed Paths of the Scope is the allowed path list of the change. It holds path patterns that can be checked by machine, and Section 24.5 states how they are written and measured. The Included and Excluded lists describe the scope in words and are not measured.
 
-The evidence commands of a requirement of the change specification are bound to it as Section 24.9 states.
+The list under the heading Evidence Commands of a requirement holds the evidence commands that are bound to it as Section 24.9 states. Each list item states the argument list, the exit map, and optionally the time limit of one command. The requirement identifiers and these lists are fixed with the gate definitions (Section 24.1), and a requirement without a list item has no evidence command.
 
 The section Open Questions of the change specification is a view of the questions that are recorded as state (Section 24.8).
 
@@ -1835,7 +1839,7 @@ The section Open Questions of the change specification is a view of the question
 
 A gate that could not be evaluated is not recorded as Yes or No in the Final Gate Evaluation. It is listed by name with its cause (Section 24.2).
 
-The Evidence column of the requirement coverage table names the executable check that is bound to the requirement (Section 24.9). Other records MAY be added to it.
+The Evidence column of the requirement coverage table points at the evidence commands that stand under the heading Evidence Commands of the requirement in the change specification (Sections 16.1 and 24.9) and records what they produced. Other records MAY be added to it.
 
 ### 16.5 `project-brief.md`
 
@@ -2910,7 +2914,7 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 
 | Protection | Section | In `core` | In `full` |
 |---|---|---|---|
-| Frozen gate definitions | 24.1 | The three gate lists, the scope, and the requirement evidence commands of the change definition | The Flow Gates and the allowed path list of the change specification, together with the project-wide definitions that are in effect at the approval |
+| Frozen gate definitions | 24.1 | The three gate lists, the scope, and the requirement evidence commands of the change definition | The Flow Gates, the allowed path list, and the requirements with their evidence commands of the change specification, together with the project-wide definitions that are in effect at the approval |
 | Three-valued gate results | 24.2 | Every fail, wait, and done gate; a gate that cannot be evaluated puts the change in a wait of kind `external` | Every condition of the Definitions of Ready, Done, Wait, and Fail and of the Flow Gates; a condition that cannot be evaluated puts the change in a wait of the category `WAIT_EXTERNAL_SYSTEM` |
 | Assurance levels and signed approval | 24.3 | The approvals, sign-offs, overrides, answers, and the actions `fail`, `cancel`, `supersede`, and `adopt` of Section 23.4 | The approvals of the `full` flow (the specification, the gate definitions, the release, a phase omission, and the decisions of Section 5.4), each recorded with its identity and level |
 | History consistency and completeness | 24.4 | `state.json`, which every `core` change has | The state file; for an inline record without a state file the rules are not enforced mechanically (Section 4.3) |
@@ -2922,9 +2926,9 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 | Gate-command interpreter | 24.10 | The commands of `check` gates and the evidence commands | The commands of the Flow Gates and the evidence commands |
 | The result `blocked` | 22.2 | The actions `close` and `resume` (Section 23.4) | The actions `complete` and `resume` (Section 8.3) |
 
-In `full`, the definitions that Section 24.1 fixes are the change specification with its Flow Gates (Section 16.1) and the project-wide definitions under `docs/definitions/` that are in effect when the change is approved. The parsed value of these gate definitions is an object with three members. The member `flow_gates` is an object with the members `ready`, `done`, `wait`, and `fail`. Each of them is the list of the texts of the conditions that stand under the Flow Gates heading of the same name (Additional Ready Conditions, Additional Done Conditions, Additional Wait Conditions, Additional Fail Conditions), in the order in which they are written. The text of a condition is the text of its list item without the list marker, with every run of white space replaced by one space. A list item that is only the marker `<optional>` is not a condition, and a heading without a list item gives an empty list. The member `scope` is the allowed path list. The member `definitions` is the content hash of the set of the files under `docs/definitions/` (Section 25.2). A change of a project-wide definition after the approval therefore makes the gate definitions differ from the approved ones (Section 24.1).
+In `full`, the definitions that Section 24.1 fixes are the change specification with its Flow Gates and the requirements with their evidence commands (Section 16.1), and the project-wide definitions under `docs/definitions/` that are in effect when the change is approved. The parsed value of these gate definitions is an object with four members. The member `flow_gates` is an object with the members `ready`, `done`, `wait`, and `fail`. Each of them is the list of the texts of the conditions that stand under the Flow Gates heading of the same name (Additional Ready Conditions, Additional Done Conditions, Additional Wait Conditions, Additional Fail Conditions), in the order in which they are written. The text of a condition is the text of its list item without the list marker, with every run of white space replaced by one space. A list item that is only the marker `<optional>` is not a condition, and a heading without a list item gives an empty list. The member `scope` is the allowed path list. The member `definitions` is the content hash of the set of the files under `docs/definitions/` (Section 25.2). The member `requirements` is the list of the requirements of the change specification in the order in which they are written, and each element is an object with the members `id` and `evidence_commands`. The `id` is the text of the heading `### R<n> — <Title>` of the requirement before the em dash, without the heading marker and without white space at either end. The `evidence_commands` is the list of the texts of the list items that stand under the heading `#### Evidence Commands` of that requirement, in the order in which they are written; the text of an item is its text without the list marker, with every run of white space replaced by one space, and a requirement without such an item gives an empty list. A change of a project-wide definition after the approval therefore makes the gate definitions differ from the approved ones (Section 24.1).
 
-See AE-249, AE-250, AE-251, AE-252, AE-253, AE-254, AE-255, AE-256, AE-257, AE-258, AE-259.
+See AE-249, AE-250, AE-251, AE-252, AE-253, AE-254, AE-255, AE-256, AE-257, AE-258, AE-259, AE-286.
 
 **AE-249 — Full: changed Flow Gates or project-wide definitions are rejected**
 
@@ -2997,6 +3001,14 @@ Then the first request answers `blocked`, because a Definition of Wait condition
 Given a `full` change in the verify phase with two requirements and an evidence command bound to the first requirement only  
 When `complete` is requested, then an evidence command is added for the second requirement, the gate definitions are approved again, both commands are `satisfied`, and `complete` is requested again  
 Then the first request answers `blocked`, because the evidence is not complete, and the second request is not blocked by the evidence
+
+**AE-286 — Full: a replaced evidence command needs a new approval**
+
+- Covers: Section 24.9 (full)
+
+Given a `full` change whose gate definitions were approved with the item `run-tests --suite unit` and the exit map `0` to `satisfied` under the heading Evidence Commands of the requirement R1, and a second approved `full` change with the same kind of item  
+When in the first change the item is replaced by a command that always ends with the exit status that its exit map maps to `satisfied`, in the second change only the white space inside the item is changed, and `complete` is requested for each  
+Then the request for the first change is rejected with the issue code `gates-changed` and `changed` false, and the replaced command has no effect until a human approves the gate definitions again, and the request for the second change is evaluated, because a run of white space does not change the parsed value
 
 **AE-258 — Full: a Flow Gates command runs without a shell**
 
@@ -4033,7 +4045,7 @@ Then the result is `blocked` with `changed` true, the issues name Q1, and the ph
 
 ### 24.9 Executable Evidence
 
-The evidence for a requirement is executable and is bound to that requirement. An evidence command is a check command as Section 24.2 defines it: an argument list, an exit map, and OPTIONALLY a time limit. It is run as Section 24.10 states. A requirement lists the evidence commands that are bound to it: in `core`, in the field `requirements` of the change definition (Section 23.1); in `full`, in the change specification (Section 16.1), where the Evidence cell of the requirement coverage table (Section 16.4) names them.
+The evidence for a requirement is executable and is bound to that requirement. An evidence command is a check command as Section 24.2 defines it: an argument list, an exit map, and OPTIONALLY a time limit. It is run as Section 24.10 states. A requirement lists the evidence commands that are bound to it: in `core`, in the field `requirements` of the change definition (Section 23.1); in `full`, in the change specification, under the heading Evidence Commands of the requirement (Section 16.1).
 
 The evidence of a change is complete only when all of these hold:
 
@@ -4109,7 +4121,7 @@ Then the result is `rejected` with the issue code `gates-changed`, and the repla
 
 - Covers: Section 24.9
 
-Given a `full` change in the verify phase with the status `active`, whose requirement R1 has only a screenshot in the Evidence cell of its requirement coverage table  
+Given a `full` change in the verify phase with the status `active`, whose requirement R1 has no item under its heading Evidence Commands and only a screenshot in the Evidence cell of its requirement coverage table  
 When the `complete` action evaluates the Definition of Done of the phase  
 Then the criterion that evidence is complete is not satisfied, and the phase is not completed
 
