@@ -100,6 +100,8 @@ Every phase transition MUST be controlled by defined gates:
 - **Definition of Wait (DoW):** Must the flow pause in a controlled manner?
 - **Definition of Fail (DoF):** Must the flow terminate unsuccessfully?
 
+The gate definitions of a change are fixed when the change is approved (Section 24.1).
+
 ### 3.4 Evidence over Assertion
 
 A status MUST NOT be set solely by assertion. Verifiable evidence MUST exist for relevant completion criteria.
@@ -624,6 +626,8 @@ For `cancel` and `supersede`, an active DoW condition does not prevent the autho
 action. DoW and the current- and next-phase readiness and completion gates are not applicable to
 these actions. DoF retains first priority; when DoF determines that the change has failed, the
 resulting terminal status is `failed` rather than `cancelled` or `superseded`.
+
+The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`.
 
 `reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history.
 
@@ -1176,6 +1180,8 @@ Then <result>
 
 - None.
 ```
+
+The conditions listed under Flow Gates, together with the scope, are the gate definitions of the change and are fixed when the change is approved (Section 24.1).
 
 ### 16.2 `plan.md`
 
@@ -2129,6 +2135,118 @@ Identifiers, path patterns, paths, and text values are compared as sequences of 
 Given a change definition with two gate identifiers that look the same, the first written `café` with the single code point U+00E9 and the second written `cafe` followed by the code point U+0301  
 When the change definition is validated  
 Then the two identifiers are different, because values are compared as sequences of code points without normalization, and the definition is not rejected for a duplicate identifier
+
+### 24.1 Frozen Gate Definitions
+
+The gate definitions of a change are fixed when the change is approved. They are the gates of the change definition, that is, the three gate lists of a `core` change (Section 23.3) or the Flow Gates of a `full` change (Section 16.1), together with everything those gates declare (conditions, severities, retry limits, commands, exit maps, time limits, extraction rules, and baselines) and the scope of the change (Section 24.5). The purpose is that no participant can change the gates that judge a change without a human approving the change again. Before the first approval of the gate definitions nothing is fixed, and this section stops no operation.
+
+The identity of the fixed definitions is the content hash (Section 25.2) of the parsed gate definitions, computed over the parsed values and not over the text of the file. A comment, the layout, the order of keys in a mapping, and the quoting of a value that parses to the same value therefore do not change the identity. The order of the elements of a list does change it, because that order is part of the parsed value. The hash computed at the approval is the approved hash and is recorded in the history. See AE-79, AE-80.
+
+Every state-changing operation MUST first compute the hash of the current gate definitions and compare it with the approved hash. When the two differ, the operation MUST write nothing, and its result MUST be `rejected` with `changed` false (Section 22.2) and the stable issue code `gates-changed`, whose message states that the gate definitions differ from the approved ones and that a human has to approve them again. See AE-75, AE-76, AE-86.
+
+Three operations are exempt from the comparison and MUST NOT be stopped by it: `cancel`, `supersede`, and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` and `supersede` ensures that a change whose definitions were altered can always be ended. The approval that replaces the approved hash is the re-approval; without the exemption, no change could leave this state. See AE-77, AE-78, AE-81.
+
+The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7). See AE-81, AE-85.
+
+A read-only operation does not write. While the hashes differ, it answers `rejected` with `changed` false and the issue code `gates-changed`, and it states in its report that the gates are not enforced. It never closes the change and never records a failure. See AE-82.
+
+The approval of gate definitions MUST be rejected when the change definition has no gate definitions at all (in `core`, no `gates` field; in `full`, no Flow Gates). A definition that holds empty lists of additional gates is valid and is fixed as it is: an empty list is a definition, and a gate added to it later is a difference. See AE-83, AE-84.
+
+**AE-75 — An unchanged fixed set passes the comparison**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions were approved and have not changed since  
+When the `close` action is requested  
+Then the hash of the current gate definitions equals the approved hash, and the action goes on to evaluate the gates under Section 23.6
+
+**AE-76 — Reject an operation when the gate definitions differ**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions were approved, and the severity of the fail gate `no-secrets` was edited from `hard` to `soft` after the approval  
+When the `close` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `gates-changed`, and nothing is written to the history
+
+**AE-77 — Cancel is not stopped by differing gate definitions**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions differ from the approved ones  
+When a human performs the `cancel` action  
+Then the state is `closed` and the outcome is `cancelled`
+
+**AE-78 — Supersede is not stopped by differing gate definitions**
+
+- Covers: Section 24.1
+
+Given a `core` change A whose gate definitions differ from the approved ones, and an existing change B  
+When a human performs the `supersede` action on change A with `replaced_by` naming change B  
+Then change A is `closed` with the outcome `cancelled` and `replaced_by` naming change B
+
+**AE-79 — A formatting-only edit does not differ**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions were approved, and a comment was added and the indentation of `change.yaml` was changed after the approval, so that the parsed gate definitions are the same  
+When the `close` action is requested  
+Then the hashes are equal, and the action is not rejected for differing gate definitions
+
+**AE-80 — A reordered gate list differs**
+
+- Covers: Section 24.1
+
+Given a `core` change whose approved done gates are `lint` followed by `tests-pass`, and the two gates were swapped after the approval  
+When the `close` action is requested  
+Then the hashes differ, because the order of a list is part of the parsed value, and the result is `rejected` with the issue code `gates-changed`
+
+**AE-81 — Record the re-approval as an amendment**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions differ from the approved ones  
+When a human approves the gate definitions again  
+Then the history records an amendment that names the earlier approved hash and the new approved hash, the new hash is the approved hash, and a following `close` action is evaluated under Section 23.6
+
+**AE-82 — A read-only report states that the gates are not enforced**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions differ from the approved ones  
+When the `check` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `gates-changed`, the report states that the gates are not enforced, and the history does not change
+
+**AE-83 — Reject the approval of absent gate definitions**
+
+- Covers: Section 24.1
+
+Given a `core` change whose change definition has no `gates` field  
+When a human approves the gate definitions  
+Then the approval is rejected, and no approved hash is recorded
+
+**AE-84 — Accept empty lists of additional gates**
+
+- Covers: Section 24.1
+
+Given a `core` change whose `gates` field holds the empty lists `fail`, `wait`, and `done`  
+When a human approves the gate definitions  
+Then the approval is recorded with the hash of these definitions, and a gate added to a list later makes the hashes differ
+
+**AE-85 — Reject a re-approval by a participant that is not a human**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions differ from the approved ones  
+When an AI agent approves the gate definitions again  
+Then the approval is rejected, the approved hash does not change, and the change remains stopped by the comparison
+
+**AE-86 — Reject another approval while the gate definitions differ**
+
+- Covers: Section 24.1
+
+Given a `core` change whose gate definitions differ from the approved ones  
+When a human approves the target `spec`  
+Then the result is `rejected` with `changed` false and the issue code `gates-changed`, and no approval is recorded
 
 ### 24.2 Three-Valued Gate Results
 
