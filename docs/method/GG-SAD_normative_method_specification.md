@@ -820,6 +820,8 @@ At minimum:
 - evidence is complete,
 - remaining limitations are documented.
 
+A verification gate MAY carry a baseline of known failures (Section 24.6).
+
 ### 10.8 Release-Done
 
 At minimum:
@@ -1052,6 +1054,8 @@ Permitted evidence includes:
 - measurements,
 - deployment or release records,
 - references to commits and pull requests.
+
+A check-command gate whose evidence is a test run MAY carry a baseline of known failures (Section 24.6).
 
 Minimal evidence template:
 
@@ -2405,3 +2409,97 @@ Then the approval is rejected, because a check-command gate without an exit map 
 Given an `open` `core` change with a wait gate whose condition cannot be evaluated  
 When the `start` action is requested  
 Then the action is rejected, the change remains `open`, and no wait record is created
+
+### 24.6 Known-Failure Baselines
+
+A check-command gate (Section 24.2) MAY carry a baseline: the list of failure identifiers that were already failing before the change started and that the change is not required to fix. A baseline is valid only on a check-command gate. A baseline on any other gate is invalid and MUST be rejected when the gate definitions are approved. The baseline is part of the gate definition and is fixed with it (Section 24.1): changing it requires a new approval by a human, so that a baseline cannot be used to hide a new failure. See AE-94, AE-96.
+
+A failure identifier is a string that identifies one failure in a way that is stable across runs, for example the identifier of a failing test. The gate declares how failure identifiers are extracted from the output of its command (Section 24.2). Failure identifiers are compared as Section 24 states. The extracted identifiers form a set: an identifier that appears more than once counts once. See AE-93.
+
+When the command of a gate with a baseline ends with an exit status that the exit map maps to `satisfied`, the result is `satisfied`. When it ends with an exit status that the exit map maps to `not_satisfied`, the implementation extracts the failure identifiers from the output and compares them with the baseline:
+
+- when every extracted failure is on the baseline, the result is `satisfied`. This includes the case where the extracted failures are exactly the failures of the baseline;
+- when at least one extracted failure is not on the baseline, the result is `not_satisfied`. The record names up to three of the new failures, in ascending order of their code points, and the number of new failures;
+- when no failure identifier can be extracted, or when the output cannot be read, the result is `not_evaluable`, because the failures cannot be compared.
+
+An empty baseline is valid. With an empty baseline every extracted failure is a new failure, and the result is `satisfied` only when no failure occurred. A baseline entry that did not fail in the evaluation is not a failure and does not change the result. The record notes the number of such entries. See AE-87, AE-88, AE-89, AE-90, AE-91, AE-92, AE-95.
+
+**AE-87 — All failures are on the baseline**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failures `t1` and `t2`, and whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command names the failures `t1` and `t2`  
+Then the result is `satisfied`
+
+**AE-88 — A new failure is named**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failure `t1`, and whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command names the failures `t1` and `t9`  
+Then the result is `not_satisfied`, and the record names `t9` and states that there is one new failure
+
+**AE-89 — Unreadable failures are not evaluable**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failure `t1`, and whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command contains no failure identifier that can be extracted  
+Then the result is `not_evaluable`, not `satisfied` and not `not_satisfied`
+
+**AE-90 — Equal sets satisfy the gate**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failures `t1`, `t2`, and `t3`, and whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command names exactly `t3`, `t1`, and `t2`  
+Then the result is `satisfied`, because the extracted failures and the baseline are the same set
+
+**AE-91 — An empty baseline passes only without a failure**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline is empty  
+When one evaluation ends with an exit status that the exit map maps to `satisfied`, and a second evaluation ends with an exit status that the exit map maps to `not_satisfied` and names the failure `t1`  
+Then the first result is `satisfied`, and the second result is `not_satisfied` with one new failure `t1`
+
+**AE-92 — Name at most three new failures in code point order**
+
+- Covers: Section 24.6
+
+Given a check-command gate with an empty baseline, whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command names the failures `t5`, `t2`, `t4`, `t1`, and `t3`  
+Then the result is `not_satisfied`, and the record names `t1`, `t2`, and `t3` in that order and states that there are five new failures
+
+**AE-93 — Failure identifiers are compared as code point sequences**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failure `café` written with the single code point U+00E9  
+When the output of a failing command names the failure `café` written as `cafe` followed by the code point U+0301  
+Then the identifiers are different, the failure is a new failure, and the result is `not_satisfied`
+
+**AE-94 — Reject a baseline on a gate that is not a check-command gate**
+
+- Covers: Section 24.6
+
+Given a change definition with a baseline on a wait gate  
+When the gate definitions are approved  
+Then the approval is rejected, because a baseline is valid only on a check-command gate
+
+**AE-95 — A baseline entry that no longer fails is noted**
+
+- Covers: Section 24.6
+
+Given a check-command gate whose baseline lists the failures `t1` and `t2`, and whose command ends with an exit status that the exit map maps to `not_satisfied`  
+When the output of the command names only `t1`  
+Then the result is `satisfied`, and the record notes that one baseline entry did not fail
+
+**AE-96 — A changed baseline needs a new approval**
+
+- Covers: Section 24.6
+
+Given a `core` change whose gate definitions were approved with a baseline that lists the failure `t1`, and the entry `t9` was added to the baseline after the approval  
+When the `close` action is requested  
+Then the result is `rejected` with the issue code `gates-changed`, and the baseline with `t9` has no effect until a human approves the gate definitions again
