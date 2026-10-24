@@ -10,6 +10,9 @@
 #   --date YYYY-MM-DD confirmation date, required for --stage confirmed
 #   --print-chosen N  print the Chosen text of entry N as one line and exit 0 (exit 2 if the
 #                     entry or its Chosen field is missing)
+#   --scope-base REF  also run G1: every changed path since REF (committed, staged, unstaged,
+#                     untracked) stays inside docs/decisions/ and .planning/, and requirement
+#                     lines that cite an O-n id are not edited
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message", then "RESULT: PASS" or
 # "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check, 2 on a usage error or an unreadable file.
@@ -29,9 +32,10 @@ ENTRIES="1,2,3,4,5,6,7,8,9,10,11"
 STAGE="proposed"
 DATE=""
 PRINT_CHOSEN=""
+SCOPE_BASE=""
 
 usage() {
-  sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//' >&2
+  sed -n '2,20p' "$0" | sed 's/^# \{0,1\}//' >&2
   exit 2
 }
 
@@ -50,6 +54,7 @@ while [ "$#" -gt 0 ]; do
     --stage) need_value "$@"; STAGE="$2"; shift 2 ;;
     --date) need_value "$@"; DATE="$2"; shift 2 ;;
     --print-chosen) need_value "$@"; PRINT_CHOSEN="$2"; shift 2 ;;
+    --scope-base) need_value "$@"; SCOPE_BASE="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
   esac
@@ -59,6 +64,10 @@ done
 [ "$STAGE" = proposed ] || [ "$STAGE" = confirmed ] || { echo "--stage must be proposed or confirmed" >&2; exit 2; }
 if [ -n "$PRINT_CHOSEN" ]; then
   [[ "$PRINT_CHOSEN" =~ ^[0-9]+$ ]] || { echo "--print-chosen needs an entry number" >&2; exit 2; }
+fi
+
+if [ -n "$SCOPE_BASE" ]; then
+  git rev-parse --verify --quiet "$SCOPE_BASE^{commit}" > /dev/null || { echo "--scope-base $SCOPE_BASE is not a commit" >&2; exit 2; }
 fi
 
 DATEBAD=""
@@ -259,6 +268,90 @@ while IFS= read -r line; do
   echo "$line"
   case "$line" in FAIL*) FAILS=$((FAILS + 1)) ;; esac
 done < "$TMP/entries.out"
+
+# X1: the only hash-like token is the prototype commit 058d6c0, and it occurs once.
+PROTO_COMMIT="058d6c0"
+grep -o -E '[0-9A-Za-z_]+' "$REC" | grep -E '^[0-9A-Fa-f]{7,40}$' | grep '[0-9]' > "$TMP/hex.txt" || true
+x1bad=$(grep -v -x -F "$PROTO_COMMIT" "$TMP/hex.txt" | head -n1)
+x1n=$(grep -c -x -F "$PROTO_COMMIT" "$TMP/hex.txt" || true)
+if [ -n "$x1bad" ]; then
+  fail X1 "hash-like token [$x1bad] found; only the prototype commit $PROTO_COMMIT is allowed"
+elif [ "$x1n" -ne 1 ]; then
+  fail X1 "prototype commit $PROTO_COMMIT occurs $x1n times, expected once"
+else
+  pass X1 "the only hash-like token is $PROTO_COMMIT, once"
+fi
+
+# X2: self-containment; nothing outside this repository is needed or named.
+x2=""
+n_proto=$(grep -o -F "ggsad-core-proto" "$REC" | wc -l | tr -d ' ')
+n_file=$(grep -o -F "MILESTONE-PROPOSAL.md" "$REC" | wc -l | tr -d ' ')
+[ "$n_proto" -eq 1 ] || x2="ggsad-core-proto occurs $n_proto times, expected once"
+[ -n "$x2" ] || [ "$n_file" -eq 1 ] || x2="MILESTONE-PROPOSAL.md occurs $n_file times, expected once"
+if [ -z "$x2" ]; then
+  while IFS='|' read -r label re; do
+    hit=$(grep -n -E -e "$re" "$REC" | head -n1)
+    if [ -n "$hit" ]; then x2="$label at line ${hit%%:*}"; break; fi
+  done <<'PATTERNS'
+drive-letter or home-directory path|(^|[^A-Za-z0-9])[A-Za-z]:[\\/]|/Users/|/home/|~/
+web address|https?://
+markdown link|\]\(
+prototype-only name|MAPPING|BACKLOG|seed/
+prototype finding id|(^|[^A-Za-z0-9])P-[0-9]+
+PATTERNS
+fi
+if [ -z "$x2" ]; then
+  reqhit=$(awk '
+    {
+      line = $0; off = 0
+      while (match(line, /(DEC|SPEC|APPR|REVIEW|ENG|TRUST|INTEG|WORK|VERIFY|DEFER)-[0-9]+/)) {
+        pos = off + RSTART
+        before = substr($0, 1, pos - 1)
+        left = (pos == 1) ? "" : substr($0, pos - 1, 1)
+        if (left !~ /[A-Za-z0-9]/ && substr(before, length(before) - 4) != "v1.1 ") { print NR ": " substr(line, RSTART, RLENGTH); exit }
+        off += RSTART + RLENGTH - 1
+        line = substr(line, RSTART + RLENGTH)
+      }
+    }' "$REC")
+  [ -z "$reqhit" ] || x2="requirement id without the v1.1 qualifier at line $reqhit"
+fi
+if [ -n "$x2" ]; then fail X2 "$x2"; else pass X2 "self-contained: one mention each of the prototype repository and file, no path, address, link, prototype name, finding id or bare requirement id"; fi
+
+# G1: scope (only with --scope-base).
+if [ -n "$SCOPE_BASE" ]; then
+  {
+    git diff --name-only "$SCOPE_BASE...HEAD"
+    git diff --name-only
+    git diff --name-only --cached
+    git ls-files --others --exclude-standard
+  } 2> /dev/null | sort -u > "$TMP/paths.txt"
+  g1=""
+  while IFS= read -r p; do
+    [ -n "$p" ] || continue
+    case "$p" in
+      docs/method/*|src/*|AGENTS.md|CLAUDE.md|.claude/*) g1="forbidden path changed: $p"; break ;;
+      docs/decisions/*|.planning/*) ;;
+      *) g1="path outside docs/decisions/ and .planning/: $p"; break ;;
+    esac
+  done < "$TMP/paths.txt"
+  if [ -z "$g1" ]; then
+    nrec=$(find docs/decisions -type f 2> /dev/null | wc -l | tr -d ' ')
+    onlyrec=$(find docs/decisions -type f 2> /dev/null | head -n1)
+    if [ "$nrec" -ne 1 ] || [ "$onlyrec" != "$REC_PATH" ]; then
+      g1="docs/decisions/ must hold exactly the record, found $nrec file(s)"
+    fi
+  fi
+  if [ -z "$g1" ]; then
+    {
+      git diff -U0 "$SCOPE_BASE...HEAD" -- .planning/REQUIREMENTS.md
+      git diff -U0 -- .planning/REQUIREMENTS.md
+      git diff -U0 --cached -- .planning/REQUIREMENTS.md
+    } 2> /dev/null | grep -E '^[-+]' | grep -v -E '^(\+\+\+|---)' \
+      | grep -E '(^.|[^A-Za-z0-9])O-[0-9]+' | grep -v -F 'DEC-01' > "$TMP/req.txt" || true
+    if [ -s "$TMP/req.txt" ]; then g1="REQUIREMENTS.md line citing an O-n id was edited: $(head -n1 "$TMP/req.txt" | cut -c1-80)"; fi
+  fi
+  if [ -n "$g1" ]; then fail G1 "$g1"; else pass G1 "changed paths since $SCOPE_BASE stay in docs/decisions/ and .planning/; the record is the only decision file; O-n citations in REQUIREMENTS.md untouched"; fi
+fi
 
 if [ "$FAILS" -eq 0 ]; then
   echo "RESULT: PASS"
