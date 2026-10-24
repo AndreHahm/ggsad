@@ -752,6 +752,8 @@ At minimum:
 - affected system areas are roughly known,
 - no obvious conflict with the constitution exists.
 
+A question about the goal or the problem that is still open is recorded as an open question of the change (Section 24.8).
+
 ### 9.5 Ready-to-Plan
 
 At minimum:
@@ -759,7 +761,7 @@ At minimum:
 - goal, scope, and non-goals are defined,
 - requirements and acceptance conditions are understandable,
 - relevant architecture and ADR constraints have been reviewed,
-- open questions have been answered or explicitly accepted,
+- all open questions have been answered (Section 24.8),
 - no unresolved contradictions exist.
 
 ### 9.6 Ready-to-Build
@@ -839,7 +841,7 @@ At minimum:
 - requirements are unambiguous and verifiable,
 - each behavioral requirement has at least one concrete acceptance example, or a justified alternative verifiable acceptance condition exists,
 - constraints are documented,
-- open questions are closed or explicitly accepted,
+- all open questions have been answered (Section 24.8),
 - ADR conflicts are resolved or returned to the requestor,
 - the specification is approved.
 
@@ -947,6 +949,8 @@ An AI agent MUST:
 - formulate one minimal, decidable question,
 - never interpret an assumption as approval,
 - resume at the defined point once the resume condition is satisfied.
+
+The question that the agent formulates is recorded as an open question of the change (Section 24.8).
 
 ---
 
@@ -1275,6 +1279,8 @@ The conditions listed under Flow Gates, together with the scope, are the gate de
 
 The evidence commands of a requirement of the change specification are bound to it as Section 24.9 states.
 
+The section Open Questions of the change specification is a view of the questions that are recorded as state (Section 24.8).
+
 ### 16.2 `plan.md`
 
 ```markdown
@@ -1576,6 +1582,7 @@ A change transitions into the `closed` phase with the terminal status `done`, re
 - no DoF condition is active,
 - no DoW condition is active,
 - no soft failure awaits a human disposition (Section 24.7),
+- no open question is unanswered (Section 24.8),
 - all required DoD criteria are satisfied,
 - the executable evidence of every requirement is complete (Section 24.9),
 - requirement and acceptance-example coverage is evidenced,
@@ -3203,6 +3210,126 @@ Then the approval is rejected, because no default number exists, and no override
 Given a change definition whose fail gate `no-secrets` has the severity `Hard`  
 When the gate definitions are approved  
 Then the approval is rejected, because only the exact lowercase values `hard` and `soft` are severities
+
+### 24.8 Open Questions as State
+
+An open question is part of the state of the change and is recorded in its history. It is not prose in a document. A question has these fields:
+
+- `id`: the letter `Q` followed by a decimal number that starts at 1, assigned by the implementation in the order of creation;
+- `text`: the text of the question;
+- `owner`: the participant that answers the question, which is the owner of the change unless the question names another;
+- `asker`: the participant that asked the question;
+- `options`: absent for a free-text question, and otherwise a list of at least two distinct options, which is the list of a structured question;
+- `answer`: absent while the question is unanswered;
+- `answerer`: the participant that gave the answer.
+
+In `core`, the `ask` action records a question without pausing the change, and the `wait` action that gives a question records it and pauses the change with a wait record of kind `question` (Sections 23.4 and 23.5). In `full`, a question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1). A wait that a question causes has the category `WAIT_USER_INPUT` (Section 11.1).
+
+Two options are distinct when they differ as sequences of code points (Section 24). A structured question with fewer than two distinct options MUST be rejected, and so MUST a structured question whose list repeats an option. Question identifiers are compared in the same way, so that `Q1` and `q1` are different identifiers. See AE-177, AE-181.
+
+Only the owner of a question answers it. An answer from another participant MUST be rejected. When the owner is a human, the answer MUST be given by a human, at the level that Section 24.3 requires for an answer. The answer to a structured question MUST be exactly one of its options, and any other value MUST be rejected. The answer to a free-text question MUST be rejected when it is empty or consists only of spaces, tabs, and line breaks. A question that is already answered MUST NOT be answered again: a second answer MUST be rejected, and the first answer stays. An answer does not resume a waiting change. See AE-173, AE-174, AE-175, AE-176, AE-178, AE-179, AE-181.
+
+An unanswered question blocks two things. The approval of the specification MUST be rejected with the issue code `open-questions`, whose message names the unanswered questions, and no approval is recorded. The closure of the change is blocked: in `core`, the unanswered question gate of Section 23.7 is a wait gate that is active, and the `close` action answers `blocked`; in `full`, a Definition of Wait condition is active (Section 11), and the actions `complete` and `resume` answer `blocked` (Section 8.3). See AE-171, AE-172, AE-182.
+
+An open question is not accepted by silence, by omission, or by a statement outside the history. A participant who wants to proceed without resolving a question records an answer to it, given by the owner of the question; the answer can be an option such as `accept` of a structured question. The acceptance of an open question is therefore an answer, and a statement of acceptance that is not recorded as an answer leaves the question unanswered. See AE-180.
+
+The section Open Questions of the change specification (Section 16.1) is a view of the questions that are recorded as state. Where the view and the recorded state differ, the recorded state governs.
+
+**AE-171 — An unanswered question blocks the approval of the specification**
+
+- Covers: Section 24.8
+
+Given an `open` `core` change with the unanswered question Q1  
+When a human approves the target `spec`  
+Then the result is `rejected` with the issue code `open-questions` that names Q1, and no approval is recorded
+
+**AE-172 — An unanswered question blocks closure**
+
+- Covers: Section 24.8
+
+Given an `active` `core` change with every done gate satisfied and the unanswered question Q1  
+When the `close` action is requested  
+Then the result is `blocked` with `changed` true, the issues name the unanswered question gate, and the change remains `active`
+
+**AE-173 — A structured answer is recorded**
+
+- Covers: Section 24.8
+
+Given an `active` `core` change with the unanswered structured question Q1 whose options are `keep` and `drop` and whose owner is `human:ada`  
+When `human:ada` answers Q1 with `drop`  
+Then Q1 is recorded as answered with `drop` and with the answerer `human:ada`, and the state of the change does not change
+
+**AE-174 — Reject an answer that is not one of the options**
+
+- Covers: Section 24.8
+
+Given the unanswered structured question Q1 whose options are `keep` and `drop`  
+When its owner answers Q1 with `Keep`  
+Then the answer is rejected, because only the exact option `keep` or `drop` is an answer, and Q1 remains unanswered
+
+**AE-175 — Reject an empty free-text answer**
+
+- Covers: Section 24.8
+
+Given the unanswered free-text question Q2  
+When its owner answers Q2 with an empty text, and later with a text of three spaces  
+Then both answers are rejected, and Q2 remains unanswered
+
+**AE-176 — Reject a repeated answer**
+
+- Covers: Section 24.8
+
+Given the question Q1 that is answered with `keep`  
+When its owner answers Q1 with `keep` again, and later with `drop`  
+Then both answers are rejected, and Q1 keeps the answer `keep`
+
+**AE-177 — Options are distinct as code point sequences**
+
+- Covers: Section 24.8
+
+Given two structured questions, the first with the options `keep` and `keep`, and the second with the option `café` written with the single code point U+00E9 and the option `café` written as `cafe` followed by the code point U+0301  
+When the `ask` action records each of them  
+Then the first question is rejected, because it has only one distinct option, and the second question is recorded, because its two options are distinct
+
+**AE-178 — Only the owner answers**
+
+- Covers: Section 24.8
+
+Given an unanswered question Q1 whose owner is `human:bo`  
+When `human:ada` answers Q1  
+Then the answer is rejected, because `human:ada` is not the owner, and Q1 remains unanswered
+
+**AE-179 — A human owner needs a human answer**
+
+- Covers: Section 24.8
+
+Given an unanswered question Q1 whose owner is `human:ada`  
+When the participant `agent:builder` answers Q1 in the name of the owner  
+Then the answer is rejected, because the owner is a human and the answerer is not, and Q1 remains unanswered
+
+**AE-180 — Acceptance is an answer**
+
+- Covers: Section 24.8
+
+Given an `open` `core` change with the unanswered structured question Q1 whose options are `accept` and `resolve`, and a note in the specification that says Q1 is accepted  
+When a human approves the target `spec`, and later the owner of Q1 answers Q1 with `accept` and a human approves the target `spec` again  
+Then the first approval is rejected with the issue code `open-questions`, and the second approval is recorded
+
+**AE-181 — Question identifiers are compared as code point sequences**
+
+- Covers: Section 24.8
+
+Given an unanswered question Q1  
+When its owner answers the question `q1`  
+Then the answer is rejected, because no question with the identifier `q1` exists, and Q1 remains unanswered
+
+**AE-182 — An unanswered question blocks a `full` change**
+
+- Covers: Section 24.8
+
+Given a `full` change in the specify phase with the status `active` and the unanswered question Q1 in its state file  
+When the `complete` action is requested  
+Then the result is `blocked` with `changed` true, the issues name Q1, and the phase and status do not change
 
 ### 24.9 Executable Evidence
 
