@@ -1356,6 +1356,10 @@ The executable check of Section 24.9 is still required when the evidence is docu
 
 - <excluded item>
 
+### Allowed Paths
+
+- <path pattern>
+
 ## Requirements
 
 ### R1 — <Title>
@@ -1411,6 +1415,8 @@ Then <result>
 ```
 
 The conditions listed under Flow Gates, together with the scope, are the gate definitions of the change and are fixed when the change is approved (Section 24.1).
+
+The list under the heading Allowed Paths of the Scope is the allowed path list of the change. It holds path patterns that can be checked by machine, and Section 24.5 states how they are written and measured. The Included and Excluded lists describe the scope in words and are not measured.
 
 The evidence commands of a requirement of the change specification are bound to it as Section 24.9 states.
 
@@ -2510,6 +2516,26 @@ Identifiers, path patterns, paths, and text values are compared as sequences of 
 Given a change definition with two gate identifiers that look the same, the first written `café` with the single code point U+00E9 and the second written `cafe` followed by the code point U+0301  
 When the change definition is validated  
 Then the two identifiers are different, because values are compared as sequences of code points without normalization, and the definition is not rejected for a duplicate identifier
+
+Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 22.2, is an invariant of both method profiles. A `full` change carries each of them as a `core` change does, and the table below states how each is realized in each method profile. The realizations in `full` are specified but not implemented (Section 5.6).
+
+**Realization of the Protections in the Two Method Profiles**
+
+| Protection | Section | In `core` | In `full` |
+|---|---|---|---|
+| Frozen gate definitions | 24.1 | The three gate lists, the scope, and the requirement evidence commands of the change definition | The Flow Gates and the allowed path list of the change specification, together with the project-wide definitions that are in effect at the approval |
+| Three-valued gate results | 24.2 | Every fail, wait, and done gate; a gate that cannot be evaluated puts the change in a wait of kind `external` | Every condition of the Definitions of Ready, Done, Wait, and Fail and of the Flow Gates; a condition that cannot be evaluated puts the change in a wait of the category `WAIT_EXTERNAL_SYSTEM` |
+| Assurance levels and signed approval | 24.3 | The approvals, sign-offs, overrides, answers, and the actions `fail`, `cancel`, `supersede`, and `adopt` of Section 23.4 | The approvals of the `full` flow (the specification, the gate definitions, the release, a phase omission, and the decisions of Section 5.4), each recorded with its identity and level |
+| History consistency and completeness | 24.4 | `state.json`, which every `core` change has | The state file; for an inline record without a state file the rules are not enforced mechanically (Section 4.3) |
+| Scope and isolation | 24.5 | `scope.allow` of the change definition, and the base revision recorded when `start` succeeds | The allowed path list in the Scope of the change specification (Section 16.1), and the base revision recorded when the first phase begins |
+| Known-failure baselines | 24.6 | A baseline on a `check` done gate | A baseline on a verification condition that names a check command (Section 10.7) |
+| Hard and soft failure | 24.7 | The severity of a fail gate; a soft failure puts the change in a wait of kind `fail-gate` | The severity of a fail rule (Section 12.2); a soft failure puts the change in the status `waiting` with the category `WAIT_DECISION` |
+| Open questions as state | 24.8 | The actions `ask` and `answer` and the base gate `unanswered-question` | The question is recorded in the state file, and a Definition of Wait condition is active while it is unanswered |
+| Executable evidence | 24.9 | The base gate `incomplete-evidence` | Verify-Done (Section 10.7) and the completion criteria (Section 20) |
+| Gate-command interpreter | 24.10 | The commands of `check` gates and the evidence commands | The commands of the Flow Gates and the evidence commands |
+| The result `blocked` | 22.2 | The actions `close` and `resume` (Section 23.4) | The actions `complete` and `resume` (Section 8.3) |
+
+In `full`, the definitions that Section 24.1 fixes are the change specification with its Flow Gates (Section 16.1) and the project-wide definitions under `docs/definitions/` that are in effect when the change is approved. The parsed value of these gate definitions is an object with three members. The member `flow_gates` is an object with the members `ready`, `done`, `wait`, and `fail`. Each of them is the list of the texts of the conditions that stand under the Flow Gates heading of the same name (Additional Ready Conditions, Additional Done Conditions, Additional Wait Conditions, Additional Fail Conditions), in the order in which they are written. The text of a condition is the text of its list item without the list marker, with every run of white space replaced by one space. A list item that is only the marker `<optional>` is not a condition, and a heading without a list item gives an empty list. The member `scope` is the allowed path list. The member `definitions` is the content hash of the set of the files under `docs/definitions/` (Section 25.2). A change of a project-wide definition after the approval therefore makes the gate definitions differ from the approved ones (Section 24.1).
 
 ### 24.1 Frozen Gate Definitions
 
