@@ -36,10 +36,10 @@ decisions of O-1 to O-11. Changes are proposed text only (SPEC-13).
 - [ ] **SPEC-12**: The proposed text specifies both profiles (O-1): `core` (the simplified four-state model) and `full` (the phases, DoR/DoD pairs, size classes and document hierarchy of the current specification), states which requirements apply to which, and how a change moves between them
 - [ ] **SPEC-13**: No file under `src/ggsad/` is modified while the normative text is drafted
 - [ ] **SPEC-14**: `full` is revised to carry the protections of SPEC-01 to SPEC-11 as invariants of both profiles (O-9), is marked specified-but-not-implemented (O-8), and each `full` rule has an acceptance example of the kind the `core` rules have
-- [ ] **SPEC-15**: State is a JSON document (`state.json`) with a defined canonical form for hashing, and the specification's examples and templates are updated accordingly (O-4)
+- [x] **SPEC-15**: State is a JSON document (`state.json`) with a defined canonical form for hashing, and the specification's examples and templates are updated accordingly (O-4)
 - [ ] **SPEC-16**: Profile resolution is specified as the six-layer order of section 5.3, with the rule that a lower layer must not weaken a higher one; `core` implements four of the six layers (O-2, O-10) — unproven by the prototype beyond a base-gate no-weakening check
-- [ ] **SPEC-17**: `reopen` is specified for `full` and absent from `core`, and the transition table states this per profile (O-6)
-- [ ] **SPEC-18**: Every artifact carries `schema_version`, an unknown version is refused, and migration is an explicit, recorded command (O-7)
+- [x] **SPEC-17**: `reopen` is specified for `full` and absent from `core`, and the transition table states this per profile (O-6)
+- [x] **SPEC-18**: Every artifact carries `schema_version`, an unknown version is refused, and migration is an explicit, recorded command (O-7)
 
 ### Owner Approval (APPR)
 
@@ -129,10 +129,10 @@ they are not the archived v1.0 phases of the same number.
 | SPEC-12 | Phase 2 | Pending |
 | SPEC-13 | Phase 2 | Pending |
 | SPEC-14 | Phase 2 | Pending |
-| SPEC-15 | Phase 2 | Pending |
+| SPEC-15 | Phase 2 | Complete |
 | SPEC-16 | Phase 2 | Pending |
-| SPEC-17 | Phase 2 | Pending |
-| SPEC-18 | Phase 2 | Pending |
+| SPEC-17 | Phase 2 | Complete |
+| SPEC-18 | Phase 2 | Complete |
 | APPR-01 | Phase 3 | Pending |
 | REVIEW-01 | Phase 4 | Pending |
 | REVIEW-02 | Phase 4 | Pending |
