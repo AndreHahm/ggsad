@@ -302,7 +302,7 @@ specs/<change-id>/
 
 Every change carries mandatory information regardless of file layout: the goal, specification anchor, gate outcome, evidence, wait or fail behavior when applicable, and final status.
 
-`state.json` is the state document of the change (Section 25.1), and it is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`. The rules of Sections 24.1, 24.3, 24.4, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document.
+`state.json` is the state document of the change (Section 25.1), and it is a mandatory file only when the project uses persistent, machine-readable workflow state to track phase, status, gates, and history. When state is not persisted that way, the same mandatory information MAY instead be recorded inline in `spec.md` or `evidence.md`. The rules of Sections 24.1 to 24.5, 24.7, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document.
 
 A `core` change (Section 23.1) always has a state document, and it keeps its documents in this layout:
 
@@ -316,7 +316,7 @@ specs/<change-id>/
 
 `change.yaml`, `spec.md`, and `state.json` are the three documents of a `core` change. `review.md` and other review files are conditional, they are not documents of the change, and the scope check of Section 24.5 measures them like any other file that is not a record file.
 
-`plan.md`, `tasks.md`, `evidence.md`, and `review.md` remain conditional files. They are required only when the change's size, risk, evidence needs, or review-depth needs call for them.
+In a `full` change, `plan.md`, `tasks.md`, `evidence.md`, and `review.md` remain conditional files. They are required only when the change's size, risk, evidence needs, or review-depth needs call for them.
 
 Inline storage of any of this information is permitted only when its authoritative location and required fields are unambiguous.
 
@@ -2271,7 +2271,7 @@ A `closed` change has exactly one of three outcomes:
 - `failed`: the change ended unsuccessfully, because a hard fail condition was active or because a human disposed of a soft fail condition with the `fail` action (Section 24.7);
 - `cancelled`: the change was ended by the `cancel` or `supersede` action.
 
-The state document records the state in the field `state` and the outcome in the field `outcome` (Section 25.1). An outcome exists only when the state is `closed`; in every other state the outcome is `null`. An outcome of `failed` MUST carry a reason text. The final status codes of Section 12.2 apply to `full` only. See AE-14, AE-39, AE-41.
+The state document records the state in the field `state` and the outcome in the field `outcome` (Section 25.1). An outcome exists only when the state is `closed`; in every other state the outcome is `null`. An outcome of `failed` MUST carry a reason text, which the state document records in the field `reason` of the `after` record (Section 25.1). The final status codes of Section 12.2 apply to `full` only. See AE-14, AE-39, AE-41, AE-284.
 
 When a change is created, its record MUST show the state `open`, the outcome `null`, no approval, no question, no wait record, and no base revision. See AE-13.
 
@@ -3572,7 +3572,7 @@ The base revision is the revision from which the change started. It is recorded 
 
 The paths changed since the base revision are the paths whose content differs from the base revision according to version control, whether the difference is committed, staged, or unstaged, and the files that version control does not track and has not been told to ignore. A path changed since the base revision that no pattern of the allowed path list matches is a scope violation. A scope violation is a hard failure (Section 24.7): the change is closed as failed without human action, and the record names the paths outside the scope. See AE-147, AE-148, AE-149.
 
-The record files of the change itself are exempt from the measurement. In `core` they are the change definition, the specification, and the state document (Section 23.1). In `full` they are the specification and the state file or inline record of the change (Sections 16.1 and 4.3). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). Every other file in the change directory is measured. See AE-155.
+The record files of the change itself are exempt from the measurement. In `core` they are the change definition, the specification, and the state document (Section 23.1). In `full` they are the specification and the state file or inline record of the change (Sections 16.1 and 4.3). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). In both method profiles, exactly two further names in the change directory are exempt: the in-progress file `state.json.tmp` and the lock object `state.json.lock` that the writer of the state document uses (Section 25.1), so that a file left behind by an interrupted write is never a scope violation. Every other file in the change directory is measured, including a file with a similar name such as `state.json.bak`. See AE-155, AE-282.
 
 Before the change has started there is no base revision, and the scope is not evaluated: the record shows `not_applicable` (Section 24.2). After the change has started, a scope that cannot be measured is `not_evaluable` (Section 24.2). That is the case when version control is unavailable, when no base revision was recorded, and when the allowed path list is absent. It is never recorded as `satisfied`, and it is never recorded as a scope violation. See AE-154, AE-157.
 
@@ -3642,7 +3642,7 @@ Then the action is rejected, nothing is written, the change remains `open`, and 
 
 - Covers: Section 24.5
 
-Given an `active` `core` change whose record holds no base revision, in a project where version control is available  
+Given an `active` `core` change whose state was taken over from an older document and holds no base revision, in a project where version control is available  
 When the `close` action evaluates the gates  
 Then the result of the scope gate is `not_evaluable`, no scope violation is recorded, and the change waits with a wait record of kind `external`
 
@@ -3669,6 +3669,14 @@ Then `lib/sub/a.py` is outside the scope of the first change, because `*` does n
 Given an `open` `core` change with no base revision  
 When the `start` action is requested and succeeds  
 Then the scope gate is recorded as `not_applicable` for that evaluation, and the start is not stopped by it
+
+**AE-282 — Files left by an interrupted write are exempt and any other name is measured**
+
+- Covers: Section 24.5
+
+Given an `active` `core` change `c-1` whose `scope.allow` is `lib/**`, and a `full` change `c-2` in the build phase with the status `active` whose allowed path list is `lib/**`, and in the directories of `c-1` and `c-2` the untracked files `state.json.tmp` and `state.json.lock` left behind by an interrupted write, and in a third `active` `core` change `c-3` with the same `scope.allow` the untracked file `specs/c-3/state.json.bak`  
+When the `close` action evaluates the gates of `c-1` and `c-3`, and the `complete` action evaluates the gates of `c-2`  
+Then no scope violation is found for `c-1` and `c-2`, because the two names are exempt, and `specs/c-3/state.json.bak` is a changed path outside the scope of `c-3`, so that `c-3` is closed as failed
 
 ### 24.6 Known-Failure Baselines
 
@@ -4163,13 +4171,13 @@ This section defines the state document, the canonical form and the content hash
 
 ### 25.1 State Document and Canonical Form
 
-The state document of a change is the JSON file `state.json` in the change directory (Section 4.3). It holds the history of the change (Section 24.4). The implementation owns it, and a human MUST NOT edit it by hand (Section 23.1). The definitions that humans own, such as the change definition and the project configuration, stay YAML documents. In `core`, every change has a state document. In `full`, the state document is kept where the project persists workflow state (Section 4.3). The rules of Sections 24.1, 24.3, 24.4, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document, and an implementation MUST NOT report any of them as enforced for a change whose record is kept inline. See AE-195.
+The state document of a change is the JSON file `state.json` in the change directory (Section 4.3). It holds the history of the change (Section 24.4). The implementation owns it, and a human MUST NOT edit it by hand (Section 23.1). The definitions that humans own, such as the change definition and the project configuration, stay YAML documents. In `core`, every change has a state document. In `full`, the state document is kept where the project persists workflow state (Section 4.3). The rules of Sections 24.1 to 24.5, 24.7, and 24.8 that read or write the history are enforced mechanically only for a change that has a state document, and an implementation MUST NOT report any of them as enforced for a change whose record is kept inline. See AE-195.
 
 The state document is a JSON object with two fields. `schema_version` holds the version of the schema of the document, and Section 25.3 defines its form and the checks on it. `entries` holds the history: a list of entries in ascending order of `n`, each with the four fields `n`, `prev`, `body`, and `hash` that Section 24.4 defines.
 
 The `body` of an entry holds exactly these fields:
 
-- `action`: the name of the action that the entry records, which is an action of the transition table of the method profile (Section 23.4 or Section 8.3) or `migrate` (Section 25.3);
+- `action`: the name of the operation that the entry records, which is `new`, `approve`, `ask`, `answer`, `adopt`, or `migrate` (Section 25.3), or an action of the transition table of the method profile of the change (Section 23.4 or Section 8.3). The set of names is closed, and an entry with another name is not valid;
 - `actor`: the identity of the participant that performed the action (Section 24.3);
 - `assurance`: the verified assurance level of the claim of the actor, which is `A0`, `A1`, or `A2` (Section 24.3);
 - `at`: the instant at which the entry was written, as a string in UTC that is written `YYYY-MM-DDThh:mm:ssZ`;
@@ -4180,7 +4188,7 @@ The `body` of an entry holds exactly these fields:
 - `note`: the text that the actor gave, or `null`;
 - `after`: the record of the state of the change after the action.
 
-A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. See AE-189, AE-281.
+A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. The first entry of a `full` change is `new`, the entry of an approval is `approve`, and an entry with a name outside the closed set of `action` is not valid. See AE-189, AE-281, AE-285.
 
 The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
 
@@ -4190,9 +4198,10 @@ The `after` record holds the whole state of the change after the action, and not
 - `wait`: the wait record (Section 23.5), or `null`;
 - `base_revision`: the base revision (Section 24.5), or `null` before it is recorded;
 - `replaced_by`: the identifier given to `supersede`, or `null`;
+- `reason`: `null` unless the outcome is `failed`; when the `fail` action ended the change, the reason text that the actor gave; when a hard fail condition ended the change, a text that names each failing gate and the detail that the evaluation recorded for it, such as the paths outside the scope (Section 24.5);
 - `schema_version`: the version of the schema of the document after the action (Section 25.3).
 
-In `full`, the `after` record holds `phase` and `status` (Section 8.1) in place of `state` and `outcome`. Its field `wait` holds the wait content of Section 11.2 and the other metadata of Section 8.1, or `null`, and its other fields are those of `core`. See AE-190.
+In `full`, the `after` record holds `phase` and `status` (Section 8.1) in place of `state` and `outcome`. Its field `wait` holds the wait content of Section 11.2 and the other metadata of Section 8.1, or `null`, its field `reason` is `null` unless the status is `failed`, and its other fields are those of `core`. See AE-190, AE-284.
 
 The file is a JSON text in UTF-8. Its layout, that is, indentation and line breaks, is free, and a writer SHOULD pretty-print it so that a human can read it. The file is not the hashed form: a hash is computed over the canonical form defined below and never over the text of the file, so the layout has no effect on a hash. A JSON object that holds the same key twice is not a valid state document. See AE-188.
 
@@ -4211,9 +4220,9 @@ Strings are compared as sequences of Unicode code points: the first code point a
 
 A hash is written as a hash string: the prefix `sha256:` followed by the 64 lowercase hexadecimal digits of the SHA-256 digest of some bytes. The hash string of a value is the hash string of its canonical bytes. The hash of an entry is the hash string of the object that holds `prev` and `body` (Section 24.4), and the `prev` of the first entry is the prefix `sha256:` followed by 64 digits 0. A hash string is compared as a string, so that a hash written with an uppercase digit differs from the same hash written with lowercase digits. See AE-184, AE-196.
 
-An implementation MUST write the state document with an atomic replacement. It writes the whole new document to a temporary file in the same directory, flushes it to storage when the system allows, and then replaces the state document with the temporary file in a single step of the file system. Until that step, the state document is the previous one. An interruption at any moment, such as a crash, a power loss, or a failed write, therefore leaves the previous state document intact, and a temporary file that is left behind is not state: an implementation MUST ignore it and MAY remove it. When the file system cannot replace a file in a single step, the implementation MUST NOT write, and its result is `error`. The creation of the first state document of a change is a replacement in the same way: an interrupted creation leaves no state document. See AE-193, AE-194.
+An implementation MUST write the state document with an atomic replacement. It writes the whole new document to the temporary file `state.json.tmp` in the change directory, flushes it to storage when the system allows, and then replaces the state document with the temporary file in a single step of the file system. Until that step, the state document is the previous one. An interruption at any moment, such as a crash, a power loss, or a failed write, therefore leaves the previous state document intact, and a file `state.json.tmp` that is left behind is not state: an implementation MUST ignore it and MAY remove it. The scope measurement does not count it (Section 24.5). When the file system cannot replace a file in a single step, the implementation MUST NOT write, and its result is `error`. The creation of the first state document of a change is a replacement in the same way: an interrupted creation leaves no state document. See AE-193, AE-194.
 
-An implementation MUST also protect a write against a second writer. The writer names the version it read, which is the number of entries of the state document at that time, and zero for a change that has no state document yet. It takes an exclusive lock on the state document of the change, or, when the change has none yet, on the place where the document will be created, and keeps the lock until its replacement has finished. Under the lock it compares the number of entries that the document holds now with the version it read. When the two differ, the operation MUST write nothing and its result MUST be `error` with the stable issue code `state-conflict`, whose message states that another writer changed the change and that the operation can be repeated after reading it again. A writer that cannot take the lock MUST NOT write, and its result is `error`. This applies to the creation of a change and to every operation that records an evaluation, in `core` and in `full`. See AE-191, AE-192.
+An implementation MUST also protect a write against a second writer. The writer names the version it read, which is the number of entries of the state document at that time, and zero for a change that has no state document yet. It takes an exclusive lock on the lock object `state.json.lock` in the change directory, before it compares and also when the change has no state document yet, and keeps the lock across the comparison and the replacement until the replacement has finished. The lock is one that the system releases when the process that holds it ends, so that a file `state.json.lock` that exists is not by itself a held lock and does not stop a writer. A file `state.json.lock` that is left behind is not state: an implementation MUST ignore it and MAY remove it when no process holds the lock. The scope measurement does not count it (Section 24.5). Under the lock it compares the number of entries that the document holds now with the version it read. When the two differ, the operation MUST write nothing and its result MUST be `error` with the stable issue code `state-conflict`, whose message states that another writer changed the change and that the operation can be repeated after reading it again. A writer that cannot take the lock MUST NOT write, and its result is `error`. This applies to the creation of a change and to every operation that appends an entry, which are all the actions of the transition table of the method profile that record an entry, and `approve`, `ask`, `answer`, `adopt`, and `migrate`, in `core` and in `full`. See AE-191, AE-192, AE-283.
 
 **AE-183 — The canonical form sorts the keys, drops whitespace, and keeps non-ASCII characters**
 
@@ -4303,6 +4312,30 @@ Given an `active` `core` change and a `full` change in the build phase with the 
 When both writers request the action that completes the change (`close` or `complete`) and the first writer records its evaluation as entry 7  
 Then the second writer writes nothing, its result is `error` with the issue code `state-conflict`, and the state document holds seven entries
 
+**AE-283 — The lock covers every operation that appends an entry, and a leftover lock file is not a held lock**
+
+- Covers: Section 25.1
+
+Given an `active` `core` change with a state document of six entries, a file `state.json.lock` that a process left behind when it ended, and two writers that both read the version 6  
+When both writers request the `ask` action and the first writer takes the lock and records its question as entry 7  
+Then the leftover file did not stop the first writer, the second writer writes nothing, its result is `error` with the issue code `state-conflict`, and the state document holds seven entries
+
+**AE-284 — The reason of a failed outcome is recorded in the after record**
+
+- Covers: Section 25.1
+
+Given an `active` `core` change whose `scope.allow` is `lib/**` and in which the file `docs/guide.md` changed, a second change that is `waiting` with a wait record of kind `fail-gate` and receives the `fail` action with the reason `retries exhausted`, and a third change that is `closed` with the outcome `done`  
+When the `after` record of the last entry of each change is read, the first one after a `close` action  
+Then the `reason` of the first change is a text that names the failing gate and the path `docs/guide.md`, the `reason` of the second change is `retries exhausted`, and the `reason` of the third change is `null`
+
+**AE-285 — The action of an entry is the name of an operation from a closed set**
+
+- Covers: Section 25.1
+
+Given a new `full` change that is created and then approved, and an entry whose `action` is `rewind`  
+When the entries are written and the entry with that name is validated  
+Then the first entry of the `full` change has the `action` `new`, the entry of the approval has the `action` `approve`, and the entry whose `action` is not in the closed set is not valid
+
 **AE-193 — An interrupted creation leaves no state document**
 
 - Covers: Section 25.1
@@ -4325,7 +4358,7 @@ Then each document is the previous one of six entries, it is consistent, and no 
 
 Given a `full` change of Class S whose record is kept inline in an issue, in a project that persists no workflow state  
 When the implementation reports which protections are enforced for it  
-Then the report does not list Sections 24.1, 24.3, 24.4, and 24.8 as enforced, because the change has no state document
+Then the report does not list Sections 24.1 to 24.5, 24.7, and 24.8 as enforced, because the change has no state document
 
 **AE-196 — A hash is compared as a string**
 
