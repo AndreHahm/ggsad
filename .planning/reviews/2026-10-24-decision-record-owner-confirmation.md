@@ -6,8 +6,8 @@
 | Reviewed blob | `b4cc0844374dca8a5fe5ce70711937b1e6746bc3` |
 | Reviewed SHA-256 | `2b26dd3553d6daf5868335bdb3690773de398c76e9e9a4737c904fb7380520e9` |
 | Check results | `RESULT: PASS` (ten checks E1, E2, H1, F1, F2, D1, S1, X1, X2, G1 pass in stage proposed) |
-| Owner reply | `pending` |
-| Confirmed on | `pending` |
+| Owner reply | Given through the interactive question tool. Question: "Do you confirm all eleven record entries exactly as committed (blob b4cc0844…, Proposed wording), including the O-4 departure text?" Answer: "Confirm all eleven". Question: "Which date is your confirmation date?" Answer: "2026-10-24". The owner requested no changes and added no rationale. |
+| Confirmed on | `2026-10-24` |
 
 The blob id is the git object id of the record as committed; the SHA-256 is that blob's content
 hashed. Neither changes when the branch is rebased or rebase-merged, so both identify the text
