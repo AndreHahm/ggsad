@@ -171,6 +171,8 @@ Pair Review is OPTIONAL by default. Its use and required depth MUST be resolved 
 
 The Reviewer MUST NOT silently modify the Requestor's governed work product as part of the review. Findings MUST be returned to the Requestor for disposition. A separate explicitly assigned change action MAY authorize the Reviewer to become a Requestor for a later correction cycle.
 
+Where a rule of this specification requires a human participant, the claim of being a human is evidenced at an assurance level (Section 24.3).
+
 Pair Review MUST NOT replace a required human approval. Where segregation of duties applies, the project MAY require Requestor, Reviewer, and Approver to be three distinct participants.
 
 ## 4. Document Hierarchy
@@ -348,6 +350,8 @@ Regardless of the active compliance profile or the `lean` profile's self-approva
 - release approvals required by Ready-to-Release and Release-Done under Sections 9 and 10.
 
 Self-approval under the `lean` profile is permitted only for decisions outside this non-delegable set.
+
+A decision that a human makes is evidenced at an assurance level (Section 24.3). A claim at the level A0 is self-declared, and it does not by itself satisfy a decision that needs a verified human. The self-approval allowance of the `lean` compliance profile that is stated above is unchanged.
 
 ### 5.5 Phase Omission
 
@@ -1056,6 +1060,8 @@ Examples (illustrative, non-normative):
 - Requestor: AI Agent (any vendor or product, for example Claude Code); Reviewer: External Review Service
 
 Separate sessions of the same participant identity do not satisfy the independence rule unless the project explicitly defines and justifies them as independently controlled participants.
+
+Whether a participant is a human is a claim that is evidenced at an assurance level (Section 24.3).
 
 ### 14.3 Review Cycle
 
@@ -2581,6 +2587,149 @@ Then the approval is rejected, because a check-command gate without an exit map 
 Given an `open` `core` change with a wait gate whose condition cannot be evaluated  
 When the `start` action is requested  
 Then the action is rejected, the change remains `open`, and no wait record is created
+
+### 24.3 Assurance Levels and Signed Approval
+
+Every action on a change is performed under an identity that the participant claims. This section defines three assurance levels, which state how well a claim was checked; the statement that a signed approval signs; the actions that only a human may perform; and the limit of what any level proves.
+
+There are three assurance levels. In order from the lowest to the highest they are `A0`, `A1`, and `A2`, and these exact strings are their names:
+
+- `A0`, self-declared: no check of the claim exists. Every claim is worth exactly A0 unless a verifier establishes a higher level;
+- `A1`, platform review: the latest review by the platform account that the project configuration maps to the claimed identity is an approval of the revision that is checked out, and none of the files that are approved has an uncommitted change. The review is recorded by the platform that hosts the project, on the review object of the change, for example a pull request;
+- `A2`, signature: the claim carries a valid signature over exactly the statement that the implementation builds for the action, made with a key that is listed for the claimed identity in a signers file. The signers file is kept outside the repository of the project, so that a participant who can change the repository cannot add a key for itself.
+
+The levels, their order, and the statement defined below are normative. The verifiers are not: an implementation MAY verify `A1`, `A2`, or both. An implementation that verifies neither treats every claim as A0. An implementation that verifies A2 MUST verify it over the statement defined below and over no other statement.
+
+Verification MUST fail closed. A claim whose level cannot be established is A0, whatever the reason: no verifier exists, the platform does not answer, the signers file cannot be read, the signature is not valid, the key is not listed for the identity, or the statement that was signed differs from the statement that the implementation builds. An action whose required level is higher than the verified level of its claim MUST be rejected, with `changed` false (Section 22.2). A claim that carries no signature and no review is not malformed: it is a claim at A0, and it is rejected only where the required level is higher. See AE-125, AE-127, AE-129, AE-130.
+
+The required level of an action is the higher of two minimums: the minimum that the gate states, when the action serves a gate (a sign-off gate, or the fail condition of an override), and the minimum that the project configuration sets for the kind of action. The kinds of action are the approval of the specification, the approval and the re-approval of gate definitions, the sign-off of a gate, an override, an answer, `cancel` and `supersede`, `fail`, and `adopt`. A minimum that is not stated is A0. This specification assigns no minimum to a compliance profile (Section 5.1): a compliance profile reaches a level only through a gate or through the project configuration. See AE-131, AE-132.
+
+These actions MUST be performed by a human: every approval, the sign-off of a gate, an override, an answer to a question whose owner is a human, `cancel`, `supersede`, `fail`, and `adopt`. The identity of a human is written with the prefix `human:`. An identity without that prefix is not a human, and an action that requires a human MUST be rejected when the identity that performs it does not carry the prefix. The prefix is part of the claim: at A0 it is self-declared, and at A1 or A2 it is as well verified as the claim is. See AE-128, AE-133.
+
+An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved. The approval of the specification is stale while the content hash of the current specification differs from the content hash that was approved, and the stale specification approval gate of Section 23.7 is active in that case. See AE-125, AE-126, AE-136.
+
+The statement of a signed approval is built by the implementation from the action that it is about to perform. A statement that the participant supplies is not accepted, so that what is signed cannot differ from what is verified. The statement is text in lines, each ended by a line feed, and the bytes that are signed are its UTF-8 encoding. It contains, in this order:
+
+1. a first line that holds the format identifier and the format version of the statement;
+2. the operation, which is the name of the action;
+3. the change, which is the identifier of the change;
+4. the version, which is the number of entries that the history of the change holds when the statement is built (Section 24.4), so that the statement names the position in the history at which the action will be recorded;
+5. the identity of the signer;
+6. the details of the action, one line for each detail field, in ascending order of the field names compared as Section 24 states. The details of an approval include its target and the content hash of the content that is approved.
+
+Each line after the first has the form `name: value`, and each value is encoded as JSON, in the way that Section 25.1 encodes a value, so that no value can contain a line feed and no value can inject a line of its own. A statement with a format identifier or a format version that the verifier does not support is not verified. The specification fixes that the format identifier and the format version are part of the statement, and it does not fix their spelling. An illustration, not normative:
+
+```text
+<format identifier> <format version>
+operation: "approve"
+change: "c-1"
+version: 4
+identity: "human:ada"
+content_hash: "sha256:<64 hexadecimal digits>"
+target: "spec"
+```
+
+A signature made for a statement is valid only for that statement. A signature made at another position of the history, for another change, for another operation, or over other content is not valid for the statement that the implementation builds now. See AE-129, AE-136.
+
+A private key that is not protected by a passphrase, or by an equivalent protection, lets every process and every participant that can read the key sign as its holder. An implementation that creates signatures SHOULD refuse such a key unless a human explicitly allows its use. The signers file lists public keys only, and a participant that can write the signers file can list its own key for any identity. See AE-134.
+
+No level proves that a human is present. An agent that is able to use a human's credentials can act as that human, and this holds at every level. At A0, any participant can write any identity. At A1, the platform sees the account and not the participant that operates it, so an agent that holds the login of the account can approve as the account holder; and a platform commonly does not let the author of a review object approve it, so A1 does not serve a participant who works alone. At A2, an agent that can read an unprotected private key, or that can use a key which a running process holds, can sign as the signer. The levels raise the cost of a false claim, and they do not exclude it. See AE-134, AE-135.
+
+**AE-125 — Reject an A0 claim where A2 is required**
+
+- Covers: Section 24.3
+
+Given an `open` `core` change in a project whose configuration sets the minimum level A2 for the approval of the specification  
+When a participant that claims the identity `human:ada` approves the target `spec` and carries no signature  
+Then the verified level is A0, which is below the required level A2, the approval is rejected with `changed` false, and no approval is recorded
+
+**AE-126 — Accept a valid signature at A2**
+
+- Covers: Section 24.3
+
+Given the same change and configuration, and a signers file outside the repository that lists a key for `human:ada`  
+When the approval of the target `spec` carries a valid signature by that key over the statement that the implementation builds  
+Then the approval is recorded with the verified level A2 and with the content hash of the specification that was approved
+
+**AE-127 — A forged signature fails closed**
+
+- Covers: Section 24.3
+
+Given the same change and configuration, and a signers file that lists a key for `human:ada`  
+When the approval of the target `spec` carries a signature made with a key that is not listed for `human:ada`  
+Then the claim is A0, the approval is rejected, and no approval is recorded
+
+**AE-128 — Reject a human-only action under an identity that is not marked as human**
+
+- Covers: Section 24.3
+
+Given an `active` `core` change  
+When the participant `agent:builder` performs the `cancel` action  
+Then the action is rejected, because the identity does not carry the prefix `human:`, and the change remains `active`
+
+**AE-129 — A signature replayed at another history position fails**
+
+- Covers: Section 24.3
+
+Given a signature that is valid for an approval of `spec` whose statement names the version 4, and a `core` change whose history now holds five entries, in a project whose configuration sets the minimum level A2  
+When the approval is presented again with that signature  
+Then the statement that the implementation builds names the version 5, the signature is not valid for it, the claim is A0, and the approval is rejected
+
+**AE-130 — An unsigned claim is A0, not malformed**
+
+- Covers: Section 24.3
+
+Given an `open` `core` change in a project whose configuration sets no minimum level for approvals  
+When the participant `human:ada` approves the target `spec` with no signature and no review  
+Then the approval is not rejected as malformed, and it is recorded with the verified level A0
+
+**AE-131 — The required level is the higher of the gate minimum and the configured minimum**
+
+- Covers: Section 24.3
+
+Given a `sign-off` done gate `legal-ok` that states the minimum level A1, and a project configuration that sets the minimum level A2 for the sign-off of gates  
+When `human:ada` signs off `legal-ok` with a claim at A1, and later with a claim at A2  
+Then the first sign-off is rejected, because the required level is A2, and the second sign-off is recorded
+
+**AE-132 — A compliance profile alone sets no minimum level**
+
+- Covers: Section 24.3
+
+Given a change whose compliance profile is `regulated`, whose gates state no minimum level, and whose project configuration sets none  
+When `human:ada` approves the target `spec` with a claim at A0  
+Then the approval is recorded, because the required level is A0
+
+**AE-133 — A1 requires that the approved files have no uncommitted change**
+
+- Covers: Section 24.3
+
+Given a project whose configuration sets the minimum level A1 for the approval of the specification, a platform account mapped to `human:ada` whose latest review approves the checked-out revision, and an uncommitted change in the specification of the change  
+When `human:ada` approves the target `spec`  
+Then the claim is A0, because an approved file has an uncommitted change, and the approval is rejected
+
+**AE-134 — An agent with a human's key can sign as that human**
+
+- Covers: Section 24.3
+
+Given a private key of `human:ada` without a passphrase that an AI agent can read, a signers file that lists the matching key for `human:ada`, and a configuration that sets the minimum level A2  
+When the AI agent signs an approval of the target `spec` as `human:ada`  
+Then the approval is valid and is recorded at A2, and this specification offers no detection of it, because an agent that is able to use a human's credentials can act as that human
+
+**AE-135 — A1 does not tell the account holder from an agent**
+
+- Covers: Section 24.3
+
+Given an AI agent that holds the login of the platform account mapped to `human:ada`, and a review by that account that approves the checked-out revision  
+When the agent claims the identity `human:ada` for an approval  
+Then the claim is verified at A1, and the verification does not show that the participant is not an agent
+
+**AE-136 — A signature over other content fails**
+
+- Covers: Section 24.3
+
+Given a signature by a listed key over the statement for an approval of `spec` that names the content hash of an earlier version of the specification, and a specification that was edited since  
+When the approval is presented with that signature  
+Then the statement that the implementation builds names the content hash of the current specification, the signature is not valid for it, and the claim is A0
 
 ### 24.6 Known-Failure Baselines
 
