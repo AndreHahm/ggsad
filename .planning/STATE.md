@@ -2,9 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: Executable Core
+current_phase: 1
+current_phase_name: milestone v1.1; phase numbering restarted at 1, so v1.0 Phases 1–8 are a different, archived set
 status: planning
-last_updated: "2026-10-24T11:34:57.704Z"
+stopped_at: Phase 1 context gathered
+last_updated: "2026-10-24T11:57:09.482Z"
 last_activity: 2026-10-24
+last_activity_desc: Roadmap created for milestone v1.1 (8 phases, 41/41 requirements mapped)
 progress:
   total_phases: 8
   completed_phases: 0
@@ -106,9 +110,9 @@ Items acknowledged at v1.0 milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-24
-Stopped at: Roadmap for milestone v1.1 created; Phase 1 (Decision Record) ready to plan
-Resume file: None
+Last session: 2026-10-24T11:57:09.456Z
+Stopped at: Phase 1 context gathered
+Resume file: .planning/phases/01-decision-record/01-CONTEXT.md
 
 ## Operator Next Steps
 
