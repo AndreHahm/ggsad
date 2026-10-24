@@ -3,6 +3,7 @@
 | Field | Value |
 |---|---|
 | Reviewed commit | `11c6e9602f88e226b9cc83d4075b50ed26f79c31` (parent `8754bd3e602ee381f68221b327ee982078cf85de`) |
+| Same change on `main` | `627a82a` (rebase-merged from `11c6e96`; identical tree `80f78127227245a77a5cc3c9b10be42a2a9e7579` and identical blob ids, so the review applies to it unchanged) |
 | Reviewed files | `AGENTS.md`, `.planning/PROJECT.md`, `docs/method/GG-SAD_normative_method_specification.md` (§14.2) |
 | Requestor | Claude Code |
 | Reviewer | Devin CLI 3000.4.25, model SWE-2 Medium, run headless in read-only (`auto`) permission mode |
