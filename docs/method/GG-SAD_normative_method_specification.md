@@ -643,7 +643,7 @@ The statuses `failed`, `cancelled`, and `superseded` are legal only with the `cl
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
-| `reopen` | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; wait when the new corrective scope's DoW determines a pause; fail when the new corrective scope's DoF determines failure. |
+| `reopen` (`full` only) | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; wait when the new corrective scope's DoW determines a pause; fail when the new corrective scope's DoF determines failure. |
 
 **Rejected and Blocked Results per Action (`full`)**
 
@@ -705,9 +705,17 @@ The comparison of the gate definitions with the approved ones (Section 24.1) doe
 
 A fail condition of the severity `hard` closes the change as failed without human action, and a fail condition of the severity `soft` waits for a human, who either closes the change with `fail` or records an override (Section 24.7).
 
-`reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history.
+In the `full` method profile, `reopen` moves a change from the `closed` phase back to the resume phase recorded at closure, or to an explicitly stated earlier phase, for corrective follow-up work. The action MUST record its reason and the new goal-bound scope in history. The method profile `core` has no `reopen` action (Section 23.4). See AE-217.
 
-Once a change is in the `closed` phase, no further phase advancement is legal except through `reopen`.
+In the `full` method profile, once a change is in the `closed` phase, no further phase advancement is legal except through `reopen`. A `closed` `core` change is final.
+
+**AE-217 — Reopen a closed `full` change**
+
+- Covers: Section 8.4
+
+Given a `full` change in the `closed` phase with the status `done`, whose resume phase recorded at closure is the build phase  
+When the `reopen` action is requested with a reason and a new goal-bound scope, and the Definition of Ready of the build phase is satisfied  
+Then the change is in the build phase with the status `active`, and the reason and the new scope are recorded in the history
 
 ### 8.5 Evaluation Priority
 
@@ -1927,6 +1935,8 @@ The actions `check`, `review`, and `guard` are read-only. They report on a chang
 
 The method profile `core` has no `reopen` action. A change in the state `closed` is final, and follow-up work is a new change that names the closed change in `follows` (Section 23.1). See AE-48.
 
+A `follows` field is a reference and not a state transition: it never changes the state or the outcome of the change that it names, so that no `core` change leaves the state `closed`. A new change whose `follows` names a change that has not ended, because that change is `open`, `active`, or `waiting`, or that names a change that does not exist, is rejected, and nothing is written. See AE-11, AE-12, AE-215, AE-216.
+
 **Rejected and Blocked Results per Action (`core`)**
 
 | Action | Answers `rejected` (nothing is written, `changed` is `false`) | Answers `blocked` (the evaluation is recorded, `changed` is `true`) |
@@ -2217,6 +2227,22 @@ Then the action is rejected, and the existing anchor is not replaced
 Given a `core` change that is `closed` with the outcome `done`  
 When a `reopen` action is requested for it  
 Then the request is rejected, because `core` has no `reopen` action, and follow-up work is a new change that names this change in `follows`
+
+**AE-215 — Following a closed change leaves it closed**
+
+- Covers: Section 23.4
+
+Given a `core` change A that is `closed` with the outcome `cancelled`  
+When a new change B names A in `follows`, and B is started and closed  
+Then A keeps its state `closed` and its outcome `cancelled`, and no entry is added to the history of A by the creation or by the later actions of B
+
+**AE-216 — Following a change that is waiting or does not exist is rejected**
+
+- Covers: Section 23.4
+
+Given a `core` change A in the state `waiting`, and no change with the identifier `c-9`  
+When a new change B names A in `follows`, and another new change names `c-9` in `follows`  
+Then both creations are rejected, nothing is written, and no change B exists
 
 **AE-49 — A read-only action changes nothing**
 
