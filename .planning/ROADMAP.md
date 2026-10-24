@@ -124,7 +124,7 @@ Plans:
   8. The diff specifies state as JSON (`state.json`) with a canonical hashing form, the six-layer profile resolution order with `core` implementing four layers, `reopen` for `full` only, and `schema_version` with explicit recorded migration (SPEC-15, SPEC-16, SPEC-17, SPEC-18)
   9. No file under `src/ggsad/` is modified as part of producing this diff (SPEC-13)
 
-**Plans**: 5/5 plans executed
+**Plans**: 5/8 plans executed
 
 Plans:
 **Wave 1**
@@ -146,6 +146,18 @@ Plans:
 **Wave 5** *(blocked on Wave 4 completion)*
 
 - [x] 02-05-PLAN.md — Six-layer resolution, `full` revision with an example per rule unit, header Version 1.4, final checks, drafting-choices register and diff identity record (SPEC-16, SPEC-14)
+
+**Wave 6** *(gap closure from the advisory review 02-REVIEW.md; blocked on Wave 5 completion)*
+
+- [ ] 02-06-PLAN.md — Review fixes, part 1: applicability of shared sections to `core`, the `core` gate model, actions and wait records, evaluation order and results; checks R9 and J1 (CR-01, WR-01 to WR-11, WR-13)
+
+**Wave 7** *(blocked on Wave 6 completion)*
+
+- [ ] 02-07-PLAN.md — Review fixes, part 2: state document write protection and body fields, evidence commands in the `full` frozen set, schema version check order, contract operations, change identifiers, recorded required level (CR-02, CR-03, WR-12, WR-14 to WR-17, WR-22 to WR-24, WR-27)
+
+**Wave 8** *(blocked on Wave 7 completion)*
+
+- [ ] 02-08-PLAN.md — Review fixes, part 3: resolution layers, compliance profile, approval by a human, open questions, allowed path list; header revision line, register with the disposition of all 44 findings, diff identity record (WR-18 to WR-21, WR-25, WR-26)
 
 #### Phase 3: Owner Approval
 
