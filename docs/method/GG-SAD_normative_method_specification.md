@@ -1040,6 +1040,8 @@ At minimum:
 - enough context exists to classify or route the work,
 - no active DoF condition requires immediate failure handling.
 
+See AE-260.
+
 ### 9.2 Ready-to-Explore
 
 At minimum:
@@ -1049,6 +1051,8 @@ At minimum:
 - exploration boundaries and relevant constraints are known,
 - an owner for the exploration is identified.
 
+See AE-261.
+
 ### 9.3 Ready-to-Decide
 
 At minimum:
@@ -1057,6 +1061,8 @@ At minimum:
 - relevant exploration evidence and viable options are available,
 - material tradeoffs, risks, and constraints are visible,
 - the authorized decision owner is identified.
+
+See AE-262.
 
 ### 9.4 Ready-to-Spec
 
@@ -1071,6 +1077,8 @@ At minimum:
 
 A question about the goal or the problem that is still open is recorded as an open question of the change (Section 24.8).
 
+See AE-263.
+
 ### 9.5 Ready-to-Plan
 
 At minimum:
@@ -1080,6 +1088,8 @@ At minimum:
 - relevant architecture and ADR constraints have been reviewed,
 - all open questions have been answered (Section 24.8),
 - no unresolved contradictions exist.
+
+See AE-264.
 
 ### 9.6 Ready-to-Build
 
@@ -1092,6 +1102,8 @@ At minimum:
 - test and verification criteria are defined,
 - no blocking decision is pending.
 
+See AE-265.
+
 ### 9.7 Ready-to-Verify
 
 At minimum:
@@ -1100,6 +1112,8 @@ At minimum:
 - relevant tests exist,
 - build and analysis tools are available,
 - known deviations are documented.
+
+See AE-266.
 
 ### 9.8 Ready-to-Release
 
@@ -1110,6 +1124,8 @@ At minimum:
 - migration and rollback are clarified,
 - known limitations are documented,
 - required approvals are available.
+
+See AE-267.
 
 ---
 
@@ -1131,6 +1147,16 @@ At minimum:
 A rejected, duplicate, or out-of-scope disposition ends the change through the `cancel` action
 defined in Section 8.3, rather than satisfying this Definition of Done for forward advancement.
 
+See AE-260.
+
+**AE-260 — Intake is ready and done, and a duplicate ends by cancellation**
+
+- Covers: Sections 9.1 and 10.1
+
+Given a request that is captured with an identifiable requestor and enough context to route it, and a second request that is recorded as a duplicate of an existing change  
+When the Definition of Ready and the Definition of Done of the intake phase are evaluated for each request  
+Then the first request satisfies both, and its next phase and responsible owner are identified, and the duplicate is dispositioned through the `cancel` action and does not satisfy the Definition of Done for forward advancement
+
 ### 10.2 Explore-Done
 
 At minimum:
@@ -1140,6 +1166,16 @@ At minimum:
 - viable options or a justified conclusion are available for decision,
 - no production implementation has begun merely because exploration completed.
 
+See AE-261.
+
+**AE-261 — Exploration stays within its boundaries**
+
+- Covers: Sections 9.2 and 10.2
+
+Given an exploration whose question, expected learning outcome, boundaries, and owner are stated, and a second exploration during which production code was already written  
+When the Definition of Ready and the Definition of Done of the explore phase are evaluated for each exploration  
+Then the first exploration is ready and, once its observations and options are recorded, done, and the second does not satisfy the Definition of Done, because production implementation has begun
+
 ### 10.3 Decide-Done
 
 At minimum:
@@ -1148,6 +1184,16 @@ At minimum:
 - the decision rationale and material tradeoffs are documented,
 - consequences, constraints, and required follow-up are identified,
 - any resulting specification work has an explicit goal-bound handoff.
+
+See AE-262.
+
+**AE-262 — A decision is recorded by its authorized owner**
+
+- Covers: Sections 9.3 and 10.3
+
+Given a decision whose statement, options, tradeoffs, and authorized decision owner are known, and a second decision whose selected option was recorded by a participant who is not the authorized decision owner  
+When the Definition of Ready and the Definition of Done of the decide phase are evaluated for each decision  
+Then the first decision is ready and, once the owner records the option, the rationale, and the consequences, done, and the second does not satisfy the Definition of Done, because the authorized decision owner has not recorded the selected option
 
 ### 10.4 Spec-Done
 
@@ -1162,6 +1208,16 @@ At minimum:
 - ADR conflicts are resolved or returned to the requestor,
 - the specification is approved.
 
+See AE-263.
+
+**AE-263 — A specification is done only with its questions answered and approved**
+
+- Covers: Sections 9.4 and 10.4
+
+Given a specification whose goal, benefit, requestor, and constraints are known and that conflicts with no rule of the constitution, and a second specification with one unanswered question  
+When the Definition of Ready and the Definition of Done of the specify phase are evaluated for each specification  
+Then the first specification is ready, and the second is ready as well but does not satisfy the Definition of Done, because every open question has to be answered (Section 24.8) and the specification has to be approved
+
 ### 10.5 Plan-Done
 
 At minimum:
@@ -1173,6 +1229,16 @@ At minimum:
 - migration and rollback needs are clarified,
 - risks and decisions are documented,
 - implementation is decomposed appropriately.
+
+See AE-264.
+
+**AE-264 — Planning needs answered questions and a test strategy**
+
+- Covers: Sections 9.5 and 10.5
+
+Given a specification with defined goal, scope, and non-goals whose open questions are all answered, a second specification with one unanswered question, and a plan that describes no test strategy  
+When the Definition of Ready of the plan phase is evaluated for the two specifications, and the Definition of Done of the plan phase is evaluated for the plan  
+Then the first specification is ready, the second is not ready, because a question is unanswered, and the plan does not satisfy the Definition of Done, because the test strategy is not defined
 
 ### 10.6 Build-Done
 
@@ -1186,6 +1252,16 @@ At minimum:
 - deviations from the specification are explained and approved.
 
 Whether unintended scope has been introduced is measured as Section 24.5 states.
+
+See AE-265.
+
+**AE-265 — A build is done only within its scope**
+
+- Covers: Sections 9.6 and 10.6
+
+Given an approved specification with a clear technical approach, assessed risks, available dependencies, and defined test criteria, and a build in which a path outside the allowed path list changed  
+When the Definition of Ready and the Definition of Done of the build phase are evaluated  
+Then the specification is ready to build, and the build does not satisfy the Definition of Done, because unintended scope has been introduced, which is a hard failure (Section 24.5)
 
 ### 10.7 Verify-Done
 
@@ -1202,6 +1278,16 @@ A verification gate MAY carry a baseline of known failures (Section 24.6).
 
 Evidence is complete as Section 24.9 defines it.
 
+See AE-266.
+
+**AE-266 — Verification needs complete executable evidence**
+
+- Covers: Sections 9.7 and 10.7
+
+Given an implementation that is testable, with existing tests and available build tools, and a verification in which one requirement has no evidence command  
+When the Definition of Ready and the Definition of Done of the verify phase are evaluated, and `complete` is requested  
+Then the implementation is ready to verify, and the verification does not satisfy the Definition of Done, because the evidence is not complete (Section 24.9), so that `complete` answers `blocked`
+
 ### 10.8 Release-Done
 
 At minimum:
@@ -1213,6 +1299,16 @@ At minimum:
 - rollback is possible or explicitly not required,
 - required release approval has been recorded by an authorized human decision owner,
 - roadmap and status are updated.
+
+See AE-267.
+
+**AE-267 — A release is done only with a human release approval**
+
+- Covers: Sections 9.8 and 10.8
+
+Given a release whose build and tests succeeded, whose migration and rollback are clarified, and whose approvals are available, and a second release whose approval was recorded by the identity `agent:releaser`  
+When the Definition of Ready and the Definition of Done of the release phase are evaluated for each release  
+Then the first release is ready, and the second does not satisfy the Definition of Done, because the required release approval has to be recorded by an authorized human decision owner (Sections 5.4 and 24.3)
 
 ---
 
@@ -1259,6 +1355,16 @@ Template:
 ```
 
 In the state document, `status` is a field of the `after` record of an entry, and the other fields of this content are the value of its field `wait` (Section 25.1).
+
+See AE-268.
+
+**AE-268 — Full: a wait state names a safe current state and a next action**
+
+- Covers: Section 11.2
+
+Given a `full` change with the status `active` and an active Definition of Wait condition, and a request to wait that gives a reason, the outstanding decision, the responsible person, and the resume condition, with the safe current state and the next action in one request and without them in the other  
+When the `wait` action is requested twice, once with and once without the safe current state and the next action  
+Then the request that gives all six items is recorded as a wait state, and the request that gives no safe current state and no next action is rejected with `changed` false, because every wait state of a `full` change includes them
 
 ### 11.3 AI Agent Behavior in a Wait State
 
@@ -1335,6 +1441,16 @@ A breaking change is required but has not been approved.
 ```
 
 Every fail rule also states its severity, `hard` or `soft` (Section 24.7).
+
+See AE-269.
+
+**AE-269 — Full: a fail rule names its final status**
+
+- Covers: Section 12.2
+
+Given a `full` fail rule that states a trigger, a required response, permitted preservation actions, the final status `FAILED_POLICY_VIOLATION`, the required documentation, and the severity `hard`, and a second fail rule that states no final status  
+When the two rules are validated, and the first rule becomes active on a `full` change  
+Then the first rule is valid, and its final status code `FAILED_POLICY_VIOLATION` is recorded when the change is closed as failed, and the second rule is invalid, because every fail rule of a `full` change includes a final status
 
 ---
 
