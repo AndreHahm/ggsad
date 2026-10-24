@@ -144,6 +144,8 @@ In combination mode:
 - external workflows MUST NOT bypass GG-SAD gates or weaken the active compliance profile;
 - conflicts MUST be resolved according to the GG-SAD document hierarchy.
 
+An integration mapping for an external framework or tool is the sixth layer of the resolution in Section 5.3, and it MUST NOT weaken a higher layer.
+
 ---
 
 ### 3.9 Example-Driven Specification
@@ -266,6 +268,8 @@ The roadmap is not a sprint or epic backlog.
 
 Contains the project-wide standard gates. Local specifications MAY strengthen these rules, but MUST NOT weaken them without an approved exception.
 
+The approved exception exists only for the local specification of a `full` change that departs from a project-wide definition under `docs/definitions/`. A human MUST approve it at the assurance level that Section 24.3 sets for the approval of gate definitions, it applies to that change only, and it is recorded in the Deviations of the evidence of the change (Section 16.4). It is a recorded decision of a human and not a weakening by a lower layer in the sense of Section 5.3, and it never reaches the invariant core, the protections of Section 24, or the base gates of Section 23.7. A `core` change has no such exception. See AE-227, AE-228.
+
 #### `docs/adr/`
 
 Contains durable architecture decisions. Existing accepted ADRs take precedence over new requirements and plans.
@@ -344,18 +348,118 @@ A compliance profile MAY tailor:
 
 A compliance profile of lower compliance MAY reduce optional controls. It MUST NOT disable the invariant core defined in Section 3.7.
 
+A compliance profile is resolved together with the method profile as the second layer of Section 5.3, and a lower layer MUST NOT weaken it.
+
 ### 5.3 Profile Resolution
 
 The effective workflow MUST be resolved in this order:
 
 1. GG-SAD invariant core,
-2. selected compliance profile,
+2. selected method profile and compliance profile, resolved together,
 3. project-specific configuration,
 4. change-class requirements,
 5. local strengthening in the change specification,
 6. integration mappings for external frameworks and tools.
 
-A lower layer MUST NOT silently weaken a higher layer.
+A lower layer MUST NOT weaken a higher layer.
+
+Layer 2 is one layer that holds two things. The method profile (Section 5.6) and the compliance profile (Section 5.1) of a change are resolved together, and neither ranks above the other. The number of layers is six, and no layer is added.
+
+A lower layer weakens a higher layer when it does any of these things to a gate that the higher layer defines: it removes the gate, that is, it states that the gate does not apply or it leaves the gate out of a definition that replaces the gates of the higher layer; it alters the condition of the gate, including its kind and every other declaration that Section 24.1 fixes; it lowers its severity (Section 24.7); or it lowers the assurance level that the gate or the action requires (Section 24.3). A lower layer strengthens a higher layer when it adds a gate with an identifier of its own, or when the project configuration raises a required assurance level. Strengthening is permitted at every layer. A lower layer MUST NOT strengthen by redefining a gate of a higher layer: it adds a gate of its own instead. The result of the resolution MUST NOT depend on the order in which layers or their entries are listed, and an entry that is listed later never overrides an entry of a higher layer. See AE-218, AE-219, AE-220, AE-222, AE-224.
+
+The required assurance level of an action is the higher of the levels that the layers state (Section 24.3). A lower layer that states a lower level than a higher layer requires for the same kind of action therefore does not lower it: the statement is accepted and has no effect. See AE-221.
+
+A `core` change implements layers 1, 2, 3, and 5. Layer 1 is the invariant core of Section 3.7 with the protections of Section 24. Layer 2 supplies the base gates of Section 23.7 together with the rules of the compliance profile. Layer 3 is the project configuration, for example the minimum assurance levels of Section 24.3. Layer 5 is the gates and the scope of the change definition (Section 23.1). Layers 4 and 6 are not applicable to a `core` change: the change-class requirements of layer 4 are the size classes of Section 6, which a `core` change does not have, and the integration mappings of layer 6 are not part of the resolution of a `core` change. Both layers are specified for the `full` method profile and for combination use (Sections 3.8 and 17), and in both the rule that a lower layer MUST NOT weaken a higher layer applies. The layers are never renumbered. See AE-226.
+
+An implementation MUST check that a change does not weaken a higher layer when the change is created, and again before the gate definitions of the change are approved (Section 24.1), because a definition can be edited after the change is created. For a `core` change the check compares the change definition with the base gates of Section 23.7. A change definition that states that a base gate does not apply, or that lists a gate with the identifier of a base gate, redefines that base gate. It MUST be rejected with the result `rejected` and `changed` false (Section 22.2), and nothing is written. The stable issue code is `gate-weakened` when the definition states that the base gate does not apply, or when the listed gate differs from the base gate in its kind, its condition, or its severity. The message names the gate and the manner of the weakening: removed, altered, or severity lowered. A listed gate that does not differ from the base gate is rejected as a duplicate identifier (Section 23.3). For a `full` change the check compares the Flow Gates of the change specification with the project-wide definitions (Section 4.2), and an entry that removes or relaxes a condition of a project-wide definition is a weakening unless the approved exception of Section 4.2 covers it. See AE-219, AE-220, AE-222, AE-223, AE-225, AE-227, AE-228.
+
+**AE-218 — Project configuration tightens and the change adds a gate**
+
+- Covers: Section 5.3
+
+Given a project configuration that sets the minimum level A2 for the sign-off of gates, and a `core` change definition that adds the done gate `release-ok` of the kind `sign-off`  
+When the change is created  
+Then the change is created, the four base gates and `release-ok` all apply, and the sign-off of `release-ok` needs a claim at A2
+
+**AE-219 — Reject a definition that removes a base gate**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that states that the base gate `incomplete-evidence` does not apply to the change  
+When the `new` action receives it  
+Then the definition is rejected with the issue code `gate-weakened`, the message names `incomplete-evidence` as removed, `changed` is false, and no change is created
+
+**AE-220 — Reject a base gate whose severity is lowered from hard to soft**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that lists a fail gate with the identifier `scope-violation` and the severity `soft`  
+When the `new` action receives it  
+Then the definition is rejected with the issue code `gate-weakened`, the message names `scope-violation` with its severity lowered, and no change is created
+
+**AE-221 — A lower level in a lower layer does not lower the required level**
+
+- Covers: Section 5.3
+
+Given a project configuration that sets the minimum level A2 for the sign-off of gates, and a `core` change definition whose `sign-off` done gate `legal-ok` states the minimum level A1  
+When `human:ada` signs off `legal-ok` with a claim at A1  
+Then the sign-off is rejected, because the required level remains A2, and the change definition itself was accepted, because the lower statement has no effect
+
+**AE-222 — Reject the identifier of a base gate with a changed condition**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that lists a wait gate with the identifier `stale-spec-approval` whose condition is active only before the first `start`  
+When the `new` action receives it  
+Then the definition is rejected with the issue code `gate-weakened`, the message names `stale-spec-approval` as altered, and no change is created
+
+**AE-223 — A restatement that does not differ is a duplicate identifier**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that lists a wait gate with the identifier `unanswered-question`, the same kind, the same condition, and no difference from the base gate  
+When the `new` action receives it  
+Then the definition is rejected as a duplicate identifier (Section 23.3), and the issue code is not `gate-weakened`, because nothing is weakened
+
+**AE-224 — A strengthening does not offset a later weakening**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that lists the done gate `review-ok` first and, listed after it, a fail gate `scope-violation` with the severity `soft`  
+When the `new` action receives it  
+Then the whole definition is rejected with the issue code `gate-weakened`, because an entry listed later does not override a higher layer and an added gate does not make up for a weakened one, and no change is created
+
+**AE-225 — Check again before the gate definitions are approved**
+
+- Covers: Section 5.3
+
+Given a `core` change created from a valid definition, and `change.yaml` edited afterwards so that it lists a fail gate `scope-violation` with the severity `soft`  
+When `human:ada` approves the target `gates`  
+Then the approval is rejected with the issue code `gate-weakened`, `changed` is false, and no approval is recorded
+
+**AE-226 — A `core` change resolves four of the six layers**
+
+- Covers: Section 5.3
+
+Given a `core` change with the compliance profile `standard`, in a project whose configuration sets the minimum level A1 for answers, and whose change definition adds its own gates  
+When the effective workflow of the change is resolved  
+Then layer 1 (the invariant core), layer 2 (the base gates and the compliance profile together), layer 3 (the project configuration), and layer 5 (the gates of the change definition) contribute, layers 4 and 6 are not applicable, and the six layers keep their numbers
+
+**AE-227 — The approved exception applies to one `full` change only**
+
+- Covers: Section 5.3
+
+Given a project-wide definition of done under `docs/definitions/` with a regression-test criterion, and a `full` change whose local specification states that this criterion does not apply, together with an exception approved by `human:ada` at the level that the approval of gate definitions requires  
+When the change is checked before approval, and a second `full` change without an exception is checked as well  
+Then the first change is accepted without the criterion and the exception is recorded, and the second change is rejected as weakening the project-wide definition
+
+**AE-228 — The exception never reaches a base gate**
+
+- Covers: Section 5.3
+
+Given a `core` change definition that states that the base gate `incomplete-evidence` does not apply, together with a record of an exception approved by `human:ada`  
+When the `new` action receives it  
+Then the definition is rejected with the issue code `gate-weakened`, because a `core` change has no exception and a base gate is never covered by one
 
 ### 5.4 Non-Delegable Human Approval
 
@@ -1929,7 +2033,7 @@ A `core` change changes state only through the actions of the table below. An ac
 | `supersede` | Any state except `closed` | The preconditions of `cancel` hold, and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
 
-The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant, An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
+The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
 
 The actions `check`, `review`, and `guard` are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table. See AE-49.
 
@@ -2355,6 +2459,8 @@ Every `core` change has four base gates in addition to the gates in its change d
 - the incomplete evidence gate, a done gate, which is not satisfied until the evidence of every requirement is complete (Section 24.9).
 
 The base gates belong to the `core` method profile. They apply to every `core` change without being listed in its change definition, they MUST NOT be removed, and a lower layer of Section 5.3 MUST NOT weaken or alter them. See AE-56, AE-57, AE-58.
+
+The base gates have the identifiers `scope-violation`, `unanswered-question`, `stale-spec-approval`, and `incomplete-evidence`. A change definition that redefines one of them, or that states that one does not apply, is rejected as Section 5.3 states, at the creation of the change and again before the approval of its gate definitions. See AE-219, AE-225.
 
 **AE-56 — The scope violation gate applies without being listed**
 
