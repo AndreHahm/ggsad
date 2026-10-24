@@ -58,6 +58,7 @@ A GG-SAD implementation MAY be developed using another development method. That 
 | 21. Quick Reference | Method Semantics |
 | 22. Minimal Automation Contract | Reference-Implementation Requirements |
 | 23. The `core` Profile | Method Semantics |
+| 24. Protections Shared by Both Profiles | Method Semantics |
 
 ---
 
@@ -642,6 +643,8 @@ A satisfied DoD does not override a satisfied DoF or DoW.
 
 This order defines evaluation precedence. A gate that is not applicable to the requested action or current state is skipped and, when gate evidence is recorded, MUST be recorded as `not_applicable`. Evaluation MUST stop as soon as a gate determines the requested action's outcome.
 
+A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order.
+
 ---
 
 ## 9. Definition of Ready
@@ -840,6 +843,8 @@ DoW describes conditions under which the flow MUST pause in a controlled manner 
 - `WAIT_APPROVAL`
 - `WAIT_EXTERNAL_SYSTEM`
 
+`WAIT_EXTERNAL_SYSTEM` is the category of the wait that a gate causes when it cannot be evaluated (Section 24.2).
+
 ### 11.2 Mandatory Content of a Wait State
 
 Every wait state MUST include:
@@ -891,6 +896,8 @@ DoF describes conditions under which the flow MUST terminate unsuccessfully.
 - exceeding hard budget, cost, or retry limits,
 - unrecoverable build or migration state,
 - permanently unsatisfiable acceptance conditions.
+
+A gate that cannot be evaluated is not a failure and does not count toward a retry limit (Section 24.2).
 
 ### 12.2 Mandatory Content of a Fail Rule
 
@@ -1269,11 +1276,14 @@ Then <result>
 - DoW triggered: No
 - DoD satisfied: Yes | No
 - Next DoR satisfied: Yes | No | Not applicable
+- Gates that could not be evaluated: None | <gate and cause>
 
 ## Final Status
 
 <status>
 ```
+
+A gate that could not be evaluated is not recorded as Yes or No in the Final Gate Evaluation. It is listed by name with its cause (Section 24.2).
 
 ### 16.5 `project-brief.md`
 
@@ -1439,6 +1449,8 @@ An AI agent MUST use the following process for every active phase:
 11. On conflict, uncertainty, or missing approval, enter a controlled wait state.
 12. Before completion, perform a final drift and evidence check.
 ```
+
+In steps 3 to 5, a gate that cannot be evaluated is neither failed nor satisfied: the change waits, as Section 24.2 states.
 
 ### 19.1 Agent Prohibitions
 
@@ -2092,3 +2104,186 @@ Then the change does not close, because the stale specification approval gate is
 Given an `active` change with a requirement that has no evidence command  
 When the `close` action is requested  
 Then the change does not close, because the incomplete evidence gate is not satisfied
+
+---
+
+## 24. Protections Shared by Both Profiles
+
+This section specifies protections that apply to both method profiles (Section 5.6). Every protection in Sections 24.1 to 24.10 applies to a `core` change and to a `full` change. Each rule is written once in this section, and the other sections point to it.
+
+The protections use terms that name different artifacts in the two method profiles:
+
+| Term in This Section | In `core` | In `full` |
+|---|---|---|
+| Change definition | `change.yaml` (Section 23.1) | The change specification, including its Flow Gates (Section 16.1) |
+| History | `state.json` (Section 25.1) | The state file, or the inline record where no state file is persisted (Section 4.3) |
+| Base revision | The revision recorded when the `start` action succeeds (Section 23.4) | The revision recorded when the change starts (Section 24.5) |
+| Human | A participant that is a human person (Section 24.3) | A participant that is a human person (Sections 5.4 and 24.3) |
+
+Identifiers, path patterns, paths, and text values are compared as sequences of Unicode code points, without normalization (Section 25.1). Result names are exact lowercase strings. A rule of this section that compares values compares them in this way unless the rule states otherwise. See AE-60.
+
+**AE-60 — Compare identifiers as code point sequences**
+
+- Covers: Section 24
+
+Given a change definition with two gate identifiers that look the same, the first written `café` with the single code point U+00E9 and the second written `cafe` followed by the code point U+0301  
+When the change definition is validated  
+Then the two identifiers are different, because values are compared as sequences of code points without normalization, and the definition is not rejected for a duplicate identifier
+
+### 24.2 Three-Valued Gate Results
+
+Every evaluation of a gate ends in exactly one of three results:
+
+- `satisfied`: the evaluation established that the condition of the gate holds;
+- `not_satisfied`: the evaluation established that the condition of the gate does not hold;
+- `not_evaluable`: the evaluation could not establish either, because the gate could not be evaluated.
+
+A done gate is met when its result is `satisfied`. A fail gate and a wait gate are active when their result is `satisfied`, that is, when the condition they describe holds. Every result is recorded in the history together with the gate it belongs to. A name in another letter case, or any other name, is not a result and MUST be rejected. See AE-61.
+
+A gate cannot be evaluated when any of these holds:
+
+- the command of the gate cannot start, for example because its program is missing;
+- the command exceeds the time limit that the gate declares and is stopped;
+- the command ends without an exit status, or with an exit status that the exit map of the gate does not map;
+- the command reports that a module, tool, or dependency it needs is missing, either through an exit status that the exit map maps to `not_evaluable` or through output that the gate declares for that purpose;
+- version control is unavailable to a gate that needs it;
+- the gate needs the base revision and the change has started without one (Section 24.5);
+- any other exception occurs during the evaluation.
+
+A gate that is `not_evaluable` is not a failure. Its result MUST NOT be recorded as `not_satisfied`, it MUST NOT make a fail gate active, and it MUST NOT count toward any retry limit. The record of the result MUST name the gate and the cause. See AE-62.
+
+An action that evaluates gates decides from the results in this order, and the first rule that applies decides:
+
+1. A fail gate with the severity `hard` that is active: the change fails (Section 24.7).
+2. A gate that is `not_evaluable`: the change waits. In `core`, the change is `waiting` with a wait record of kind `external` (Section 23.5). In `full`, the change has the status `waiting` and a wait state of the category `WAIT_EXTERNAL_SYSTEM` (Section 11.1), whose resume condition is that the gate can be evaluated and whose next action after resumption is the evaluation of the gate again.
+3. A fail gate with the severity `soft` that is active: the change waits for a human disposition (Section 24.7).
+4. A wait gate that is active: the change does not advance.
+5. For an action that completes a change or a phase, a done gate that is `not_satisfied`: the change does not complete.
+
+A known hard failure therefore outranks a gate that cannot be evaluated. This order refines Section 8.5 and Section 23.6. The `start` action requires that none of the rules 1 to 4 would decide: when one would, `start` is rejected and no wait is created. When the action is `resume`, the wait record created by rule 2 replaces the earlier record, whose resume condition was met. An action that only reports on a change reports the result and creates no wait. See AE-69, AE-71, AE-72, AE-74.
+
+A retry limit is a fail condition that becomes active when the number of `not_satisfied` results recorded for a named gate reaches a limit. The count is the number of `not_satisfied` results of that gate in the history over the whole life of the change, a non-negative integer. The limit is a non-negative integer, and it is reached when the count is greater than or equal to the limit: with a limit of three, the third `not_satisfied` result reaches it and the second does not. A `satisfied` result, a `not_evaluable` result, and a `not_applicable` record are not counted, and a `not_evaluable` result between two `not_satisfied` results neither adds to the count nor resets it. A retry limit that is not a non-negative integer is invalid and MUST be rejected when the gate definitions are approved. See AE-63, AE-64, AE-70.
+
+Every evaluation records its own result. When the cause of a `not_evaluable` result is removed and the gate is evaluated again, the new result is recorded and the earlier record remains in the history unchanged. See AE-67.
+
+A check-command gate is a gate whose condition is the outcome of a command. In `core`, it is a done gate of the kind `check` (Section 23.3). In `full`, it is a condition of a Flow Gates list (Section 16.1) that names a command. The definition of a check-command gate declares:
+
+- the command as an argument list, in which the program and each argument are separate elements and no shell interprets them;
+- the exit map: the exit statuses, which are non-negative integers, that mean `satisfied`; the exit statuses that mean `not_satisfied`; and OPTIONALLY the exit statuses that mean `not_evaluable`. An exit status appears at most once in the map;
+- OPTIONALLY, a time limit and the rule by which failure identifiers are extracted from the output (Section 24.6).
+
+A definition of a check-command gate without a command or without an exit map is invalid and MUST be rejected when the gate definitions are approved. An exit status that the exit map does not map is `not_evaluable`. Except for the baseline comparison of Section 24.6, the output of a command does not change the result that the exit map decides. Empty output never makes a gate `satisfied`: only an exit status that the exit map maps to `satisfied` does. This specification names no programming language, test runner, or output format. Section 24.10 governs the interpreter that runs the command. See AE-65, AE-66, AE-73.
+
+`not_applicable` is not a result. It is the marker that Sections 8.5 and 23.6 prescribe for a gate that is not evaluated by design, because it does not apply to the requested action or because the commands of gates were deliberately not run for the action. A `not_applicable` record is not a failure, does not count toward a retry limit, and is not `not_evaluable`: a gate that applies to the action and could not be evaluated is `not_evaluable`. See AE-68.
+
+**AE-61 — Reject a result name that is not exact lowercase**
+
+- Covers: Section 24.2
+
+Given the evaluation of the gate `tests-pass`  
+When a record names the result `Satisfied`  
+Then the record is rejected and nothing is recorded, because the only results are the exact lowercase names `satisfied`, `not_satisfied`, and `not_evaluable`
+
+**AE-62 — A missing program is not a failure and consumes no attempt**
+
+- Covers: Section 24.2
+
+Given the `check` done gate `tests-pass`, a soft fail gate that is active when `tests-pass` has three `not_satisfied` results, and a history with two `not_satisfied` results of `tests-pass`  
+When the `close` action is requested and the program of the command of `tests-pass` is missing  
+Then the result of `tests-pass` is `not_evaluable`, the count remains two, the fail gate is not active, and the change is `waiting` with a wait record of kind `external`
+
+**AE-63 — The limit-th not_satisfied result reaches the limit**
+
+- Covers: Section 24.2
+
+Given a retry limit of three for `tests-pass` and a history with two `not_satisfied` results and, between them, one `not_evaluable` result  
+When the next evaluation of `tests-pass` is `not_satisfied`  
+Then the count is three, the limit is reached, and the fail condition is active
+
+**AE-64 — The result before the limit does not reach it**
+
+- Covers: Section 24.2
+
+Given a retry limit of three for `tests-pass` and a history with one `not_satisfied` result and one later `not_evaluable` result  
+When the next evaluation of `tests-pass` is `not_satisfied`  
+Then the count is two, because the `not_evaluable` result is not counted, the limit is not reached, and the fail condition is not active
+
+**AE-65 — An unmapped exit status is not evaluable**
+
+- Covers: Section 24.2
+
+Given a check-command gate whose exit map maps the exit status 0 to `satisfied` and the exit status 1 to `not_satisfied`  
+When its command ends with the exit status 2  
+Then the result is `not_evaluable`, not `not_satisfied`, and the output of the command does not change it
+
+**AE-66 — Empty output never makes a gate satisfied**
+
+- Covers: Section 24.2
+
+Given a check-command gate whose exit map maps the exit status 0 to `satisfied` and the exit status 1 to `not_satisfied`  
+When its command ends with the exit status 1 and writes no output, and a second evaluation ends with the exit status 2 and writes no output  
+Then the first result is `not_satisfied` and the second result is `not_evaluable`, and neither is `satisfied`
+
+**AE-67 — A re-evaluation keeps the earlier record**
+
+- Covers: Section 24.2
+
+Given a history with a `not_evaluable` result of `tests-pass`, recorded because its program was missing  
+When the program is installed and `tests-pass` is evaluated again with the result `satisfied`  
+Then the new result is recorded, and the earlier `not_evaluable` record remains in the history unchanged
+
+**AE-68 — A gate that does not apply differs from a gate that cannot be evaluated**
+
+- Covers: Section 24.2
+
+Given the `check` done gate `docs-built`, which does not apply to the `start` action and applies to the `close` action, and whose command cannot start  
+When the `start` action is evaluated and later the `close` action is evaluated  
+Then `docs-built` is recorded as `not_applicable` for `start` and as `not_evaluable` for `close`, and only the second puts the change in a wait
+
+**AE-69 — A hard failure is decided before a gate that cannot be evaluated**
+
+- Covers: Section 24.2
+
+Given an `active` `core` change with a fail gate of the severity `hard` that is active and a `check` done gate whose command cannot start  
+When the `close` action is requested  
+Then the state is `closed` and the outcome is `failed`, and no wait record is created
+
+**AE-70 — Reject a retry limit that is not a non-negative integer**
+
+- Covers: Section 24.2
+
+Given gate definitions with a retry limit of -1 for one gate and a retry limit of 2.5 for another  
+When the gate definitions are approved  
+Then the approval is rejected for both limits, and no approval is recorded
+
+**AE-71 — A gate that cannot be evaluated puts a `full` change in a wait**
+
+- Covers: Section 24.2
+
+Given a `full` change in the build phase with the status `active`, whose Definition of Done includes a check-command gate that cannot be evaluated because version control is unavailable  
+When the `complete` action is requested  
+Then the change has the status `waiting` in the build phase with a wait state of the category `WAIT_EXTERNAL_SYSTEM`, and no failure is recorded
+
+**AE-72 — A report on a change creates no wait**
+
+- Covers: Section 24.2
+
+Given an `active` `core` change with a `check` done gate that is `not_evaluable`  
+When the `check` action is requested  
+Then the report names the gate and the cause, no wait record is created, and the state remains `active`
+
+**AE-73 — Reject a check-command gate without an exit map**
+
+- Covers: Section 24.2
+
+Given a change definition with a `check` done gate that declares a command and no exit map  
+When the gate definitions are approved  
+Then the approval is rejected, because a check-command gate without an exit map is invalid, and no approval is recorded
+
+**AE-74 — Start is rejected, not put in a wait, when a gate cannot be evaluated**
+
+- Covers: Section 24.2
+
+Given an `open` `core` change with a wait gate whose condition cannot be evaluated  
+When the `start` action is requested  
+Then the action is rejected, the change remains `open`, and no wait record is created
