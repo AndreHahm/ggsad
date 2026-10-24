@@ -14,7 +14,7 @@ artifacts. Do not create or advance GG-SAD change state to govern repository dev
 ## Approval and review
 
 Changes to the English normative specification require explicit repository-owner approval and
-independent review by Claude Code. A fresh context or subagent of the Requestor is not independent.
+independent review by a reviewer that is not the Requestor. A fresh context or subagent of the Requestor is not independent.
 
 ## Engineering baseline
 

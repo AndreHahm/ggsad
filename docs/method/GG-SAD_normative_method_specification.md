@@ -871,10 +871,10 @@ A participant may be a human, AI agent, coding agent, review agent, or external 
 Examples (illustrative, non-normative):
 
 - Requestor: Human; Reviewer: Human
-- Requestor: Human; Reviewer: AI Agent (any vendor or product)
-- Requestor: AI Agent; Reviewer: AI Agent from a distinct vendor or product
-- Requestor: AI Agent (any vendor or product); Reviewer: Human
-- Requestor: AI Agent (any vendor or product); Reviewer: External Review Service
+- Requestor: Human; Reviewer: AI Agent (any vendor or product, for example Codex or Devin)
+- Requestor: AI Agent (for example Claude Code); Reviewer: AI Agent from a distinct vendor or product (for example Codex or Devin)
+- Requestor: AI Agent (any vendor or product, for example Claude Code); Reviewer: Human
+- Requestor: AI Agent (any vendor or product, for example Claude Code); Reviewer: External Review Service
 
 Separate sessions of the same participant identity do not satisfy the independence rule unless the project explicitly defines and justifies them as independently controlled participants.
 
