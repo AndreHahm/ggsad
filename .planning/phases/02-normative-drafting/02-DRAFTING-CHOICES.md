@@ -1,8 +1,8 @@
 # Phase 2 drafting choices register
 
-Input for the Phase 3 packet. This register consolidates every drafting choice of plans 01 to 05 for the proposed text of `docs/method/GG-SAD_normative_method_specification.md`. Each entry states the reading that the drafter took where the owner decisions leave room, so that the owner can overrule it. Nothing in this register is an owner decision, an approval, or a review result. The method version in the header of the text is 1.4 (see "Version note").
+Input for the Phase 3 packet. This register consolidates every drafting choice of plans 01 to 08 for the proposed text of `docs/method/GG-SAD_normative_method_specification.md`, the disposition of each of the 44 findings of the advisory review of that text, and the owner questions that the conservative readings leave open. Each entry states the reading that the drafter took where the owner decisions leave room, so that the owner can overrule it. Nothing in this register is an owner decision, an approval, or a review result. The method version in the header of the text is 1.4 (see "Version note").
 
-The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward were assigned while drafting: DC-28 to DC-39 in plan 01, DC-40 to DC-58 in plan 02, DC-59 to DC-79 in plan 03, DC-80 to DC-95 in plan 04, and DC-96 to DC-107 in plan 05.
+The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward were assigned while drafting: DC-28 to DC-39 in plan 01, DC-40 to DC-58 in plan 02, DC-59 to DC-79 in plan 03, DC-80 to DC-95 in plan 04, DC-96 to DC-107 in plan 05, DC-108 to DC-122 in plan 06, DC-123 to DC-133 in plan 07, and DC-134 to DC-141 in plan 08. Where a later choice changes an earlier one, the earlier entry ends with "Changed by DC-nnn."
 
 ## Drafting choices DC-01 to DC-27 (research register)
 
@@ -34,20 +34,20 @@ The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward wer
 | DC-24 | SPEC-03, SPEC-12 | 22.2, 23.2 | `core` records `state` and `outcome`; `full` records `phase` and `status`; the `state` field of the envelope is worded per method profile. |
 | DC-25 | SPEC-03, SPEC-18 | 22.1 | Section 22.1 gains "record a human decision" and `migrate`, each inserted before the last list item so that no existing list line is rewritten. |
 | DC-26 | SPEC-12 | 5.6, 16.5 | The method profile is chosen per change at creation; project configuration MAY name a default; the project brief template gains `## Method Profile` with the values `core | full`. |
-| DC-27 | SPEC-12 | 5.6 | Default applicability: both method profiles unless a section is listed as `full` only (4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 11.1, 16.1 to 16.4, the diagram of 21). Sections 23 to 25 state their own applicability. |
+| DC-27 | SPEC-12 | 5.6 | Default applicability: both method profiles unless a section is listed as `full` only (4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 11.1, 16.1 to 16.4, the diagram of 21). Sections 23 to 25 state their own applicability. Changed by DC-108. |
 
 ## Drafting choices DC-28 to DC-95 (plans 01 to 04)
 
 | ID | Block | Section | Reading taken |
 |---|---|---|---|
-| DC-28 | SPEC-12 | 5.6 | The mixed sections 11.2 and 12.2 apply to both method profiles except the safe current state and next action of a wait state (11.2) and the final status code of a fail rule (12.2), which are `full` only. |
+| DC-28 | SPEC-12 | 5.6 | The mixed sections 11.2 and 12.2 apply to both method profiles except the safe current state and next action of a wait state (11.2) and the final status code of a fail rule (12.2), which are `full` only. Changed by DC-110. |
 | DC-29 | SPEC-12 | 5.6 | Creation with no method profile and no project default is rejected; `core` and `full` are exact lowercase identifiers and any other value is rejected. |
 | DC-30 | SPEC-12 | 5.6 | The reference implementation does not implement `full` and MUST reject the creation of a change that selects it; the marking does not weaken any `full` rule. |
 | DC-31 | SPEC-12 | 23.1 | Directory `specs/<change-id>/` with `change.yaml`, `spec.md`, `state.json`; fields `id`, `method_profile`, `compliance_profile`, `author`, `owner`, `goal`, `scope.allow`, `requirements`, `gates`, optional `follows`. |
 | DC-32 | SPEC-12 | 23.1 | `follows` MUST name an existing change that is `closed`; the field is a reference and never changes the named change. |
-| DC-33 | SPEC-12 | 23.3 | Fail and wait gates are predicate gates; an active wait gate blocks start, resume, and close without creating a wait record; done gate kinds are `check`, `review`, `sign-off`; gate identifiers are unique including base gates. |
-| DC-34 | SPEC-12 | 23.4 | Transition table readings: `approve` and `answer` from every state except `closed`; `ask` from `open` and `active`; `fail` only from `waiting` with a `fail-gate` record; `adopt` from any state while the history has no anchor; read-only actions `check`, `review`, `guard`. |
-| DC-35 | SPEC-12 | 23.6 | Evaluation order: active hard fail, a gate that could not be evaluated, active soft fail, active wait gate, then for `close` only an unsatisfied done gate. |
+| DC-33 | SPEC-12 | 23.3 | Fail and wait gates are predicate gates; an active wait gate blocks start, resume, and close without creating a wait record; done gate kinds are `check`, `review`, `sign-off`; gate identifiers are unique including base gates. Changed by DC-111 and DC-112. |
+| DC-34 | SPEC-12 | 23.4 | Transition table readings: `approve` and `answer` from every state except `closed`; `ask` from `open` and `active`; `fail` only from `waiting` with a `fail-gate` record; `adopt` from any state while the history has no anchor; read-only actions `check`, `review`, `guard`. Changed by DC-113 and DC-116. |
+| DC-35 | SPEC-12 | 23.6 | Evaluation order: active hard fail, a gate that could not be evaluated, active soft fail, active wait gate, then for `close` only an unsatisfied done gate. Changed by DC-120. |
 | DC-36 | SPEC-12 | 23.4 | An action from a state outside its Legal From cell is rejected; the choice between `rejected` and `blocked` for an unmet precondition is settled in 22.2 and the per-action tables. |
 | DC-37 | SPEC-12 | 23.5 | Resume conditions by kind: `question` when answered; `fail-gate` when a human recorded an override; `external` when the gate can be evaluated again; `manual` when the owner of the wait states that the condition holds. An overdue wait stays a wait. |
 | DC-38 | SPEC-12 | 3.7, 5.1, 5.2, 14.1 | Seven bare uses of "profile" became "compliance profile"; the four rows of the 5.1 table are byte-identical; "the `lean` profile" mentions and the heading of 5.3 are left as they are. |
@@ -60,14 +60,14 @@ The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward wer
 | DC-45 | SPEC-02 | 24.2 | A check-command gate declares a command (argument list) and an exit map; there is no default map; a time limit and an extraction rule are optional. |
 | DC-46 | SPEC-02 | 24.2 | Output never changes the result the exit map decides, except for the baseline comparison of 24.6; empty output never makes a gate `satisfied`. |
 | DC-47 | SPEC-02 | 24.2 | A retry limit counts `not_satisfied` over the whole life of the change, never reset; reached when count is at least limit; a limit of 0 is reached at once; `not_evaluable` neither adds nor resets. |
-| DC-48 | SPEC-02 | 24.2, 23.4 | `start` is rejected, creating no wait, when a gate cannot be evaluated or a fail or wait gate would decide; `resume` replaces the earlier wait record with a record of kind `external`; read-only actions create no wait. |
+| DC-48 | SPEC-02 | 24.2, 23.4 | `start` is rejected, creating no wait, when a gate cannot be evaluated or a fail or wait gate would decide; `resume` replaces the earlier wait record with a record of kind `external`; read-only actions create no wait. Changed by DC-118. |
 | DC-49 | SPEC-08 | 24.7 | An action that closes the change as failed because of a hard failure answers `success`. |
 | DC-50 | SPEC-07 | 24.6 | Baseline entries form a set; the record names up to three new failures in ascending code point order plus the count; an empty baseline is valid; a baseline on a gate that is not a check-command gate is invalid. |
 | DC-51 | SPEC-08 | 24.7 | A retry limit is a soft fail condition; a retry limit that declares `hard` is invalid. Severity values are exact lowercase. |
 | DC-52 | SPEC-08 | 24.7 | An override names the soft fail condition it covers; an attempt is an evaluation by `close` or `complete` made while the override is in force; the N-th attempt is allowed and the next evaluation pauses again. |
 | DC-53 | SPEC-08 | 24.7 | In `full`, the wait caused by a soft failure is category `WAIT_DECISION` with the resume condition "a human has recorded an override"; `fail` is the other disposition. |
 | DC-54 | SPEC-03 | 8.3, 23.4 | Per-action results: `resume` is rejected while the resume condition is not satisfied and blocked while a gate keeps the change waiting; `start` with an unmet gate is rejected in both profiles; `reopen` is never blocked; a `complete` that preserves the phase with status `done` answers `success`. |
-| DC-55 | SPEC-08, SPEC-03 | 12.2, 16.4, 20 | The 12.2 template gains a `Severity` line, the 16.4 template a line for gates that could not be evaluated, and section 20 the condition "no soft failure awaits a human disposition". The 8.3 cell of `complete` no longer lists DoF among the causes of rejection. |
+| DC-55 | SPEC-08, SPEC-03 | 12.2, 16.4, 20 | The 12.2 template gains a `Severity` line, the 16.4 template a line for gates that could not be evaluated, and section 20 the condition "no soft failure awaits a human disposition". The 8.3 cell of `complete` no longer lists DoF among the causes of rejection. Changed by DC-119. |
 | DC-56 | SPEC-03 | 8.3 | In `full`, `start` of a phase with an unevaluable gate follows the `core` reading (rejected, no wait); only `complete` and `resume` create the `external` wait. |
 | DC-57 | SPEC-02, SPEC-12 | 24 intro | The term table defines the base revision in `core` as the revision recorded when `start` succeeds and in `full` as the revision recorded when the change starts; a `---` separator precedes the heading of section 24. |
 | DC-58 | SPEC-02 | examples | Example ids AE-60 to AE-124 are consecutive but not in document order. |
@@ -75,35 +75,35 @@ The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward wer
 | DC-60 | SPEC-04 | 24.3 | The required level of an action is the higher of the gate minimum and the project configuration minimum for the kind of action; an unstated minimum is A0. |
 | DC-61 | SPEC-04 | 24.3 | Human-only actions are every approval, sign-off, override, an answer to a question with a human owner, `cancel`, `supersede`, `fail`, `adopt` (`supersede` is added to the list the plan named, because 23.4 already requires a human). The identity of a human carries the prefix `human:`. |
 | DC-62 | SPEC-04 | 24.3 | The statement is built by the implementation: a first line with a format identifier and version, then operation, change, version (history position), identity, and details sorted by name; values JSON-encoded; the signed bytes are the UTF-8 lines ended by line feeds. |
-| DC-63 | SPEC-04 | 24.3 | An approval binds the content hash of the specification, of the gate definitions, or of the gate definitions plus the gate or fail condition identifier. The specification approval is stale while the current hash differs. |
+| DC-63 | SPEC-04 | 24.3 | An approval binds the content hash of the specification, of the gate definitions, or of the gate definitions plus the gate or fail condition identifier. The specification approval is stale while the current hash differs. Changed by DC-115. |
 | DC-64 | SPEC-04 | 24.3 | An implementation that creates signatures SHOULD refuse an unprotected private key unless a human allows it; a participant who can write the signers file can list its own key (stated plainly). |
-| DC-65 | SPEC-05 | 24.4 | An anchor or an equivalent is required only where the configuration requires approvals at A2; an equivalent is defined by properties; the anchor is kept outside the working tree and outside the history. |
+| DC-65 | SPEC-05 | 24.4 | An anchor or an equivalent is required only where the configuration requires approvals at A2; an equivalent is defined by properties; the anchor is kept outside the working tree and outside the history. Changed by DC-116. |
 | DC-66 | SPEC-05 | 24.4 | `adopt` is rejected when the history is not consistent, in addition to the 23.4 precondition that no anchor exists, and needs a human at the level 24.3 requires. |
 | DC-67 | SPEC-05 | 24.4 | Entry fields `n`, `prev`, `body`, `hash`; the first `prev` is `sha256:` plus 64 zero digits; the entry hash is over the canonical form of `prev` and `body`; a history without an entry is not consistent. |
-| DC-68 | SPEC-06 | 24.5 | In `full` the allowed path list is a list of path patterns stated in the Scope of the change specification; a change that states none has a scope that cannot be measured (`not_evaluable`). |
+| DC-68 | SPEC-06 | 24.5 | In `full` the allowed path list is a list of path patterns stated in the Scope of the change specification; a change that states none has a scope that cannot be measured (`not_evaluable`). Changed by DC-139. |
 | DC-69 | SPEC-06 | 24.5 | Path patterns: relative to the repository root with `/`; no wildcard names one path; a trailing `/` names a tree; `*` stays inside one segment; a segment `**` matches any number of segments; an empty pattern, a leading `/`, or a segment `..` is invalid. Drafted conservatively; flagged as F1. |
 | DC-70 | SPEC-06 | 24.5 | In `full` the base revision is recorded when the first phase of the change begins. |
-| DC-71 | SPEC-06 | 24.5 | The exempt record files are the change definition, the specification, and the state document in `core`, and the specification and the state file or inline record in `full`; every other file in the change directory is measured. |
-| DC-72 | SPEC-06 | 24.5 | Before start the scope gate is recorded `not_applicable`; after start a scope that cannot be measured is `not_evaluable`, never `satisfied` and never a violation. |
+| DC-71 | SPEC-06 | 24.5 | The exempt record files are the change definition, the specification, and the state document in `core`, and the specification and the state file or inline record in `full`; every other file in the change directory is measured. Changed by DC-123. |
+| DC-72 | SPEC-06 | 24.5 | Before start the scope gate is recorded `not_applicable`; after start a scope that cannot be measured is `not_evaluable`, never `satisfied` and never a violation. Changed by DC-139. |
 | DC-73 | SPEC-06 | 24.5 | A change MUST run isolated; an implementation SHOULD warn when it finds other uncommitted work at start and MUST NOT exclude such work from the measurement. |
 | DC-74 | SPEC-11 | 24.10 | The designated token is the literal `@interpreter`; the interpreter is never discovered; with no configuration it is the implementation's own interpreter; a warning is advised when it lives inside the repository. |
 | DC-75 | SPEC-10 | 24.9 | An evidence command is a check command of 24.2; closure is `close` in `core` and the evaluation of Verify-Done and the completion criteria in `full`. |
-| DC-76 | SPEC-10 | 24.9, 24.1 | The requirement identifiers and the evidence commands are fixed with the gate definitions. |
+| DC-76 | SPEC-10 | 24.9, 24.1 | The requirement identifiers and the evidence commands are fixed with the gate definitions. Changed by DC-125. |
 | DC-77 | SPEC-09 | 24.8 | A question id is `Q` plus a decimal number from 1 assigned by the implementation; structured options are pairwise distinct; an empty free-text answer is rejected; an answer does not resume a waiting change. |
 | DC-78 | SPEC-09 | 24.8 | In `full` a question is recorded in the state file or inline record; an unanswered question makes a Definition of Wait condition active, so `complete` and `resume` answer `blocked`. |
 | DC-79 | SPEC-09 | 24.8 | The issue code `open-questions` is named in the text. |
 | DC-80 | SPEC-12, SPEC-15 | 4.3 | The `core` layout of 4.3 shows `change.yaml`, `spec.md`, `state.json`, and a conditional `review.md`; review files are measured by the scope check like any other non-record file. |
-| DC-81 | SPEC-15 | 25.1 | All ten body fields are always present and a field that does not apply is `null`; `at` is a UTC string `YYYY-MM-DDThh:mm:ssZ`; `result` is `success` or `blocked`; a rejected or failed action writes no entry. |
-| DC-82 | SPEC-15 | 25.1 | The `after` record is the whole state and holds `schema_version`; the field is `base_revision`; in `full` it holds `phase` and `status` in place of `state` and `outcome`. |
+| DC-81 | SPEC-15 | 25.1 | All ten body fields are always present and a field that does not apply is `null`; `at` is a UTC string `YYYY-MM-DDThh:mm:ssZ`; `result` is `success` or `blocked`; a rejected or failed action writes no entry. Changed by DC-128 and DC-129. |
+| DC-82 | SPEC-15 | 25.1 | The `after` record is the whole state and holds `schema_version`; the field is `base_revision`; in `full` it holds `phase` and `status` in place of `state` and `outcome`. Changed by DC-128. |
 | DC-83 | SPEC-15 | 25.1 | Integers are decimal, without fraction or exponent, with a magnitude not above 2 to the power 53 minus 1; a string holds no surrogate code point; a value outside the domain ends with `error` and writes nothing. |
-| DC-84 | SPEC-15 | 25.1 | The expected version is the number of entries read; the writer locks, compares under the lock, and on a difference answers `error` with `state-conflict`; atomic replacement through a temporary file in the same directory. |
-| DC-85 | SPEC-15 | 25.2 | A parsed YAML definition is read as YAML 1.2 with the core schema, aliases expanded; a float, a timestamp, a non-string key, a repeated key, or an integer above the bound has no content hash. |
+| DC-84 | SPEC-15 | 25.1 | The expected version is the number of entries read; the writer locks, compares under the lock, and on a difference answers `error` with `state-conflict`; atomic replacement through a temporary file in the same directory. Changed by DC-123 and DC-124. |
+| DC-85 | SPEC-15 | 25.2 | A parsed YAML definition is read as YAML 1.2 with the core schema, aliases expanded; a float, a timestamp, a non-string key, a repeated key, or an integer above the bound has no content hash. Changed by DC-131. |
 | DC-86 | SPEC-15 | 25.2 | The content hash of a file set is the hash of the canonical form of an object from path to file hash; the hash of gate definitions together with a gate identifier uses the members `definitions` and `gate`. |
 | DC-87 | SPEC-18 | 25.3 | The version is a string of two integers joined by a dot, compared one integer at a time; a number is not a version. |
 | DC-88 | SPEC-18 | 25.3 | Three stable issue codes: `migration-required`, `schema-version-unsupported`, `schema-version-mismatch`; every operation that uses the file is refused, read-only ones included; only `migrate` accepts a migratable version. |
 | DC-89 | SPEC-18 | 25.3 | `migrate` applies steps in ascending order, one entry per step, all or nothing; it is a contract operation, legal from every state, and changes neither state nor outcome. |
 | DC-90 | SPEC-18 | 25.3 | The migration entry adds `source_version`, `target_version`, and `source_hash`. |
-| DC-91 | SPEC-18 | 25.3 | The document version must equal `after.schema_version` of the last entry; a difference makes the history not consistent and is refused with `schema-version-mismatch`. |
+| DC-91 | SPEC-18 | 25.3 | The document version must equal `after.schema_version` of the last entry; a difference makes the history not consistent and is refused with `schema-version-mismatch`. Changed by DC-126. |
 | DC-92 | SPEC-18 | 25.3 | A project-level artifact is migrated inside a change that is not `closed`; a migration of a change definition that alters the parsed gate definitions needs a new human approval. |
 | DC-93 | SPEC-18 | 25.3 | An old `state.yaml` is converted by `migrate` to `state.json` whose first entry is a `migrate` entry; the old file is not changed, deleted, or read afterwards; the hash chain restarts at that entry (an anchor makes the restart detectable). |
 | DC-94 | SPEC-17 | 8.3, 8.4 | `reopen` is marked `full` only; in `core` a closed change is final; `follows` is a reference and a new change naming a change that is not closed is rejected. |
@@ -114,17 +114,56 @@ The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward wer
 | ID | Block | Section | Reading taken |
 |---|---|---|---|
 | DC-96 | SPEC-16 | 5.3, 23.7 | The four base gates of `core` have the identifiers `scope-violation`, `unanswered-question`, `stale-spec-approval`, and `incomplete-evidence`. A change definition that redefines one of them or states that it does not apply is rejected at creation and again before the approval of the gate definitions; the stable issue code is `gate-weakened` when the listed gate differs in kind, condition, or severity or the gate is stated not to apply, and a listed gate that does not differ is rejected as a duplicate identifier (23.3). |
-| DC-97 | SPEC-16 | 5.3 | Weakening is: remove a gate (state that it does not apply, or leave it out of a definition that replaces the gates of the higher layer), alter its condition (including kind and every declaration 24.1 fixes), lower its severity, lower the assurance level it requires. Strengthening is adding a gate with an identifier of its own or raising a level in the project configuration. A lower layer that states a lower assurance level than a higher layer requires does not lower it (the higher level is required, 24.3); the statement is accepted and has no effect, consistent with the example of 24.3 on the gate minimum. The result does not depend on the order of listing. |
+| DC-97 | SPEC-16 | 5.3 | Weakening is: remove a gate (state that it does not apply, or leave it out of a definition that replaces the gates of the higher layer), alter its condition (including kind and every declaration 24.1 fixes), lower its severity, lower the assurance level it requires. Strengthening is adding a gate with an identifier of its own or raising a level in the project configuration. A lower layer that states a lower assurance level than a higher layer requires does not lower it (the higher level is required, 24.3); the statement is accepted and has no effect, consistent with the example of 24.3 on the gate minimum. The result does not depend on the order of listing. Changed by DC-140. |
 | DC-98 | SPEC-16 | 4.2, 5.3 | The approved exception of 4.2 exists only for the local specification of a `full` change that departs from a project-wide definition. A human approves it at the level 24.3 sets for the approval of gate definitions; it applies to that change only; it is recorded in the Deviations of the evidence (16.4); it never reaches the invariant core, the protections of section 24, or the base gates; a `core` change has none. It is a recorded human decision and not a weakening by a lower layer. The existing 4.2 sentence is not rewritten; a paragraph is added after it. For the owner to overrule (research OQ-2). |
-| DC-99 | SPEC-16 | 5.3, 3.8 | A `core` change implements layers 1, 2, 3, and 5. Layer 4 (change-class requirements, the size classes of 6) and layer 6 (integration mappings, 3.8 and 17) are not applicable to `core` and are specified for `full` and combination use. No seventh layer; layers are never renumbered. |
+| DC-99 | SPEC-16 | 5.3, 3.8 | A `core` change implements layers 1, 2, 3, and 5. Layer 4 (change-class requirements, the size classes of 6) and layer 6 (integration mappings, 3.8 and 17) are not applicable to `core` and are specified for `full` and combination use. No seventh layer; layers are never renumbered. Changed by DC-134. |
 | DC-100 | SPEC-16 | 5.3 | For a `full` change the no-weakening check compares the Flow Gates with the project-wide definitions of 4.2; an entry that removes or relaxes a condition is a weakening unless the approved exception covers it. |
-| DC-101 | SPEC-14 | 24 intro | The definitions fixed in `full` are the Flow Gates, the allowed path list, and the project-wide definitions under `docs/definitions/` in effect at the approval. The parsed value is an object with `flow_gates` (lists `ready`, `done`, `wait`, `fail` of condition texts in written order; the text of a condition is the list item without its marker, white space runs replaced by one space; the marker `<optional>` is not a condition; a heading without items gives an empty list), `scope` (the allowed path list), and `definitions` (the content hash of the file set under `docs/definitions/`). A change of a project-wide definition after the approval makes the gate definitions differ from the approved ones. This completes the item that plan 04 handed over. |
-| DC-102 | SPEC-14 | 16.1 | The 16.1 template gains the heading `### Allowed Paths` with the line `- <path pattern>` in the Scope, and one paragraph says that this list is the allowed path list and that Included and Excluded describe the scope in words and are not measured. |
+| DC-101 | SPEC-14 | 24 intro | The definitions fixed in `full` are the Flow Gates, the allowed path list, and the project-wide definitions under `docs/definitions/` in effect at the approval. The parsed value is an object with `flow_gates` (lists `ready`, `done`, `wait`, `fail` of condition texts in written order; the text of a condition is the list item without its marker, white space runs replaced by one space; the marker `<optional>` is not a condition; a heading without items gives an empty list), `scope` (the allowed path list), and `definitions` (the content hash of the file set under `docs/definitions/`). A change of a project-wide definition after the approval makes the gate definitions differ from the approved ones. This completes the item that plan 04 handed over. Changed by DC-125. |
+| DC-102 | SPEC-14 | 16.1 | The 16.1 template gains the heading `### Allowed Paths` with the line `- <path pattern>` in the Scope, and one paragraph says that this list is the allowed path list and that Included and Excluded describe the scope in words and are not measured. Changed by DC-139. |
 | DC-103 | SPEC-14 | 24 intro | The realization table has 11 rows (24.1 to 24.10 and the result `blocked`) with the columns Protection, Section, In `core`, In `full`. The `full` cells are argued from the generic wording of the `full` flow (Flow Gates, DoR, DoD, DoW, DoF, wait categories, state file or inline record) and have no prototype evidence. |
 | DC-104 | SPEC-14 | examples | The rule unit is as in the owner's granularity rule: 30 rule units (4.1, 5.5, 6.1 to 6.3, the four flows of 7.1, 8.2, the eight actions of 8.3, 8.4, 8.5, the eight pairs 9.k with 10.k, and the `full`-only parts of 11.2 and 12.2) plus the 11 realizations, 41 units. Each unit has one example block that shows a normal and a failure or boundary case. Unit 8.4 has two blocks, because the example of `reopen` already existed. The examples AE-218 to AE-228 belong to 5.3 and AE-229 to AE-269 to the 41 units. The pair examples sit after each Definition of Done and are cited from both 9.k and 10.k. |
 | DC-105 | SPEC-16 | 23.4 | A stray comma before "An `answer`" in the paragraph after the 23.4 table (text of plan 02) became a full stop. This is the only edit of an existing line outside 5.3 in this plan; it changes no rule. |
-| DC-106 | header | header | Version 1.4 (owner's number from the planning record; the packet states it so the owner can change it). The Revision line is dated 2026-10-24, the day of drafting, followed by an em dash and one sentence that names the amendment (method profiles, shared protections, JSON state, schema versions) and no id. |
+| DC-106 | header | header | Version 1.4 (owner's number from the planning record; the packet states it so the owner can change it). The Revision line is dated 2026-10-24, the day of drafting, followed by an em dash and one sentence that names the amendment (method profiles, shared protections, JSON state, schema versions) and no id. Changed by DC-141. |
 | DC-107 | SPEC-14 | 24 intro | The 11 realization examples sit after the realization table in the section 24 intro, not at the end of each subsection 24.k, and are cited from one paragraph there. |
+
+## Drafting choices DC-108 to DC-141 (plans 06 to 08)
+
+| ID | Block | Section | Reading taken |
+|---|---|---|---|
+| DC-108 | SPEC-12 | 5.6 | 11.1 is removed from the `full`-only row and falls under "every other section", so it applies to both method profiles. AE-52 stays. |
+| DC-109 | SPEC-12 | 19, 20 | The two sections stay in "both". Each gains a paragraph for a `core` change. For section 20 the fail, wait, soft failure, question, done criteria and evidence conditions are mapped to gates; the conditions about the requirement coverage table, Pair Review, document consistency and references are said to be met through the requirements and gates of the change, with no document of the `full` method profile required. This last mapping is the broadest reading. AE-270. |
+| DC-110 | SPEC-12 | 5.6, 23.3 | `core` is exempt from the required response, the permitted preservation actions and the required documentation of 12.2; a `core` fail gate holds `id`, `severity`, `condition`; the response is fixed by 24.7. AE-271. |
+| DC-111 | SPEC-12 | 23.3 | The done-gate kind `review` is dropped, not realized. A review before closure is a `sign-off` gate or a `check` gate; the records of 14.5 are evidence that no gate evaluates; the read-only action `review` is unchanged. The other option (a `review-result` action with a recorded reviewer, revision and result) would add an operation to 22.1 and a field to 25.1 and is left to the owner (OQ-8). AE-272. |
+| DC-112 | SPEC-12, SPEC-02 | 23.3, 23.7, 24.2 | A fail or wait gate has no kind and one `condition` with exactly one of the members `command` (plus `exit_map`, optional `time_limit`), `retry_limit` (a mapping with `gate`, a `check` done gate, and `limit`; fail gate only) or `predicate` (`scope-violation` on a fail gate; `unanswered-question`, `stale-spec-approval` on a wait gate). None, two, another member, or a predicate not listed for the kind is rejected at `new`; values are rejected at the approval of the gate definitions. A command condition is evaluated as a check command and carries no baseline (24.6). The base gates are fixed in 23.7 and are not subject to the kind and form rules. AE-273; AE-222 and AE-223 state their conditions in these forms. |
+| DC-113 | SPEC-12 | 23.4 | `ask` is legal from `open`, `active` and `waiting`; a question asked while waiting leaves the wait record unchanged and blocks `resume` through the unanswered question gate. AE-274. |
+| DC-114 | SPEC-12, SPEC-09 | 23.4, 23.5, 24.8 | `wait` names an existing unanswered question and never creates one; the wait owner is the question's owner and another owner is rejected; reason and resume condition default to awaiting the answer; an answered or unknown question is rejected. AE-29 stays valid. AE-275. |
+| DC-115 | SPEC-12, SPEC-04 | 23.7, 24.3 | The stale approval gate is active only if the specification was approved at least once and its hash differs from the last approved hash; a never-approved specification does not stop `start`. AE-276. |
+| DC-116 | SPEC-05 | 23.4, 24.4 | The entry of `new` creates the anchor at position 1 where one is kept or required; this is not a replacement. `adopt` serves a history with entries and no anchor. AE-278; AE-140 stays. |
+| DC-117 | SPEC-12 | 23.5 | For a wait record made by evaluation, `owner` is the owner of the change, `resume_when` is `a human recorded an override of <id>` (`fail-gate`) or `gate <id> can be evaluated` (`external`), and `reason` names the gate and the cause. Who may `resume` such a record is not restated. AE-277. |
+| DC-118 | SPEC-08, SPEC-02 | 24.7, 24.2 | `start` never closes a change; with a hard fail gate active it is rejected (`changed` false, `start-blocked`) and the failure is decided by `cancel`, `supersede` or the first completing or resuming action. AE-279. |
+| DC-119 | SPEC-03 | 8.3 | The precondition of `complete` is a legal source plus the requested evaluation of the DoR (from `draft`), the DoD (from `active`) or the next DoR (from `done`); the rejection cell and the result table reject only a source that is not legal; evaluation outcomes stay `blocked`. AE-121 and AE-122 stay. |
+| DC-120 | SPEC-02, SPEC-03 | 24.2, 8.5, 23.6 | Evaluation stops by group: the groups are the fail, wait and done gates (`core`) and DoF, DoW, DoR, DoD, next DoR (`full`, order of 8.5); a group is evaluated whole; a gate of a later group is not evaluated (no command run, no result); the rules 1 to 5 rank the results of the gates that were evaluated. In `core` an active wait gate decides before an unevaluable done gate (`blocked`, no wait record), and an unevaluable wait gate gives an `external` wait. The other option (evaluate every gate first, then rank) would run commands of gates that cannot matter. AE-280. |
+| DC-121 | SPEC-15, SPEC-02 | 24.2, 25.1 | `gate_results` values are the three results in exact lowercase or the marker `not_applicable`; `gate_detail` is text for a gate that has a value in `gate_results`; the rejection rule of 24.2 applies to a record of a result. AE-61 stays. AE-281. |
+| DC-122 | SPEC-03, SPEC-12 | 12.1, 11.2, 24.7 | AE-102 states "a done gate that stays unsatisfied"; 12.1 lists only a hard budget or cost limit among the fail categories; the 11.2 template uses `owner`, adds `outstanding`, and sets `resume_at` to `plan`, with a sentence that lists the six fields. AE-268 names the fields. |
+| DC-123 | SPEC-15, SPEC-06 | 24.5, 25.1 | The scope exemption is two fixed names, `state.json.tmp` and `state.json.lock`, in the change directory, in both method profiles. Any other name, including `state.json.bak`, is measured. A leftover is never state, is ignored, and MAY be removed. Keeping the artifacts outside the working tree was not taken because it conflicts with the same-directory rename. AE-282. |
+| DC-124 | SPEC-15 | 25.1 | The lock is a separate lock object held across compare and replace, taken also when no state document exists; it is a lock that the system releases when its holder ends, so a leftover file is not a held lock. It covers the creation and every operation that appends an entry. A reader does not take it. AE-283. |
+| DC-125 | SPEC-10, SPEC-01, SPEC-14 | 24 intro, 16.1, 16.4, 24.9 | The fourth member of the parsed gate definitions of `full` is `requirements` with `id` and `evidence_commands`; the home of a command is a list item under `#### Evidence Commands` of the requirement; the hashed value of a command is the text of its item (marker removed, white-space runs collapsed). The form of the text is not fixed beyond "argument list, exit map, optional time limit", so two spellings of the same command are two values. AE-286. |
+| DC-126 | SPEC-18 | 25.3 | For a state document the comparison with the latest recorded version is made first; a lowered version that is migratable is still `schema-version-mismatch`. AE-211. |
+| DC-127 | SPEC-15 | 4.3, 25.1 | The history-dependent list is extended (24.2 retry counts, 24.5 base revision, 24.7 overrides and attempts) and no inline-record fallback is defined; an inline-record `full` change does not get these rules enforced and the report must not claim them. AE-195. |
+| DC-128 | SPEC-15 | 25.1, 23.2 | `reason` is in the `after` record of both method profiles (`status` for `full`); for a hard failure it is generated from the failing gates and their detail. AE-284. |
+| DC-129 | SPEC-15 | 25.1 | `action` is the operation name from a closed set shared by both method profiles. AE-285. |
+| DC-130 | SPEC-04, SPEC-11 | 24.3, 24.10, 25.1 | The record carries `required_level` for the approval kinds only (approval of the specification, approval and re-approval of gate definitions, sign-off, override); the ratchet applies to these kinds. The levels A0, A1, A2 and the statement are unchanged. The interpreter is not frozen; `gate_detail` names the program that the token stood for. A participant that can change the configuration can still lower a minimum for a change whose history records no earlier approval of that kind, and for the kinds that record no `required_level` (OQ-13). AE-289, AE-159. |
+| DC-131 | SPEC-15, SPEC-04, SPEC-18, SPEC-12 | 4.3, 24.3, 24.5, 24.10, 25.2 | AE-154 states a state taken over from an older document; AE-161 is worded as a recommendation; ", a timestamp" is deleted from 25.2; 4.3 limits the conditional-files sentence to `full`; the statement clause names the history the action extends; AE-198 uses files that each hold the byte 00. |
+| DC-132 | SPEC-03 | 22.1, 22.3 | 22.1 and 22.3 name the transition table of the method profile; three bullets are added before the last (record a question, adopt a history, report on a change); the report bullet is worded as the read-only actions `check`, `review`, and `guard` without a section pointer. AE-287. |
+| DC-133 | SPEC-03, SPEC-15 | 4.3, 23.1, 23.4, 16.1 | The identifier syntax is `[A-Za-z0-9][A-Za-z0-9._-]*` (whole identifier), no trailing `.`, no reserved device name (ASCII case-folded), unique after ASCII case folding, for `id`, Change ID, `follows` and `replaced_by`. Reserved names followed by an extension (such as `nul.txt`) and non-ASCII case folding are not addressed. AE-288. |
+| DC-134 | SPEC-16 | 5.3, 17 | A `core` change does not use integration mappings: layer 6 gives it no gate, and its gates are the base gates of 23.7 and the gates of its change definition. The combination mode of 3.8 and 17 is specified for `full` and for combination use, and the reference implementation builds neither it nor `full`. Where layer 6 applies, it MUST NOT weaken a higher layer and no external workflow bypasses a gate (3.8). Section 17 points to 5.3. 25.3 is unchanged; it governs the migration of the integration mappings as a project-level artifact and gives a `core` change no gate. The six layers keep their numbers. The alternative (`core` supports combination mode and layer 6 applies to it) is left to the owner (OQ-9). AE-290. |
+| DC-135 | SPEC-12 | 5.6, 23.1 | The compliance profile of a change MUST equal the active compliance profile of the project at the time the change is created, else the creation is rejected. The wording of the finding "or a stricter one" is not taken (OQ-10). A later change of the compliance profile of the project is not addressed. AE-291. |
+| DC-136 | SPEC-04 | 5.4 | Self-approval under the `lean` compliance profile means that the human who requested the work may approve it; a participant that is not a human never approves (23.4 and 24.3 stay). The earlier sentence that the allowance "is unchanged" is replaced. Whether an agent may self-approve under `lean` is left to the owner (OQ-11). AE-292. |
+| DC-137 | SPEC-04 | 5.4 | "A verified human" is replaced by a testable condition: a claim satisfies a decision of the non-delegable set only if its verified level is at least the level that 24.3 requires for the action that records the decision (A0 when no gate or configuration states a minimum). No assurance floor is assigned to the decisions of 5.4 (OQ-12). The A0 paragraph of 5.4 gets AE-293. |
+| DC-138 | SPEC-09 | 9.4 | Ready-to-Spec is a statement about its criteria alone. While the recorded question is unanswered, `complete` answers `blocked` (24.8) and the Definition of Done of the specify phase is not satisfied. The alternative (exclude questions raised in the specify phase from the DoW condition) is not taken (OQ-14). AE-263. |
+| DC-139 | SPEC-06 | 6.1, 9.6, 24.5 | The allowed path list is in the minimum content of Class S (6.1) and is a Ready-to-Build criterion (9.6). In `full` the scope is evaluated from the first approval of the gate definitions and the record shows `not_applicable` before; in `core` it is evaluated from the start. The alternative (an approved opt-out for changes that state a scope in words only) is not taken (OQ-15). Class M and Class L state no minimum content and are not changed. AE-294. |
+| DC-140 | SPEC-16, SPEC-04 | 5.3, 5.4 | IN-01: a lower statement of an assurance level is neutralized (accepted, no effect), not rejected; AE-221. IN-12: a weakening in a `full` change is rejected with the result `rejected`, `changed` false and the issue code `gate-weakened`; AE-227. IN-02: the A0 paragraph of 5.4 has AE-293; four other rules get no example in this phase and are recorded. IN-08, IN-11 and IN-14 are recorded and no text is changed for them (see "Recorded findings"). |
+| DC-141 | header | header | The Revision line is dated by `date +%F` on the day of the header commit (2026-10-25), followed by an em dash and one sentence that names the amendment (method profiles, shared protections, JSON state, schema versions) and the alignment of the gate model, the evaluation order, the approval rules and the identifier rules; it holds no id and no mention of a review. The header commit has the second id-less subject `docs(02-08): header revision line after the review fixes (D-12)`, and check C1 accepts both id-less subjects and counts neither toward an id. The version stays 1.4. |
 
 ## Dispositions of the open questions OQ-1 to OQ-7
 
@@ -137,6 +176,79 @@ The ids DC-01 to DC-27 come from the research register. The ids DC-28 onward wer
 | OQ-5 | Cite the decision record in the text | The text cites none; check X1 passes (DC-17). |
 | OQ-6 | `core` `supersede` | Closes as `cancelled` with `replaced_by` (DC-02). |
 | OQ-7 | Items no requirement owns: exit codes and the text-versus-binary rule | Exit codes: no requirement owns them and none were added; handed to the engine phases with the list of stable issue codes. The text-versus-binary rule: 25.2 states the constraint (depends on the bytes only) and a SHOULD default; the concrete rule goes to the engine phases. |
+
+## Dispositions of the review findings
+
+The advisory review of the proposed text found 3 critical findings (CR), 27 warnings (WR) and 14 information items (IN). Every finding has one row. FIXED means that the text was changed so that the finding no longer applies. FIXED-CONSERVATIVE means that the text was changed with the most conservative reading and that a question for the owner remains (OQ-8 to OQ-15). RECORDED means that no text was changed and the item is kept for the Phase 3 packet; no CR or WR finding is RECORDED. Counts: 30 FIXED, 10 FIXED-CONSERVATIVE, 0 DEFERRED-TO-OWNER, 4 RECORDED.
+
+| Finding | Disposition | Where | Evidence | DC |
+|---|---|---|---|---|
+| CR-01 | FIXED-CONSERVATIVE | 23.3 | AE-272 | DC-111 |
+| CR-02 | FIXED | 24.5, 25.1 | AE-282 | DC-123 |
+| CR-03 | FIXED | 24 intro, 16.1, 16.4, 24.9 | AE-286 | DC-125 |
+| WR-01 | FIXED | 24.7, 24.2, 23.4, 8.3 | AE-279 | DC-118 |
+| WR-02 | FIXED | 8.3 | AE-121, AE-122 | DC-119 |
+| WR-03 | FIXED | 5.6 | AE-52 | DC-108 |
+| WR-04 | FIXED | 19, 20 | AE-270 | DC-109 |
+| WR-05 | FIXED | 5.6, 23.3 | AE-271 | DC-110 |
+| WR-06 | FIXED-CONSERVATIVE | 23.3, 23.7, 24.2 | AE-273, AE-222, AE-223 | DC-112 |
+| WR-07 | FIXED-CONSERVATIVE | 24.2, 8.5, 23.6 | AE-280 | DC-120 |
+| WR-08 | FIXED | 23.4 | AE-274 | DC-113 |
+| WR-09 | FIXED | 23.4, 23.5, 24.8 | AE-275 | DC-114 |
+| WR-10 | FIXED | 23.7, 24.3 | AE-276 | DC-115 |
+| WR-11 | FIXED | 23.4, 24.4 | AE-278 | DC-116 |
+| WR-12 | FIXED | 25.3 | AE-211 | DC-126 |
+| WR-13 | FIXED | 24.2, 25.1 | AE-281 | DC-121 |
+| WR-14 | FIXED | 25.1 | AE-283 | DC-124 |
+| WR-15 | FIXED | 4.3, 25.1 | AE-195 | DC-127 |
+| WR-16 | FIXED | 25.1, 23.2 | AE-284 | DC-128 |
+| WR-17 | FIXED | 25.1 | AE-285 | DC-129 |
+| WR-18 | FIXED-CONSERVATIVE | 5.3, 17 | AE-290, AE-226 | DC-134 |
+| WR-19 | FIXED-CONSERVATIVE | 5.6, 23.1 | AE-291 | DC-135 |
+| WR-20 | FIXED-CONSERVATIVE | 5.4 | AE-292 | DC-136 |
+| WR-21 | FIXED-CONSERVATIVE | 5.4 | AE-293 | DC-137 |
+| WR-22 | FIXED | 22.1, 22.3 | AE-287 | DC-132 |
+| WR-23 | FIXED | 4.3, 23.1, 23.4, 16.1 | AE-288 | DC-133 |
+| WR-24 | FIXED-CONSERVATIVE | 24.3, 24.10, 25.1 | AE-289, AE-159 | DC-130 |
+| WR-25 | FIXED-CONSERVATIVE | 9.4 | AE-263 | DC-138 |
+| WR-26 | FIXED-CONSERVATIVE | 6.1, 9.6, 24.5 | AE-294, AE-253 | DC-139 |
+| WR-27 | FIXED | 25.2 | AE-198 | DC-131 |
+| IN-01 | FIXED | 5.3 | AE-221 | DC-140 |
+| IN-02 | RECORDED | 5.4, 25.1, 25.3, 23.5, 24.3 | AE-293 for the A0 paragraph; none for the four other sites | DC-140 |
+| IN-03 | FIXED | 24.5, 24.7 | AE-154, AE-102 | DC-122, DC-131 |
+| IN-04 | FIXED | 24.10 | AE-161 | DC-131 |
+| IN-05 | FIXED | 25.2 | wording, no behavioral rule | DC-131 |
+| IN-06 | FIXED | 12.1 | wording, no behavioral rule | DC-122 |
+| IN-07 | FIXED | 4.3, 23.1 | wording, no behavioral rule | DC-131 |
+| IN-08 | RECORDED | 4.2, 16.4, 5.3 | none; AE-227 is unchanged in this respect | DC-140 |
+| IN-09 | FIXED | 11.2 | AE-268 | DC-122 |
+| IN-10 | FIXED | 24.3 | AE-129 | DC-131 |
+| IN-11 | RECORDED | 4.2, 23.1 | none | DC-140 |
+| IN-12 | FIXED | 5.3 | AE-227 | DC-140 |
+| IN-13 | FIXED | 23.5 | AE-277 | DC-117 |
+| IN-14 | RECORDED | 24.9, 3.7, 5.2 | none | DC-140 |
+
+## Recorded findings
+
+- IN-02: the A0 paragraph of 5.4 has an example (AE-293). Four rules still have no example of their own: the refusal of `migrate` for a file that already has the target version and the failing step that discards the earlier steps (25.3), the duplicate-key rule of the state document (25.1; AE-188 covers the layout only), the `expires` field and the overdue wait of 23.5, and the refusal of an unprotected key (24.3; AE-134 shows the risk only). The alternative acceptance condition that 3.9 allows was not written for them.
+- IN-08: the exception of 4.2 is recorded in the Deviations of the evidence of the change (16.4), a conditional document that is normally written late, while the check of 5.3 runs when the change is created and again before the gate definitions are approved. An earlier home (a section of `spec.md` that is part of the hashed gate definitions) was not added.
+- IN-11: 4.2 says that local specifications MUST NOT weaken the project-wide definitions and that a `core` change has no exception, but the text does not state whether the files under `docs/definitions/` bind a `core` change.
+- IN-14: 24.9 requires an executable command for every requirement in both method profiles, while 3.7 and 5.2 let tailoring change the depth of evidence; the text does not say how a requirement that cannot be run (a visual or process requirement) is dispositioned.
+
+## Owner questions OQ-8 to OQ-15
+
+Each question is left open by a conservative reading in the text. None of them is answered here.
+
+| ID | Question | Finding | Reading in the draft |
+|---|---|---|---|
+| OQ-8 | Restore a `review` gate kind with an action that records a review result (reviewer, reviewed revision, result)? | CR-01 | The kind is dropped; a review is a `sign-off` or a `check` gate (DC-111). |
+| OQ-9 | May a `core` change use combination mode, so that layer 6 applies to it? | WR-18 | No; layer 6 gives a `core` change no gate and combination mode is specified for `full` (DC-134). |
+| OQ-10 | May a change name a compliance profile that is stricter than the active one of the project? | WR-19 | No; the compliance profile of a change equals the one of the project (DC-135). |
+| OQ-11 | May an agent self-approve under `lean`? | WR-20 | No; self-approval means the requesting human (DC-136). |
+| OQ-12 | Should the decisions of 5.4 have an assurance floor above A0? | WR-21 | No floor; the level that 24.3 requires applies, A0 when none is stated (DC-137). |
+| OQ-13 | Should the assurance-relevant configuration be protected beyond the recorded required level (hashed into the gate definitions or kept outside the working tree)? | WR-24 | No; the ratchet covers the approval kinds and the residual is stated in 24.3 (DC-130). |
+| OQ-14 | May a question stay open through the phases before the Definition of Done of the specify phase? | WR-25 | The question stays open; `complete` answers `blocked` and the Definition of Done is not satisfied (DC-138). |
+| OQ-15 | Should an approved opt-out replace the required allowed path list of a `full` change? | WR-26 | No opt-out; the list is required for Ready-to-Build (DC-139). |
 
 ## Flagged edge and prohibition items
 
@@ -166,10 +278,15 @@ These rest on reasoning or on a single decision and no prototype or test exercis
 - The A1 verifier of 24.3 (platform review is not tested directly and cannot serve a participant who works alone).
 - The rule that a retry limit is a soft fail condition (reasoning).
 - The path pattern syntax (F1 above).
+- The condition forms of a `core` fail or wait gate (`command`, `retry_limit`, `predicate`) in 23.3 (DC-112).
+- Evaluation by group with the early stop in 24.2, 8.5 and 23.6 (DC-120).
+- The `requirements` member of the gate definitions of `full` and the heading `Evidence Commands` as the home of an evidence command (DC-125), and the hashed value of a command as text.
+- The identifier syntax of 4.3 (DC-133), in particular reserved device names with an extension and non-ASCII case folding.
+- Scope evaluation from the first approval of the gate definitions in `full` (DC-139).
 
 ## Version note
 
-The header of the proposed text reads `Version: 1.4` and a Revision line dated 2026-10-24 (DC-106). The number is a drafting value so that it can be changed in one line. Version 1.3 stays pinned in three places that this phase does not touch (see the hand-off list).
+The header of the proposed text reads `Version: 1.4` and a Revision line dated 2026-10-25 (DC-106, DC-141). The number is a drafting value so that it can be changed in one line. Version 1.3 stays pinned in three places that this phase does not touch (see the hand-off list).
 
 ## Hand-off list (engine phases 5 to 8)
 
@@ -182,11 +299,13 @@ Files and values that this phase does not change and that the engine phases must
 - The concrete text-versus-binary rule for content hashing (25.2 states the constraint and a SHOULD default only).
 - Configuration keys that the text does not name: the minimum assurance levels, the interpreter, the platform account mapping, the signers file location, the anchor location, and the default method profile. Also the spelling of the statement format identifier, the signature scheme, and the storage of the anchor.
 - The reference implementation refuses a change that selects `full`; the realizations in the table of the section 24 intro stay specified but not implemented.
+- Names and fields that plans 06 to 08 added to the text: the in-progress file `state.json.tmp` and the lock object `state.json.lock` in the change directory (both exempt from the scope measurement); the fields `reason` and `required_level` of the state document; the closed set of `action` names; the condition forms `command`, `retry_limit` and `predicate` of a `core` fail or wait gate; the heading `Evidence Commands` of the change specification template and the members `requirements`, `evidence_commands` and `id` of the gate definitions of `full`; the identifier syntax of 4.3. The stable issue codes are unchanged by plans 06 to 08.
 
 ## Commit structure
 
 - Each requirement has its own commit or commits whose subject begins `docs(02-NN): SPEC-nn`. Several requirements have more than one commit because the parts are independent or because a part would otherwise have broken an additions-only check: SPEC-12 has three (5.6; section 23; applicability and markers), SPEC-14 has three (realization table; examples for sections 4 to 8 and the realizations; examples for the definitions of ready, done, wait, and fail), SPEC-18 has two (section 25.3; the `schema_version` field of the change definition). SPEC-15 has one: the reference-fix commit that plan 04 allowed for was not needed, because the reference check found nothing dangling.
-- The header commit `docs(02-05): header Version 1.4 and revision line (D-12)` is the last commit that touches the text. It implements the version decision, so its subject names no requirement id; the check C1 accepts exactly that subject and counts it toward no id.
+- Two header subjects name no requirement id: `docs(02-05): header Version 1.4 and revision line (D-12)` (the version and the first Revision line) and `docs(02-08): header revision line after the review fixes (D-12)` (the Revision line after the amendments of plans 06 to 08). The second is the last commit that touches the text. The check C1 accepts exactly these two subjects and counts neither toward an id.
+- Plans 06 to 08 changed the text in the following commits. Plan 06 made four commits that touch the text (applicability; core gates, actions and wait records; the anchor of a new change; evaluation order and results) and one commit for the check script (R9, J1). Plan 07 made five commits that touch the text (write protection and body fields; evidence commands in the frozen definitions of `full`; schema version order and content hash examples; contract operations and change identifiers; recorded required level and interpreter). Plan 08 made one commit for the check script (D1 and the second header subject), three commits that touch the text with a subject that names requirement ids (resolution layers and compliance profile; approval and the A0 claim; open questions and the allowed path list), the header commit, the commit of this register and the commit of the identity note.
 - SPEC-13 (nothing under `src/ggsad/` changes) has no commit: it is met by the checks S1 and S2 and by an empty diff under `src/ggsad/`, deliberately.
 - Plan 02 rewrote local history once, before any push, to repair a gap in the example ids; the tree is the same as before the rewrite apart from that one example, and each requirement still has one commit.
 
@@ -200,4 +319,4 @@ The set of operations that the comparison of gate definitions does not stop is w
 
 ## Verification record
 
-The Python baseline is not run (no Python changed in this phase). The shell checks are the read-only script of this phase, run with `--final`; its output is quoted in the summary of plan 05 and in the identity note.
+The Python baseline is not run (no Python changed in this phase). The shell checks are the read-only script of this phase, run with `--final`; its output is quoted in the summaries of plans 05 to 08 and in the identity note. From plan 08 on it also runs check D1, which requires exactly one row for each of the 44 findings in the table "Dispositions of the review findings" of this register.
