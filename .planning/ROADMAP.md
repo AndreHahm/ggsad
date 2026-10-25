@@ -170,7 +170,7 @@ Plans:
   2. The owner has recorded explicit approval, or specific requested changes, before independent review begins (APPR-01)
   3. This phase does not close until an explicit recorded owner approval exists for the diff exactly as it will be merged (APPR-01)
 
-**Plans**: 2/3 plans executed
+**Plans**: 3/3 plans executed
 
 Plans:
 **Wave 1**
@@ -183,7 +183,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion; has the owner checkpoint)*
 
-- [ ] 03-03-PLAN.md — Pre-flight (tracer), the owner answers the fifteen questions through the orchestrator, the record and the closing check; APPR-01 is satisfied only by an approved record (APPR-01)
+- [x] 03-03-PLAN.md — Pre-flight (tracer), the owner answers the fifteen questions through the orchestrator, the record and the closing check; APPR-01 is satisfied only by an approved record (APPR-01)
 
 #### Phase 4: Independent Review
 
@@ -270,7 +270,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 |-------|-----------|----------------|--------|-----------|
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
-| 3. Owner Approval | v1.1 | 2/3 | In Progress|  |
+| 3. Owner Approval | v1.1 | 3/3 | In Progress|  |
 | 4. Independent Review | v1.1 | 0/TBD | Not started | - |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
