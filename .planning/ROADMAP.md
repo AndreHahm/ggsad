@@ -201,19 +201,19 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Check script core and note skeleton: pins, approval tie, scope and status end-to-end (tracer), then the neutral review brief with its pass partition, the snapshot of inputs and a dry run that sends nothing (REVIEW-01)
+- [ ] 04-01-PLAN.md — Check script core and note skeleton: pins, approval tie, scope and status end-to-end (tracer), then the neutral review brief with its pass partition, the snapshot of inputs, the synthetic pilot inputs and the run set, seeded fixtures and a dry run that sends nothing (REVIEW-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-PLAN.md — Report parser (tracer): framing, identity, inputs, coverage, findings and every reference resolved against the pinned text; then the mechanical findings table, the section printers and the stage reported, verified on fixtures only (REVIEW-01)
+- [ ] 04-02-PLAN.md — Report parser (tracer): framing, identity, inputs, coverage, findings, every reference resolved against the pinned text and a truncation-claim warning; then the mechanical findings table, the section printers, the stage reported and the pilot mode, verified on fixtures only (REVIEW-01)
 
 **Wave 3** *(blocked on Wave 2 completion; has the consent checkpoint)*
 
-- [ ] 04-03-PLAN.md — Pre-flight (tracer), the owner consents to send exactly the run set to Devin, six separate headless passes with containment checks after each, and the verbatim reports and derived findings table in the review note (REVIEW-01)
+- [ ] 04-03-PLAN.md — Pre-flight (tracer), the owner consents to send exactly one run set to Devin (a containment and format pilot on synthetic input plus six passes), the pilot and six separate headless passes run with containment checks after each, then the verbatim reports, the derived findings table and the consent trail in the review note (REVIEW-01)
 
 **Wave 4** *(blocked on Wave 3 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-04-PLAN.md — Stage dispositioned and the disposition skeleton (tracer), the owner dispositions each BLOCKING finding (fix, accept, defer or reject, with reasons), the record and the closing check; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
+- [ ] 04-04-PLAN.md — Stage dispositioned and the disposition skeleton (tracer), seeded fixtures, the owner dispositions each BLOCKING finding (fix, accept, defer or reject, with reasons), the record and the closing check; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
