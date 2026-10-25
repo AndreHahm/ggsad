@@ -6,8 +6,8 @@
 # Usage: 04-check-independent-review.sh [options]
 #   --stage STAGE     pins (default): the pin and note checks listed below; brief: those and the checks of
 #                     the review brief; reported: those with the reported forms of T1, P0 and N1, and the checks
-#                     CT1, RPS, RP1 to RP9 on each quoted report, F1 and F2. Later stages are added by later
-#                     plans
+#                     CT1, RPS, RP1 to RP9 on each quoted report, F1 and F2; dispositioned: those with the
+#                     dispositioned forms of T1 and F1, and the checks D1 to D8 on the disposition record
 #   --note PATH       the review note (default: the note path of the repository; relative paths are taken
 #                     from the repository root)
 #   --brief PATH      the review brief (default: the brief path of the repository), read in stage brief
@@ -72,6 +72,17 @@
 #                     derived from the same files, then a blank line; exit 0 (exit 2 if a file is unreadable)
 #   --print-counts    print "total=N blocking=N major=N minor=N info=N" for the quoted reports of --note and
 #                     one line "blocking-id ID" for each BLOCKING finding; exit 0
+#   --record PATH     the review disposition record, read in stage dispositioned (default: the record path of
+#                     the repository; relative paths are taken from the repository root)
+#   --print-disposition-skeleton
+#                     print the skeleton of the review disposition record, derived from the findings table of
+#                     --note: the pins, the reports hash, one block per BLOCKING finding with its question, the
+#                     reply details and the closing line; every field that the owner or the executor completes
+#                     holds the fill marker (@@FILL@@), except that a note without a BLOCKING finding gets the
+#                     determined values. This is the only way a record is created; exit 0 (exit 2 if the
+#                     reports of the note cannot be read)
+#   --finding ID      modifier of --print-disposition-skeleton: print only the block of one finding (any
+#                     finding of the note), to be copied under Other findings dispositioned by the owner
 #   -h, --help        print this text and exit 0
 #
 # Checks of stage pins, all on the review note: E1 no byte order mark and valid UTF-8, E2 LF only, one final
@@ -106,6 +117,20 @@
 # names the pass), F1 the Findings section equals the derived table, F2 the Blocking findings value equals the
 # count of BLOCKING findings and the Requestor notes are the fixed lines, to which lines beginning "- Check
 # warning: " may be added.
+#
+# Checks of stage dispositioned, in addition to the checks of stage reported (T1: the status line of the owner
+# dispositions reads "- Owner dispositions: recorded in the review disposition record"; F1 compares the first four
+# columns of the findings table only), on the record: D1 the record passes the encoding checks and x1_scan (with
+# its own Reports SHA-256 as an additional allowed value), holds no fill marker, has the H1, exactly one
+# "- Review outcome:" line with one of the three outcomes, exactly one "- Owner disposition date:" line and
+# exactly the four H2 headings in order; D2 the pin rows equal the note's, the Reports SHA-256 equals the hash
+# recomputed from the Reports section of the note, the Blocking findings value equals the note's; D3 the blocks
+# under Blocking findings and dispositions are the BLOCKING findings of the table once each in table order, each
+# with the derived question, one of fix, accept, defer, reject and a reason, and the same rules for the blocks
+# under Other findings dispositioned by the owner; D4 the outcome follows from the dispositions; D5 the reply
+# details (name, date) are complete and consistent, or not applicable when nothing was dispositioned; D6 the
+# Disposition cell of each row of the findings table equals the record; D7 What follows holds text and the
+# closing line ends the record; D8 states the closure (a fact, not a failure).
 #
 # Report checks (--report-file; every message names the pass), on the report after normalisation (CR bytes
 # deleted, each tab replaced by four spaces, nothing else): RP1 the first non-blank line is REPORT BEGIN and
@@ -175,6 +200,9 @@ PILOT_DIR=""
 PRINT_TABLE=0
 PRINT_COUNTS=0
 PRINT_SECTIONS=""
+RECORD=".planning/reviews/2026-10-25-normative-spec-review-disposition-record.md"
+PRINT_SKEL=0
+SKEL_FINDING=""
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -209,6 +237,9 @@ while [ "$#" -gt 0 ]; do
     --print-findings-table) PRINT_TABLE=1; shift ;;
     --print-counts) PRINT_COUNTS=1; shift ;;
     --print-sections) need_value "$@"; PRINT_SECTIONS="$2"; shift 2 ;;
+    --record) need_value "$@"; RECORD="$2"; shift 2 ;;
+    --print-disposition-skeleton) PRINT_SKEL=1; shift ;;
+    --finding) need_value "$@"; SKEL_FINDING="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -216,7 +247,11 @@ done
 
 # A brief given with --brief selects stage brief unless --stage is given too.
 if [ "$BRIEF_GIVEN" -eq 1 ] && [ "$STAGE_SET" -eq 0 ]; then STAGE="brief"; fi
-[ "$STAGE" = pins ] || [ "$STAGE" = brief ] || [ "$STAGE" = reported ] || { echo "--stage must be pins, brief or reported" >&2; exit 2; }
+[ "$STAGE" = pins ] || [ "$STAGE" = brief ] || [ "$STAGE" = reported ] || [ "$STAGE" = dispositioned ] || { echo "--stage must be pins, brief, reported or dispositioned" >&2; exit 2; }
+# RLIKE is 1 in the stages that hold the captured reports (reported and dispositioned).
+[ -z "$SKEL_FINDING" ] || [ "$PRINT_SKEL" -eq 1 ] || { echo "--finding is used with --print-disposition-skeleton only" >&2; exit 2; }
+RLIKE=0
+if [ "$STAGE" = reported ] || [ "$STAGE" = dispositioned ]; then RLIKE=1; fi
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
 if [ -n "$VERIFY_OUT" ]; then
   case "$REPORT_PASS" in
@@ -1171,10 +1206,75 @@ if [ -n "$PRINT_SECTIONS" ]; then
   printf '\n'
   exit 0
 fi
-if [ "$PRINT_TABLE" -eq 1 ] || [ "$PRINT_COUNTS" -eq 1 ]; then
+
+# The disposition record: fixed texts, the question derived from a table row, and the printer of the skeleton.
+FILL='@@FILL@@'
+REC_CLOSING='This record is evidence only. It does not change the reviewed file.'
+REC_OUTCOMES=("no blocking findings" "blocking findings dispositioned" "fix pending")
+REC_NAME_Q='Under which name or handle should these dispositions be recorded for the repository owner?'
+REC_DATE_Q='Which date are these dispositions given? Give it as YYYY-MM-DD.'
+REC_NONE_BLOCKING='There is no blocking finding.'
+REC_NONE_OTHER='The owner dispositioned no other finding.'
+REC_NA_FOLLOWS='The independent review returned no blocking finding, so there is nothing for the owner to disposition. The text identified above is unchanged by this review.'
+
+# disp_question ID: the question put to the owner for the finding ID, built character for character from the
+# cells of the derived findings table (the only implementation; the printer and D3 both use it).
+disp_question() {
+  awk -F'\t' -v i="$1" '$1 == i { print "Finding " $1 " (" $2 "). Reference: " $3 ". Summary: " $4 ". What is your disposition: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
+}
+
+# print_finding_block ID: one H3 block of the record for the finding ID.
+print_finding_block() {
+  printf '### %s\n\n- Question: %s\n- Disposition: %s\n- Owner reason: %s\n\n' "$1" "$(disp_question "$1")" "$FILL" "$FILL"
+}
+
+print_skeleton() {
+  local l id n_b rsha bl_note
+  derive_findings "$TMP/rep"
+  if [ -n "$SKEL_FINDING" ]; then
+    awk -F'\t' -v i="$SKEL_FINDING" '$1 == i { f = 1 } END { exit !f }' "$TMP/pt.tsv" || { echo "no finding $SKEL_FINDING in the note" >&2; exit 2; }
+    print_finding_block "$SKEL_FINDING"
+    return 0
+  fi
+  n_b=$(awk -F'\t' '$2 == "BLOCKING"' "$TMP/pt.tsv" | wc -l | tr -d ' ')
+  rsha=$(h2_lines "Reports" "$NT" | sha256sum | cut -d ' ' -f1)
+  bl_note=$(grep -m1 '^- Blocking findings: ' "$NT" | sed 's/^- Blocking findings: //')
+  printf '# Review disposition record: proposed normative method specification\n\n'
+  if [ "$n_b" -eq 0 ]; then
+    printf -- '- Review outcome: no blocking findings\n- Owner disposition date: not applicable\n\n'
+  else
+    printf -- '- Review outcome: %s\n- Owner disposition date: %s\n\n' "$FILL" "$FILL"
+  fi
+  printf '| Field | Value |\n|---|---|\n'
+  for l in "${COPIED_LABELS[@]}"; do printf '| %s | %s |\n' "$l" "$(pin_raw "$TMP/note.pins" "$l")"; done
+  # shellcheck disable=SC2016
+  printf '| Review note file | `%s` |\n| Reports SHA-256 | `%s` |\n| Blocking findings | `%s` |\n' "$NOTE_DEFAULT" "$rsha" "$bl_note"
+  if [ "$n_b" -eq 0 ]; then
+    printf '| Dispositions given by | not applicable |\n| Owner reply | not applicable |\n| Check results | %s |\n\n' "$FILL"
+  else
+    printf '| Dispositions given by | %s |\n| Owner reply | %s |\n| Check results | %s |\n\n' "$FILL" "$FILL" "$FILL"
+  fi
+  printf '## Blocking findings and dispositions\n\n'
+  if [ "$n_b" -eq 0 ]; then
+    printf '%s\n\n' "$REC_NONE_BLOCKING"
+  else
+    while IFS= read -r id; do print_finding_block "$id"; done < <(awk -F'\t' '$2 == "BLOCKING" { print $1 }' "$TMP/pt.tsv")
+  fi
+  printf '## Other findings dispositioned by the owner\n\n%s\n\n' "$REC_NONE_OTHER"
+  if [ "$n_b" -eq 0 ]; then
+    printf '## Reply details\n\n### Name\n\n- Question: %s\n- Answer: not applicable\n\n### Date\n\n- Question: %s\n- Answer: not applicable\n\n' "$REC_NAME_Q" "$REC_DATE_Q"
+    printf '## What follows\n\n%s\n\n%s\n' "$REC_NA_FOLLOWS" "$REC_CLOSING"
+  else
+    printf '## Reply details\n\n### Name\n\n- Question: %s\n- Answer: %s\n\n### Date\n\n- Question: %s\n- Answer: %s\n\n' "$REC_NAME_Q" "$FILL" "$REC_DATE_Q" "$FILL"
+    printf '## What follows\n\n%s\n\n%s\n' "$FILL" "$REC_CLOSING"
+  fi
+}
+
+if [ "$PRINT_TABLE" -eq 1 ] || [ "$PRINT_COUNTS" -eq 1 ] || [ "$PRINT_SKEL" -eq 1 ]; then
   if ! reports_extract "$TMP/rep"; then echo "cannot read the quoted reports of the note: $RPS_MSG" >&2; exit 2; fi
   if [ "$PRINT_TABLE" -eq 1 ]; then print_table "$TMP/rep"; fi
   if [ "$PRINT_COUNTS" -eq 1 ]; then print_counts "$TMP/rep"; fi
+  if [ "$PRINT_SKEL" -eq 1 ]; then print_skeleton; fi
   exit 0
 fi
 
@@ -1210,7 +1310,7 @@ if [ -z "$p0" ]; then
   [ -n "$p0" ] || [[ "$N_DIFF" =~ ^[0-9]+\ files?\ changed(,\ [0-9]+\ insertions?\(\+\))?(,\ [0-9]+\ deletions?\(-\))?$ ]] || p0="Diffstat [$N_DIFF] does not have the form of git shortstat"
   if [ -z "$p0" ]; then
     for l in "${CONSENT_LABELS[@]}"; do
-      if [ "$STAGE" = reported ]; then
+      if [ "$RLIKE" -eq 1 ]; then
         if [ "$(pin_tok "$TMP/note.pins" "$l")" = pending ]; then p0="the row [$l] still reads pending in stage reported"; break; fi
       elif [ "$(pin_tok "$TMP/note.pins" "$l")" != pending ]; then
         p0="the row [$l] does not read pending in stage $STAGE"; break
@@ -1220,7 +1320,7 @@ if [ -z "$p0" ]; then
 fi
 if [ -n "$p0" ]; then
   fail P0 "$p0"
-elif [ "$STAGE" = reported ]; then
+elif [ "$RLIKE" -eq 1 ]; then
   pass P0 "the pin table has the twelve rows once, each one backticked well-formed value, the consent rows filled"
 else
   pass P0 "the pin table has the twelve rows once, each one backticked well-formed value, the consent rows pending"
@@ -1312,28 +1412,37 @@ for lab in "Independent review" "Owner dispositions" "Blocking findings"; do
   n=$(grep -c "^- $lab:" "$NT")
   if [ "$n" -ne 1 ]; then t1="$n lines start with [- $lab:], expected one"; break; fi
   line=$(grep "^- $lab:" "$NT")
-  if [ "$STAGE" = reported ]; then
+  if [ "$RLIKE" -eq 1 ]; then
     case "$lab" in
       "Independent review") [ "$line" = "- Independent review: reported" ] || { t1="the status line is [$line], expected [- Independent review: reported] in stage reported"; break; } ;;
-      "Owner dispositions") [ "$line" = "- Owner dispositions: pending" ] || { t1="the status line is [$line], expected [- Owner dispositions: pending] in stage reported"; break; } ;;
-      *) [[ "$line" =~ ^-\ Blocking\ findings:\ [0-9]{1,6}$ ]] || { t1="the status line is [$line], expected [- Blocking findings: N] in stage reported"; break; } ;;
+      "Owner dispositions")
+        if [ "$STAGE" = dispositioned ]; then
+          [ "$line" = "- Owner dispositions: recorded in the review disposition record" ] || { t1="the status line is [$line], expected [- Owner dispositions: recorded in the review disposition record] in stage dispositioned"; break; }
+        else
+          [ "$line" = "- Owner dispositions: pending" ] || { t1="the status line is [$line], expected [- Owner dispositions: pending] in stage reported"; break; }
+        fi ;;
+      *) [[ "$line" =~ ^-\ Blocking\ findings:\ [0-9]{1,6}$ ]] || { t1="the status line is [$line], expected [- Blocking findings: N] in stage $STAGE"; break; } ;;
     esac
   elif [ "$line" != "- $lab: pending" ]; then
     t1="the status line is [$line], expected [- $lab: pending] in stage $STAGE"; break
   fi
 done
-if [ -z "$t1" ] && [ "$STAGE" != reported ]; then
+if [ -z "$t1" ] && [ "$RLIKE" -ne 1 ]; then
   got=$(h2_lines "Reports" "$NT" | grep -v '^[[:space:]]*$')
   [ "$got" = "No report has been captured yet." ] || t1="the section Reports does not hold exactly its placeholder sentence"
 fi
-if [ -z "$t1" ] && [ "$STAGE" != reported ]; then
+if [ -z "$t1" ] && [ "$RLIKE" -ne 1 ]; then
   got=$(h2_lines "Findings" "$NT" | grep -v '^[[:space:]]*$')
   [ "$got" = "No findings table has been derived yet." ] || t1="the section Findings does not hold exactly its placeholder sentence"
 fi
 if [ -n "$t1" ]; then
   fail T1 "$t1"
-elif [ "$STAGE" = reported ]; then
-  pass T1 "the status lines read reported, pending and a blocking count"
+elif [ "$RLIKE" -eq 1 ]; then
+  if [ "$STAGE" = dispositioned ]; then
+    pass T1 "the status lines read reported, recorded in the review disposition record and a blocking count"
+  else
+    pass T1 "the status lines read reported, pending and a blocking count"
+  fi
 else
   pass T1 "the three status lines read pending; Reports and Findings hold only their placeholder sentences"
 fi
@@ -1373,7 +1482,7 @@ else
 fi
 [ -n "$n1" ] || [ "${ind[0]}" = "- Requestor: Claude Code" ] || n1="the Requestor bullet is not exactly [- Requestor: Claude Code]"
 [ -n "$n1" ] || [ "${ind[1]}" = "- Reviewer: Devin CLI, a different product from a different vendor than the Requestor" ] || n1="the Reviewer bullet is not the fixed sentence"
-if [ -z "$n1" ] && [ "$STAGE" = reported ]; then
+if [ -z "$n1" ] && [ "$RLIKE" -eq 1 ]; then
   rv_ver=${ind[2]#- Reviewer version: }
   rv_model=${ind[3]#- Reviewer model: }
   rv_low=${rv_model,,}
@@ -1391,7 +1500,7 @@ if [ -n "$n1" ]; then fail N1 "$n1"; else pass N1 "the Independence section has 
 msg=$(x1_scan "$NT" "$TMP/real.hashes" "$TMP/real")
 if [ -n "$msg" ]; then fail X1 "note: $msg"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
 
-if [ "$STAGE" = brief ] || [ "$STAGE" = reported ]; then
+if [ "$STAGE" = brief ] || [ "$RLIKE" -eq 1 ]; then
   readable "$BR" "$BRIEFFILE"
 
   # V1: the pass table of the brief partitions the text. A heading number is mapped to the line of the heading
@@ -1604,7 +1713,7 @@ HEADINGS
   if [ -n "$pl2" ]; then fail PL2 "$pl2"; else pass PL2 "the pilot brief reuses the severity scale, the output format and the rules of the brief byte for byte and carries the containment test"; fi
 fi
 
-if [ "$STAGE" = reported ]; then
+if [ "$RLIKE" -eq 1 ]; then
   # CT1: the consent trail. The Run set value equals the id that --print-run-set prints for the Reviewer model of
   # the note, the Consent question contains that id and the model, the Consent answer is exactly Consent, and no
   # consent row holds a vertical bar.
@@ -1640,6 +1749,13 @@ if [ "$STAGE" = reported ]; then
     # F1: the Findings section equals the table derived from the quoted reports.
     print_table "$TMP/rep" | grep -v '^[[:space:]]*$' > "$TMP/f1.exp"
     h2_lines "Findings" "$NT" | grep -v '^[[:space:]]*$' > "$TMP/f1.act"
+    if [ "$STAGE" = dispositioned ]; then
+      # In stage dispositioned only the first four columns are compared; the Disposition cells are judged by D6.
+      for f1c in exp act; do
+        awk -F'|' '/^\|/ { print $2 "|" $3 "|" $4 "|" $5; next } { print }' "$TMP/f1.$f1c" > "$TMP/f1.$f1c.cut"
+        mv "$TMP/f1.$f1c.cut" "$TMP/f1.$f1c"
+      done
+    fi
     if cmp -s "$TMP/f1.exp" "$TMP/f1.act"; then
       pass F1 "the Findings section equals the table derived from the quoted reports ($(wc -l < "$TMP/pt.tsv" | tr -d ' ') findings)"
     else
@@ -1674,6 +1790,252 @@ elif [ -z "$n_block" ]; then
 else
   pass F2 "the Blocking findings value is [$got], equal to the count of BLOCKING findings, and the Requestor notes are the fixed lines"
 fi
+fi
+
+# parse_blocks SECTION OUT: one line per H3 block of the H2 section SECTION of the record REC, with the fields
+# "#id TAB status TAB =question line TAB =disposition TAB =reason" (every field but the status carries a leading
+# marker character so that an empty value survives the tab-separated read). The status is ok or the problem.
+parse_blocks() {
+  h2_lines "$1" "$REC" | awk '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    function val(l, p) { return trim(substr(l, length(p) + 1)) }
+    function flush() {
+      if (id == "") return
+      if (bad == "" && st < 3) bad = "the block lacks the bullets Question, Disposition, Owner reason in that order"
+      print "#" id "\t" (bad == "" ? "ok" : bad) "\t=" q "\t=" d "\t=" trim(r)
+    }
+    /^### / { flush(); id = trim(substr($0, 5)); q = ""; d = ""; r = ""; bad = ""; st = 0; next }
+    id == "" { next }
+    st == 3 { r = r " " $0; next }
+    NF == 0 { next }
+    st == 0 { if (index($0, "- Question: ") == 1) { q = $0; st = 1 } else { bad = "the first bullet is not [- Question: ]"; st = 9 }; next }
+    st == 1 { if (index($0, "- Disposition:") == 1) { d = val($0, "- Disposition:"); st = 2 } else { bad = "the second bullet is not [- Disposition: ]"; st = 9 }; next }
+    st == 2 { if (index($0, "- Owner reason:") == 1) { r = val($0, "- Owner reason:"); st = 3 } else { bad = "the third bullet is not [- Owner reason: ]"; st = 9 }; next }
+    END { flush() }
+  ' > "$2"
+}
+
+# trim_ws TEXT: print TEXT without leading and trailing white space.
+trim_ws() { printf '%s' "$1" | sed 's/^[ \t]*//; s/[ \t]*$//'; }
+
+# dispositioned_checks: D1 to D8 on the record REC (a copy of --record). Needs the derived findings in pt.tsv.
+dispositioned_checks() {
+  local d1 d2 d3 d5 d6 d7 l n lab_str rsha_calc rec_rsha note_bl outcome date_line want_out
+  local id st q d r exp_q sev nfix n_other need_owner approval_date name_a date_a given_by cell
+  local -a want_b=() got_b=() rd=()
+  local -A recdisp=()
+  REC="$TMP/record"
+  if ! { [ -f "$RECORD" ] && [ -r "$RECORD" ] && cp "$RECORD" "$REC" 2> /dev/null; }; then
+    fail D1 "the disposition record cannot be read"
+    return 0
+  fi
+  parse_pins "$REC" "" "$TMP/rec.pins"
+  outcome=$(grep -m1 '^- Review outcome:' "$REC" | sed 's/^- Review outcome:[ ]*//')
+  date_line=$(grep -m1 '^- Owner disposition date:' "$REC" | sed 's/^- Owner disposition date:[ ]*//')
+
+  # D1: encoding, H1, fill marker, self-containment, the outcome and date lines, the four H2 headings.
+  d1=$(enc1 "$REC")
+  [ -n "$d1" ] || d1=$(enc2 "$REC")
+  if [ -z "$d1" ] && [ "$(head -n1 "$REC")" != "# Review disposition record: proposed normative method specification" ]; then
+    d1="the first line is not the H1 of the record"
+  fi
+  if [ -z "$d1" ] && grep -q -F -e "$FILL" "$REC"; then
+    d1="the fill marker is still in the record (line $(grep -n -m1 -F -e "$FILL" "$REC" | cut -d: -f1))"
+  fi
+  if [ -z "$d1" ]; then
+    rec_rsha=$(pin_tok "$TMP/rec.pins" "Reports SHA-256")
+    cp "$TMP/real.hashes" "$TMP/rec.hashes"
+    if [[ "$rec_rsha" =~ ^[0-9a-f]{64}$ ]]; then printf 'RECORD %s\n' "$rec_rsha" >> "$TMP/rec.hashes"; fi
+    d1=$(x1_scan "$REC" "$TMP/rec.hashes" "$TMP/real")
+  fi
+  if [ -z "$d1" ]; then
+    n=$(grep -c '^- Review outcome:' "$REC")
+    if [ "$n" -ne 1 ]; then
+      d1="$n lines start with [- Review outcome:], expected one"
+    elif [ "$outcome" != "${REC_OUTCOMES[0]}" ] && [ "$outcome" != "${REC_OUTCOMES[1]}" ] && [ "$outcome" != "${REC_OUTCOMES[2]}" ]; then
+      d1="the outcome [${outcome:0:60}] is not one of [no blocking findings], [blocking findings dispositioned], [fix pending]"
+    elif [ "$(grep -c '^- Owner disposition date:' "$REC")" -ne 1 ]; then
+      d1="the record does not hold exactly one line [- Owner disposition date:]"
+    fi
+  fi
+  if [ -z "$d1" ]; then
+    awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$REC" > "$TMP/rec.h2"
+    printf '%s\n' "## Blocking findings and dispositions" "## Other findings dispositioned by the owner" "## Reply details" "## What follows" > "$TMP/rec.h2.exp"
+    cmp -s "$TMP/rec.h2.exp" "$TMP/rec.h2" || d1="the H2 headings are not exactly the four in the stated order (first difference: $(diff "$TMP/rec.h2.exp" "$TMP/rec.h2" | grep -m1 '^[<>]'))"
+  fi
+  if [ -n "$d1" ]; then fail D1 "record: $d1"; else pass D1 "the record is valid UTF-8 with LF only, has no fill marker, local path, address, link, scratch reference or foreign hash-like token, one outcome line, one date line and the four H2 headings"; fi
+
+  # D2: the pin rows equal the note's.
+  d2=""
+  REC_LABELS=("${COPIED_LABELS[@]}" "Review note file" "Reports SHA-256" "Blocking findings" "Dispositions given by" "Owner reply" "Check results")
+  for l in "${REC_LABELS[@]}"; do
+    n=$(pin_count "$TMP/rec.pins" "$l")
+    if [ "$n" -ne 1 ]; then d2="the record table has $n rows labelled [$l], expected one"; break; fi
+  done
+  if [ -z "$d2" ]; then
+    lab_str=$(IFS='|'; echo "${REC_LABELS[*]}")
+    l=$(awk -F'\t' -v labs="$lab_str" 'BEGIN { n = split(labs, a, "|"); for (i = 1; i <= n; i++) ok[a[i]] = 1 } !($1 in ok) { print $1; exit }' "$TMP/rec.pins")
+    [ -z "$l" ] || d2="the record table has an unexpected row [$l]"
+  fi
+  if [ -z "$d2" ]; then
+    for l in "${COPIED_LABELS[@]}"; do
+      if [ "$(pin_raw "$TMP/rec.pins" "$l")" != "$(pin_raw "$TMP/note.pins" "$l")" ]; then d2="the row [$l] of the record differs from the note"; break; fi
+    done
+  fi
+  if [ -z "$d2" ] && [ "$(pin_raw "$TMP/rec.pins" "Review note file")" != "\`$NOTE_DEFAULT\`" ]; then
+    d2="Review note file is not \`$NOTE_DEFAULT\`"
+  fi
+  if [ -z "$d2" ]; then
+    rsha_calc=$(h2_lines "Reports" "$NT" | sha256sum | cut -d ' ' -f1)
+    if [ "$(pin_raw "$TMP/rec.pins" "Reports SHA-256")" != "\`$rsha_calc\`" ]; then d2="Reports SHA-256 of the record is not the hash of the Reports section of the note ($rsha_calc)"; fi
+  fi
+  if [ -z "$d2" ]; then
+    note_bl=$(grep -m1 '^- Blocking findings: ' "$NT" | sed 's/^- Blocking findings: //')
+    if [ "$(pin_raw "$TMP/rec.pins" "Blocking findings")" != "\`$note_bl\`" ]; then d2="Blocking findings of the record is not the value [$note_bl] of the note"; fi
+  fi
+  if [ -z "$d2" ]; then
+    for l in "Dispositions given by" "Owner reply" "Check results"; do
+      if [ -z "$(pin_raw "$TMP/rec.pins" "$l")" ]; then d2="the row [$l] is empty"; break; fi
+    done
+  fi
+  if [ -n "$d2" ]; then fail D2 "$d2"; else pass D2 "the seven pin rows, the note file, the Reports SHA-256 and the blocking count equal the note's; the three owner rows are filled"; fi
+
+  # D3: the blocks.
+  d3=""
+  parse_blocks "Blocking findings and dispositions" "$TMP/rec.bblocks"
+  parse_blocks "Other findings dispositioned by the owner" "$TMP/rec.oblocks"
+  n_other=$(wc -l < "$TMP/rec.oblocks" | tr -d ' ')
+  : > "$TMP/rec.alld"
+  mapfile -t want_b < <(awk -F'\t' '$2 == "BLOCKING" { print $1 }' "$TMP/pt.tsv")
+  mapfile -t got_b < <(cut -f1 "$TMP/rec.bblocks" | sed 's/^#//')
+  l=$(h2_lines "Blocking findings and dispositions" "$REC" | awk '/^### / { exit } NF')
+  if [ "${#want_b[@]}" -eq 0 ]; then
+    if [ "$l" != "$REC_NONE_BLOCKING" ] || [ "${#got_b[@]}" -ne 0 ]; then d3="the note has no BLOCKING finding, so the section Blocking findings and dispositions must hold only the sentence [$REC_NONE_BLOCKING]"; fi
+  elif [ -n "$l" ]; then
+    d3="the section Blocking findings and dispositions holds text before its first block"
+  elif [ "${got_b[*]:-}" != "${want_b[*]}" ]; then
+    d3="the blocks under Blocking findings and dispositions are [${got_b[*]:-none}], the BLOCKING findings of the table are [${want_b[*]}] (each once, in table order)"
+  fi
+  while [ -z "$d3" ] && IFS=$'\t' read -r id st q d r; do
+    id=${id#\#}; q=${q#=}; d=${d#=}; r=${r#=}
+    if [ "$st" != ok ]; then d3="block $id: $st"; break; fi
+    exp_q="- Question: $(disp_question "$id")"
+    if [ "$q" != "$exp_q" ]; then d3="block $id: the question differs from the one derived from the findings table"; break; fi
+    case "$d" in fix|accept|defer|reject) ;; *) d3="block $id: the disposition [${d:0:40}] is not one of fix, accept, defer, reject"; break ;; esac
+    if [ -z "$r" ]; then d3="block $id: the owner reason is empty"; break; fi
+    recdisp[$id]=$d
+    echo "$d" >> "$TMP/rec.alld"
+  done < "$TMP/rec.bblocks"
+  if [ -z "$d3" ]; then
+    l=$(h2_lines "Other findings dispositioned by the owner" "$REC" | awk '/^### / { exit } NF')
+    if [ "$n_other" -eq 0 ]; then
+      [ "$l" = "$REC_NONE_OTHER" ] || d3="the section Other findings dispositioned by the owner holds no block and must hold only the sentence [$REC_NONE_OTHER]"
+    elif [ -n "$l" ]; then
+      d3="the section Other findings dispositioned by the owner holds text before its first block"
+    elif [ -n "$(cut -f1 "$TMP/rec.oblocks" | sort | uniq -d)" ]; then
+      d3="a block under Other findings dispositioned by the owner occurs twice"
+    fi
+  fi
+  while [ -z "$d3" ] && IFS=$'\t' read -r id st q d r; do
+    id=${id#\#}; q=${q#=}; d=${d#=}; r=${r#=}
+    sev=$(awk -F'\t' -v i="$id" '$1 == i { print $2; exit }' "$TMP/pt.tsv")
+    if [ -z "$sev" ]; then d3="other block $id: the note has no such finding"; break; fi
+    if [ "$sev" = BLOCKING ]; then d3="other block $id: a BLOCKING finding belongs under Blocking findings and dispositions"; break; fi
+    if [ "$st" != ok ]; then d3="other block $id: $st"; break; fi
+    exp_q="- Question: $(disp_question "$id")"
+    if [ "$q" != "$exp_q" ]; then d3="other block $id: the question differs from the one derived from the findings table"; break; fi
+    case "$d" in fix|accept|defer|reject) ;; *) d3="other block $id: the disposition [${d:0:40}] is not one of fix, accept, defer, reject"; break ;; esac
+    if [ -z "$r" ]; then d3="other block $id: the owner reason is empty"; break; fi
+    recdisp[$id]=$d
+    echo "$d" >> "$TMP/rec.alld"
+  done < "$TMP/rec.oblocks"
+  if [ -n "$d3" ]; then fail D3 "$d3"; else pass D3 "the blocks are the ${#want_b[@]} BLOCKING findings in table order and $(wc -l < "$TMP/rec.oblocks" | tr -d ' ') other finding(s), each with the derived question, one of fix, accept, defer, reject and a reason"; fi
+
+  # D4: the outcome follows from the dispositions (any fix: fix pending; otherwise no blocking finding: no
+  # blocking findings; otherwise blocking findings dispositioned).
+  nfix=$(grep -c -x fix "$TMP/rec.alld")
+  if [ "$nfix" -gt 0 ]; then
+    want_out="fix pending"
+  elif [ "${#want_b[@]}" -eq 0 ]; then
+    want_out="no blocking findings"
+  else
+    want_out="blocking findings dispositioned"
+  fi
+  if [ "$outcome" = "$want_out" ]; then
+    pass D4 "the outcome [$outcome] follows from the dispositions ($nfix fix, ${#want_b[@]} BLOCKING findings)"
+  else
+    fail D4 "the outcome is [${outcome:0:60}], the dispositions ($nfix fix, ${#want_b[@]} BLOCKING findings) require [$want_out]"
+  fi
+
+  # D5: the reply details.
+  d5=""
+  need_owner=0
+  if [ "${#want_b[@]}" -gt 0 ] || [ "$n_other" -gt 0 ]; then need_owner=1; fi
+  mapfile -t rd < <(h2_lines "Reply details" "$REC" | grep -v '^[[:space:]]*$')
+  if [ "${#rd[@]}" -ne 6 ] || [ "${rd[0]}" != "### Name" ] || [ "${rd[1]}" != "- Question: $REC_NAME_Q" ] || [ "${rd[3]}" != "### Date" ] || [ "${rd[4]}" != "- Question: $REC_DATE_Q" ] \
+    || [[ "${rd[2]}" != "- Answer:"* ]] || [[ "${rd[5]}" != "- Answer:"* ]]; then
+    d5="the section Reply details is not the blocks Name and Date, each with the fixed question and a one-line answer"
+  else
+    name_a=$(trim_ws "${rd[2]#- Answer:}")
+    date_a=$(trim_ws "${rd[5]#- Answer:}")
+    given_by=$(pin_raw "$TMP/rec.pins" "Dispositions given by")
+    if [ "$need_owner" -eq 0 ]; then
+      if [ "$name_a" != "not applicable" ] || [ "$date_a" != "not applicable" ] || [ "$given_by" != "not applicable" ] || [ "$date_line" != "not applicable" ]; then
+        d5="nothing was dispositioned, so the name, the date, Dispositions given by and the date line must all read [not applicable]"
+      fi
+    else
+      approval_date=$(grep -m1 '^- Owner reply date: ' "$AR" | sed 's/^- Owner reply date: //')
+      if [ -z "$name_a" ] || [ "$name_a" = "not applicable" ]; then
+        d5="the Name answer is empty or not applicable"
+      elif [ "$name_a" != "$given_by" ]; then
+        d5="the Name answer differs from the row Dispositions given by"
+      elif ! [[ "$date_a" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [ "$(date -u -d "$date_a" +%F 2> /dev/null)" != "$date_a" ]; then
+        d5="the Date answer [${date_a:0:30}] is not a valid calendar date in the form YYYY-MM-DD"
+      elif ! [[ "$approval_date" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+        d5="the owner approval record has no valid line [- Owner reply date:]"
+      elif [[ "$date_a" < "$approval_date" ]]; then
+        d5="the Date answer $date_a is earlier than the owner approval reply date $approval_date"
+      elif [ "$date_a" != "$date_line" ]; then
+        d5="the Date answer differs from the line [- Owner disposition date:]"
+      fi
+    fi
+  fi
+  if [ -n "$d5" ]; then fail D5 "$d5"; elif [ "$need_owner" -eq 0 ]; then pass D5 "nothing was dispositioned: name and date read not applicable"; else pass D5 "the name equals Dispositions given by, the date is a valid calendar date not earlier than the approval reply date and equals the date line"; fi
+
+  # D6: the Disposition cells of the findings table of the note equal the record.
+  d6=""
+  while IFS=$'\t' read -r id cell; do
+    id=${id#\#}; cell=${cell#=}
+    if [ "$cell" = "#BADCOLS" ]; then d6="the row of $id does not have five cells"; break; fi
+    if [ "$cell" != "${recdisp[$id]:-}" ]; then d6="the Disposition cell of $id is [${cell:0:20}], the record has [${recdisp[$id]:-none}]"; break; fi
+  done < <(h2_lines "Findings" "$NT" | awk -F'|' '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^\| RV-/ { if (NF != 7) print "#" trim($2) "\t=#BADCOLS"; else print "#" trim($2) "\t=" trim($6) }')
+  if [ -n "$d6" ]; then fail D6 "$d6"; else pass D6 "the Disposition cell of each row of the findings table equals the record"; fi
+
+  # D7: What follows holds text and the closing line ends the record.
+  d7=""
+  if ! h2_lines "What follows" "$REC" | grep -v '^[[:space:]]*$' | grep -v -x -F -e "$REC_CLOSING" | grep -q .; then
+    d7="the section What follows holds no text"
+  elif [ "$(grep '[^[:space:]]' "$REC" | tail -n1)" != "$REC_CLOSING" ] || [ "$(grep -c -x -F -e "$REC_CLOSING" "$REC")" -ne 1 ]; then
+    d7="the closing line is not the last line of the record exactly once"
+  fi
+  if [ -n "$d7" ]; then fail D7 "$d7"; else pass D7 "What follows holds text and the closing line ends the record"; fi
+
+  # D8: the closure, stated as a fact.
+  case "$outcome" in
+    "no blocking findings"|"blocking findings dispositioned") pass D8 "closure: closable" ;;
+    "fix pending") pass D8 "closure: not closable (fix pending)" ;;
+    *) warn D8 "closure not stated because the outcome is not one of the three" ;;
+  esac
+}
+
+if [ "$STAGE" = dispositioned ]; then
+  if [ -z "$n_block" ]; then
+    warn D1 "the record is not evaluated because RPS failed"
+  else
+    dispositioned_checks
+  fi
 fi
 
 if [ "$FAILS" -eq 0 ]; then
