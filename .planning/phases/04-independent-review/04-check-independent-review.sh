@@ -5,7 +5,9 @@
 #
 # Usage: 04-check-independent-review.sh [options]
 #   --stage STAGE     pins (default): the pin and note checks listed below; brief: those and the checks of
-#                     the review brief. Later stages are added by later plans
+#                     the review brief; reported: those with the reported forms of T1, P0 and N1, and the checks
+#                     CT1, RPS, RP1 to RP9 on each quoted report, F1 and F2. Later stages are added by later
+#                     plans
 #   --note PATH       the review note (default: the note path of the repository; relative paths are taken
 #                     from the repository root)
 #   --brief PATH      the review brief (default: the brief path of the repository), read in stage brief
@@ -46,6 +48,20 @@
 #                     from --spec and the base text from git (--base); relative paths are taken from the
 #                     repository root. Exit 2 if the file is unreadable
 #   --pass ID         the pass of the report: RV-A, RV-B, RV-C, RV-D, RV-E or RV-X (exit 2 for another id)
+#   --print-findings-table
+#                     print the content of the Findings section derived from the quoted reports of --note:
+#                     the sentence "No findings were returned by any pass." when there is no finding,
+#                     otherwise the table header, the separator and one row per finding in pass order and
+#                     block order, with an empty Disposition cell; exit 0 (exit 2 if the reports cannot be read)
+#   --print-sections DIR
+#                     read DIR/RV-A.txt to DIR/RV-X.txt (six raw reports, each already passing --report-file)
+#                     and print the two sections that replace the placeholders of the note: "## Reports" with
+#                     the fixed introduction and each report quoted whole (a quote mark and a space added at
+#                     the start of each line, a quote mark alone for an empty line; the only change to a report
+#                     is line endings to LF and each tab to four spaces), then "## Findings" with the table
+#                     derived from the same files, then a blank line; exit 0 (exit 2 if a file is unreadable)
+#   --print-counts    print "total=N blocking=N major=N minor=N info=N" for the quoted reports of --note and
+#                     one line "blocking-id ID" for each BLOCKING finding; exit 0
 #   -h, --help        print this text and exit 0
 #
 # Checks of stage pins, all on the review note: E1 no byte order mark and valid UTF-8, E2 LF only, one final
@@ -69,6 +85,17 @@
 # severity bullets, the pass rows and the charter ids of the note equal the brief's; and on the pilot: PL1 the
 # pilot inputs carry no repository content, PL2 the pilot brief reuses the severity scale, the output format
 # and the rules of the brief byte for byte and carries the containment test.
+#
+# Checks of stage reported, in addition to the checks above in their reported forms (T1: the status lines read
+# "- Independent review: reported", "- Owner dispositions: pending", "- Blocking findings: N"; P0: the three
+# consent rows are no longer pending; N1: Reviewer version digits and dots, Reviewer model neither pending nor a
+# Claude-family name): CT1 the consent trail (the Run set value equals the id that --print-run-set prints for the
+# Reviewer model of the note, the Consent question contains that id and the model, the Consent answer is exactly
+# Consent, no consent row holds a vertical bar), RPS the Reports section is the fixed introduction and then six
+# blocks "### ID — Scope" in pass order that hold only quoted lines, RP1 to RP9 on each quoted report (a failure
+# names the pass), F1 the Findings section equals the derived table, F2 the Blocking findings value equals the
+# count of BLOCKING findings and the Requestor notes are the fixed lines, to which lines beginning "- Check
+# warning: " may be added.
 #
 # Report checks (--report-file; every message names the pass), on the report after normalisation (CR bytes
 # deleted, each tab replaced by four spaces, nothing else): RP1 the first non-blank line is REPORT BEGIN and
@@ -125,6 +152,9 @@ PRINT_RUNSET=""
 VERIFY_DIR=""
 REPORT_FILE=""
 REPORT_PASS=""
+PRINT_TABLE=0
+PRINT_COUNTS=0
+PRINT_SECTIONS=""
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -154,6 +184,9 @@ while [ "$#" -gt 0 ]; do
     --verify-snapshot) need_value "$@"; VERIFY_DIR="$2"; shift 2 ;;
     --report-file) need_value "$@"; REPORT_FILE="$2"; shift 2 ;;
     --pass) need_value "$@"; REPORT_PASS="$2"; shift 2 ;;
+    --print-findings-table) PRINT_TABLE=1; shift ;;
+    --print-counts) PRINT_COUNTS=1; shift ;;
+    --print-sections) need_value "$@"; PRINT_SECTIONS="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -161,7 +194,7 @@ done
 
 # A brief given with --brief selects stage brief unless --stage is given too.
 if [ "$BRIEF_GIVEN" -eq 1 ] && [ "$STAGE_SET" -eq 0 ]; then STAGE="brief"; fi
-[ "$STAGE" = pins ] || [ "$STAGE" = brief ] || { echo "--stage must be pins or brief" >&2; exit 2; }
+[ "$STAGE" = pins ] || [ "$STAGE" = brief ] || [ "$STAGE" = reported ] || { echo "--stage must be pins, brief or reported" >&2; exit 2; }
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
 if [ -n "$REPORT_FILE" ] || [ -n "$REPORT_PASS" ]; then
   [ -n "$REPORT_FILE" ] && [ -n "$REPORT_PASS" ] || { echo "--report-file and --pass are used together" >&2; exit 2; }
@@ -914,6 +947,132 @@ if [ -n "$REPORT_FILE" ]; then
   finish
 fi
 
+# The six passes in the order in which their findings are derived and their reports are quoted.
+PASS_IDS=(RV-A RV-B RV-C RV-D RV-E RV-X)
+
+# The fixed introduction of the Reports section (one line).
+REPORTS_INTRO='Each report is quoted whole, line by line: a quote mark and a space are added at the start of each line, and an empty line becomes a quote mark alone. The only change made to a report is mechanical: line endings are converted to LF and each tab to four spaces.'
+
+# rp_findings FILE: one line "ID TAB SEVERITY TAB first reference TAB summary" for every finding block of the
+# normalised report FILE.
+rp_findings() {
+  rp_parse "$1" | awk -F'\t' '
+    $1 == "K" { id = $2; sev = ""; ref = ""; sum = ""; open = 1; next }
+    open && $1 == "V" { sev = $2; next }
+    open && $1 == "R" && ref == "" { ref = $2; next }
+    open && $1 == "M" { sum = $2; next }
+    open && $1 == "D" { print id "\t" sev "\t" ref "\t" sum; open = 0 }
+  '
+}
+
+# derive_findings DIR: the findings of the six normalised reports DIR/ID.txt in pass order and block order,
+# written to the file pt.tsv of the temporary directory.
+derive_findings() {
+  local id
+  : > "$TMP/pt.tsv"
+  for id in "${PASS_IDS[@]}"; do rp_findings "$1/$id.txt" >> "$TMP/pt.tsv"; done
+}
+
+# print_table DIR: the content of the Findings section derived from the six normalised reports DIR/ID.txt.
+print_table() {
+  derive_findings "$1"
+  if [ ! -s "$TMP/pt.tsv" ]; then
+    echo "No findings were returned by any pass."
+    return 0
+  fi
+  echo "| Finding | Severity | Reference | Summary | Disposition |"
+  echo "|---|---|---|---|---|"
+  awk -F'\t' '{ printf "| %s | %s | %s | %s |  |\n", $1, $2, $3, $4 }' "$TMP/pt.tsv"
+}
+
+# print_counts DIR: the counts line and one line per BLOCKING finding.
+print_counts() {
+  derive_findings "$1"
+  awk -F'\t' '{ n++; c[$2]++ } END { printf "total=%d blocking=%d major=%d minor=%d info=%d\n", n, c["BLOCKING"], c["MAJOR"], c["MINOR"], c["INFO"] }' "$TMP/pt.tsv"
+  awk -F'\t' '$2 == "BLOCKING" { print "blocking-id " $1 }' "$TMP/pt.tsv"
+}
+
+# reports_extract OUTDIR: split the Reports section of the note into the six reports OUTDIR/ID.txt with the quote
+# marks removed. Returns 1 with the problem in RPS_MSG when the section is not the fixed introduction and then
+# exactly six blocks "### ID — Scope" in pass order that hold only quoted lines.
+RPS_MSG=""
+reports_extract() {
+  local out=$1 id scope k
+  local -a want=() heads=()
+  RPS_MSG=""
+  prep_ranges
+  mkdir -p "$out"
+  h2_lines "Reports" "$NT" > "$TMP/rps.lines"
+  if [ "$(awk '/^### / { exit } NF' "$TMP/rps.lines")" != "$REPORTS_INTRO" ]; then
+    RPS_MSG="the Reports section does not begin with the fixed introduction"
+    return 1
+  fi
+  for id in "${PASS_IDS[@]}"; do
+    scope=$(awk -F'\t' -v i="$id" '$1 == i { print $2 }' "$TMP/passes.tsv")
+    want+=("### $id — $scope")
+  done
+  mapfile -t heads < <(grep '^### ' "$TMP/rps.lines")
+  if [ "${#heads[@]}" -ne 6 ]; then
+    RPS_MSG="the Reports section holds ${#heads[@]} blocks, expected six"
+    return 1
+  fi
+  for k in 0 1 2 3 4 5; do
+    if [ "${heads[$k]}" != "${want[$k]}" ]; then
+      RPS_MSG="block $((k + 1)) has the heading [${heads[$k]}], expected [${want[$k]}]"
+      return 1
+    fi
+  done
+  for k in 1 2 3 4 5 6; do : > "$TMP/rps.blk.$k"; done
+  awk -v dir="$TMP" '/^### / { k++; next } k > 0 { print > (dir "/rps.blk." k) }' "$TMP/rps.lines"
+  for k in 1 2 3 4 5 6; do
+    id=${PASS_IDS[$((k - 1))]}
+    if ! awk '
+      { l[NR] = $0 }
+      END {
+        s = 1; while (s <= NR && l[s] == "") s++
+        e = NR; while (e >= s && l[e] == "") e--
+        if (e < s) exit 1
+        for (i = s; i <= e; i++) {
+          if (l[i] == ">") print ""
+          else if (substr(l[i], 1, 2) == "> ") print substr(l[i], 3)
+          else exit 1
+        }
+      }
+    ' "$TMP/rps.blk.$k" > "$out/$id.txt"; then
+      RPS_MSG="the block [$id] is empty or holds a line that is not a quoted line"
+      return 1
+    fi
+  done
+  return 0
+}
+
+if [ -n "$PRINT_SECTIONS" ]; then
+  [ -d "$PRINT_SECTIONS" ] || { echo "$PRINT_SECTIONS is not a directory" >&2; exit 2; }
+  prep_ranges
+  mkdir "$TMP/ps"
+  for id in "${PASS_IDS[@]}"; do
+    [ -f "$PRINT_SECTIONS/$id.txt" ] && [ -r "$PRINT_SECTIONS/$id.txt" ] || { echo "cannot read $PRINT_SECTIONS/$id.txt" >&2; exit 2; }
+    rp_norm "$PRINT_SECTIONS/$id.txt" "$TMP/ps/$id.txt"
+  done
+  printf '## Reports\n\n%s\n\n' "$REPORTS_INTRO"
+  for id in "${PASS_IDS[@]}"; do
+    scope=$(awk -F'\t' -v i="$id" '$1 == i { print $2 }' "$TMP/passes.tsv")
+    printf '### %s — %s\n\n' "$id" "$scope"
+    awk '{ if ($0 == "") print ">"; else print "> " $0 }' "$TMP/ps/$id.txt"
+    printf '\n'
+  done
+  printf '## Findings\n\n'
+  print_table "$TMP/ps"
+  printf '\n'
+  exit 0
+fi
+if [ "$PRINT_TABLE" -eq 1 ] || [ "$PRINT_COUNTS" -eq 1 ]; then
+  if ! reports_extract "$TMP/rep"; then echo "cannot read the quoted reports of the note: $RPS_MSG" >&2; exit 2; fi
+  if [ "$PRINT_TABLE" -eq 1 ]; then print_table "$TMP/rep"; fi
+  if [ "$PRINT_COUNTS" -eq 1 ]; then print_counts "$TMP/rep"; fi
+  exit 0
+fi
+
 # E1, E2: encoding of the note.
 msg=$(enc1 "$NT")
 if [ -n "$msg" ]; then fail E1 "note: $msg"; else pass E1 "note is valid UTF-8 without BOM"; fi
@@ -946,11 +1105,21 @@ if [ -z "$p0" ]; then
   [ -n "$p0" ] || [[ "$N_DIFF" =~ ^[0-9]+\ files?\ changed(,\ [0-9]+\ insertions?\(\+\))?(,\ [0-9]+\ deletions?\(-\))?$ ]] || p0="Diffstat [$N_DIFF] does not have the form of git shortstat"
   if [ -z "$p0" ]; then
     for l in "${CONSENT_LABELS[@]}"; do
-      if [ "$(pin_tok "$TMP/note.pins" "$l")" != pending ]; then p0="the row [$l] does not read pending in stage $STAGE"; break; fi
+      if [ "$STAGE" = reported ]; then
+        if [ "$(pin_tok "$TMP/note.pins" "$l")" = pending ]; then p0="the row [$l] still reads pending in stage reported"; break; fi
+      elif [ "$(pin_tok "$TMP/note.pins" "$l")" != pending ]; then
+        p0="the row [$l] does not read pending in stage $STAGE"; break
+      fi
     done
   fi
 fi
-if [ -n "$p0" ]; then fail P0 "$p0"; else pass P0 "the pin table has the twelve rows once, each one backticked well-formed value, the consent rows pending"; fi
+if [ -n "$p0" ]; then
+  fail P0 "$p0"
+elif [ "$STAGE" = reported ]; then
+  pass P0 "the pin table has the twelve rows once, each one backticked well-formed value, the consent rows filled"
+else
+  pass P0 "the pin table has the twelve rows once, each one backticked well-formed value, the consent rows pending"
+fi
 
 # A3: the owner approval record has exactly one outcome line "- Owner approval: approved".
 n_appr=$(grep -c -x -F -e "- Owner approval: approved" "$AR")
@@ -1030,22 +1199,39 @@ else
   pass S1 "changed paths since $BASE are the specification and .planning/ only"
 fi
 
-# T1: the three status lines and the two placeholder sections.
+# T1: the three status lines and, before the reports, the two placeholder sections. In stage reported the status
+# lines read "- Independent review: reported", "- Owner dispositions: pending" and "- Blocking findings: N", and
+# the two sections are checked by RPS and F1.
 t1=""
 for lab in "Independent review" "Owner dispositions" "Blocking findings"; do
   n=$(grep -c "^- $lab:" "$NT")
   if [ "$n" -ne 1 ]; then t1="$n lines start with [- $lab:], expected one"; break; fi
-  if ! grep -q -x -F -e "- $lab: pending" "$NT"; then t1="the status line is [$(grep "^- $lab:" "$NT")], expected [- $lab: pending] in stage $STAGE"; break; fi
+  line=$(grep "^- $lab:" "$NT")
+  if [ "$STAGE" = reported ]; then
+    case "$lab" in
+      "Independent review") [ "$line" = "- Independent review: reported" ] || { t1="the status line is [$line], expected [- Independent review: reported] in stage reported"; break; } ;;
+      "Owner dispositions") [ "$line" = "- Owner dispositions: pending" ] || { t1="the status line is [$line], expected [- Owner dispositions: pending] in stage reported"; break; } ;;
+      *) [[ "$line" =~ ^-\ Blocking\ findings:\ [0-9]{1,6}$ ]] || { t1="the status line is [$line], expected [- Blocking findings: N] in stage reported"; break; } ;;
+    esac
+  elif [ "$line" != "- $lab: pending" ]; then
+    t1="the status line is [$line], expected [- $lab: pending] in stage $STAGE"; break
+  fi
 done
-if [ -z "$t1" ]; then
+if [ -z "$t1" ] && [ "$STAGE" != reported ]; then
   got=$(h2_lines "Reports" "$NT" | grep -v '^[[:space:]]*$')
   [ "$got" = "No report has been captured yet." ] || t1="the section Reports does not hold exactly its placeholder sentence"
 fi
-if [ -z "$t1" ]; then
+if [ -z "$t1" ] && [ "$STAGE" != reported ]; then
   got=$(h2_lines "Findings" "$NT" | grep -v '^[[:space:]]*$')
   [ "$got" = "No findings table has been derived yet." ] || t1="the section Findings does not hold exactly its placeholder sentence"
 fi
-if [ -n "$t1" ]; then fail T1 "$t1"; else pass T1 "the three status lines read pending; Reports and Findings hold only their placeholder sentences"; fi
+if [ -n "$t1" ]; then
+  fail T1 "$t1"
+elif [ "$STAGE" = reported ]; then
+  pass T1 "the status lines read reported, pending and a blocking count"
+else
+  pass T1 "the three status lines read pending; Reports and Findings hold only their placeholder sentences"
+fi
 
 # H2: the eight H2 headings of the note, each once, in this order (fenced lines do not count).
 awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$NT" > "$TMP/h2.act"
@@ -1082,13 +1268,25 @@ else
 fi
 [ -n "$n1" ] || [ "${ind[0]}" = "- Requestor: Claude Code" ] || n1="the Requestor bullet is not exactly [- Requestor: Claude Code]"
 [ -n "$n1" ] || [ "${ind[1]}" = "- Reviewer: Devin CLI, a different product from a different vendor than the Requestor" ] || n1="the Reviewer bullet is not the fixed sentence"
+if [ -z "$n1" ] && [ "$STAGE" = reported ]; then
+  rv_ver=${ind[2]#- Reviewer version: }
+  rv_model=${ind[3]#- Reviewer model: }
+  rv_low=${rv_model,,}
+  [[ "$rv_ver" =~ ^[0-9]+(\.[0-9]+)*$ ]] || n1="the Reviewer version [$rv_ver] is not digits and dots (for example 3000.4.25)"
+  [ -n "$n1" ] || { [ -n "$rv_model" ] && [ "$rv_model" != pending ]; } || n1="the Reviewer model [$rv_model] is empty or pending"
+  if [ -z "$n1" ]; then
+    for w in claude fable opus sonnet haiku anthropic; do
+      if [[ "$rv_low" == *"$w"* ]]; then n1="the Reviewer model [$rv_model] is a Claude-family model name (contains [$w])"; break; fi
+    done
+  fi
+fi
 if [ -n "$n1" ]; then fail N1 "$n1"; else pass N1 "the Independence section has the six labelled bullets in order with the fixed Requestor and Reviewer lines"; fi
 
 # X1: self-containment of the note, in real mode (the real input hashes and the real input files).
 msg=$(x1_scan "$NT" "$TMP/real.hashes" "$TMP/real")
 if [ -n "$msg" ]; then fail X1 "note: $msg"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
 
-if [ "$STAGE" = brief ]; then
+if [ "$STAGE" = brief ] || [ "$STAGE" = reported ]; then
   readable "$BR" "$BRIEFFILE"
 
   # V1: the pass table of the brief partitions the text. A heading number is mapped to the line of the heading
@@ -1299,6 +1497,72 @@ HEADINGS
     cmp -s "$TMP/pl2.hashes" "$TMP/pilot.hashes" || pl2="the pilot Inputs table differs from the pilot input hashes"
   fi
   if [ -n "$pl2" ]; then fail PL2 "$pl2"; else pass PL2 "the pilot brief reuses the severity scale, the output format and the rules of the brief byte for byte and carries the containment test"; fi
+fi
+
+if [ "$STAGE" = reported ]; then
+  # CT1: the consent trail. The Run set value equals the id that --print-run-set prints for the Reviewer model of
+  # the note, the Consent question contains that id and the model, the Consent answer is exactly Consent, and no
+  # consent row holds a vertical bar.
+  ct1=""
+  model=$(grep -m1 '^- Reviewer model: ' "$NT" | sed 's/^- Reviewer model: //')
+  if [ -z "$model" ] || [ "$model" = pending ]; then
+    ct1="the note names no Reviewer model, so the run set cannot be recomputed"
+  else
+    want_run=$(print_run_set "$model" | tail -n1)
+    want_run=${want_run#Run set: }
+    cq=$(pin_tok "$TMP/note.pins" "Consent question")
+    if ! [[ "$want_run" =~ ^[0-9a-f]{12}$ ]]; then
+      ct1="the run set id for the model [$model] cannot be computed"
+    elif [ "$N_RUNSET" != "$want_run" ]; then
+      ct1="the Run set value is [$N_RUNSET], the run set of the model [$model] is [$want_run]"
+    elif [[ "$cq" != *"$want_run"* ]]; then
+      ct1="the Consent question does not contain the run set id"
+    elif [[ "$cq" != *"$model"* ]]; then
+      ct1="the Consent question does not contain the model name [$model]"
+    elif [ "$(pin_tok "$TMP/note.pins" "Consent answer")" != Consent ]; then
+      ct1="the Consent answer is not exactly Consent"
+    elif [ "$(grep -E '^\| (Run set|Consent question|Consent answer) \|' "$NT" | awk -F'|' 'NF != 4' | wc -l | tr -d ' ')" -ne 0 ]; then
+      ct1="a consent row holds a vertical bar"
+    fi
+  fi
+  if [ -n "$ct1" ]; then fail CT1 "$ct1"; else pass CT1 "the Run set value is the run set of the model [$model], the Consent question contains it and the model, the Consent answer is Consent"; fi
+
+  # RPS: the Reports section; then RP1 to RP9 on each quoted report.
+  if reports_extract "$TMP/rep"; then
+    pass RPS "the Reports section is the fixed introduction and then six quoted blocks in pass order"
+    for id in "${PASS_IDS[@]}"; do report_checks "$TMP/rep/$id.txt" "$id"; done
+
+    # F1: the Findings section equals the table derived from the quoted reports.
+    print_table "$TMP/rep" | grep -v '^[[:space:]]*$' > "$TMP/f1.exp"
+    h2_lines "Findings" "$NT" | grep -v '^[[:space:]]*$' > "$TMP/f1.act"
+    if cmp -s "$TMP/f1.exp" "$TMP/f1.act"; then
+      pass F1 "the Findings section equals the table derived from the quoted reports ($(wc -l < "$TMP/pt.tsv" | tr -d ' ') findings)"
+    else
+      fail F1 "the Findings section differs from the table derived from the quoted reports (first difference: $(diff "$TMP/f1.exp" "$TMP/f1.act" | grep -m1 '^[<>]' | cut -c1-160))"
+    fi
+    n_block=$(awk -F'\t' '$2 == "BLOCKING"' "$TMP/pt.tsv" | wc -l | tr -d ' ')
+  else
+    fail RPS "$RPS_MSG"
+    warn F1 "not evaluated because RPS failed"
+    n_block=""
+  fi
+
+  # F2: the Blocking findings value equals the count of BLOCKING findings; the Requestor notes are the fixed
+  # lines, to which lines beginning "- Check warning: " may be added.
+  f2=""
+  got=$(grep -m1 '^- Blocking findings: ' "$NT" | sed 's/^- Blocking findings: //')
+  if [ -n "$n_block" ] && [ "$got" != "$n_block" ]; then f2="the Blocking findings value is [$got], the quoted reports hold $n_block BLOCKING findings"; fi
+  if [ -z "$f2" ]; then
+    h2_lines "Requestor notes" "$NT" | grep -v '^[[:space:]]*$' | grep -v '^- Check warning: .' > "$TMP/f2.act"
+    cat > "$TMP/f2.exp" << 'NOTES'
+- The Requestor checked the format of each report and whether each reference resolves in the pinned text; it did not assess whether any finding is correct.
+- Independence rests on the reviewer's different product, vendor and model, on separate sessions that share no context with the Requestor, and on the reviewer's own statement of identity in each report; the repository cannot show more.
+- A finding's severity is the reviewer's; only the repository owner dispositions a finding.
+This note is evidence only. It does not change the reviewed file.
+NOTES
+    cmp -s "$TMP/f2.exp" "$TMP/f2.act" || f2="the Requestor notes are not the three fixed bullets and the closing sentence (first difference: $(diff "$TMP/f2.exp" "$TMP/f2.act" | grep -m1 '^[<>]' | cut -c1-120))"
+  fi
+  if [ -n "$f2" ]; then fail F2 "$f2"; else pass F2 "the Blocking findings value is [$got], equal to the count of BLOCKING findings, and the Requestor notes are the fixed lines"; fi
 fi
 
 if [ "$FAILS" -eq 0 ]; then
