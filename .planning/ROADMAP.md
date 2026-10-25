@@ -170,7 +170,7 @@ Plans:
   2. The owner has recorded explicit approval, or specific requested changes, before independent review begins (APPR-01)
   3. This phase does not close until an explicit recorded owner approval exists for the diff exactly as it will be merged (APPR-01)
 
-**Plans**: 1/3 plans executed
+**Plans**: 2/3 plans executed
 
 Plans:
 **Wave 1**
@@ -179,7 +179,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 03-02-PLAN.md — Packet content: register-copied sections (tracer), decision section and review map for SPEC-01 to SPEC-18, owner questions OQ-8 to OQ-15, exempt set and header, with the coverage checks (APPR-01)
+- [x] 03-02-PLAN.md — Packet content: register-copied sections (tracer), decision section and review map for SPEC-01 to SPEC-18, owner questions OQ-8 to OQ-15, exempt set and header, with the coverage checks (APPR-01)
 
 **Wave 3** *(blocked on Wave 2 completion; has the owner checkpoint)*
 
@@ -270,7 +270,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 |-------|-----------|----------------|--------|-----------|
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
-| 3. Owner Approval | v1.1 | 1/3 | In Progress|  |
+| 3. Owner Approval | v1.1 | 2/3 | In Progress|  |
 | 4. Independent Review | v1.1 | 0/TBD | Not started | - |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
