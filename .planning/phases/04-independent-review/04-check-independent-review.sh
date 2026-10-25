@@ -1615,7 +1615,13 @@ This note is evidence only. It does not change the reviewed file.
 NOTES
     cmp -s "$TMP/f2.exp" "$TMP/f2.act" || f2="the Requestor notes are not the three fixed bullets and the closing sentence (first difference: $(diff "$TMP/f2.exp" "$TMP/f2.act" | grep -m1 '^[<>]' | cut -c1-120))"
   fi
-  if [ -n "$f2" ]; then fail F2 "$f2"; else pass F2 "the Blocking findings value is [$got], equal to the count of BLOCKING findings, and the Requestor notes are the fixed lines"; fi
+  if [ -n "$f2" ]; then
+  fail F2 "$f2"
+elif [ -z "$n_block" ]; then
+  warn F2 "the count of BLOCKING findings is not evaluated because RPS failed; the Requestor notes are the fixed lines"
+else
+  pass F2 "the Blocking findings value is [$got], equal to the count of BLOCKING findings, and the Requestor notes are the fixed lines"
+fi
 fi
 
 if [ "$FAILS" -eq 0 ]; then
