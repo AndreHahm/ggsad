@@ -27,7 +27,11 @@
 # every changed path since the base is the specification or under .planning/, T1 the status line, H2
 # the twelve H2 headings in order, N1 the question blocks Q01 to Q15 (fields, labels, and the register,
 # specification and pin facts that Q01 to Q13 must contain), X1 self-containment: no local path, address,
-# link, scratch or transcript reference, unfinished marker or foreign hash-like token.
+# link, scratch or transcript reference, unfinished marker or foreign hash-like token, D1 every drafting
+# choice row of the register occurs exactly once in the packet, in its section, character for character,
+# D2 the research dispositions, the 44 finding rows, the flagged items, the recorded findings, the unproven
+# items and the hand-off items of the register occur in their sections of the packet and the 44 finding ids
+# occur once each as the first cell of a row.
 #
 # Stage recorded runs the checks above on the packet, with T1 in its recorded form (the one status line
 # reads "recorded in the owner approval record"), and on the record: P2 the packet as put to the owner is
@@ -556,6 +560,70 @@ PATTERNS
   done < <(grep -o -E '[0-9A-Za-z_]+' "$f" | grep -E '^[0-9A-Fa-f]{7,}$' | grep '[0-9]' | sort -u)
 done
 if [ -n "$x1" ]; then fail X1 "$x1"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
+
+# h2_all TEXT FILE: every line of the H2 section TEXT of FILE (fenced lines included, headings excluded).
+h2_all() {
+  awk -v sect="$1" '/^## / { on = ($0 == "## " sect); next } on' "$2"
+}
+
+# D1: every drafting choice row of the register occurs exactly once in the packet, in the section
+# Drafting choices DC-01 to DC-141 and nowhere else.
+grep -E '^\| DC-[0-9]{2,3} \|' "$RG" | sort > "$TMP/d1.reg"
+grep -E '^\| DC-[0-9]{2,3} \|' "$PK" | sort > "$TMP/d1.pkt"
+h2_all "Drafting choices DC-01 to DC-141" "$PK" | grep -E '^\| DC-[0-9]{2,3} \|' | sort > "$TMP/d1.sec"
+d1_n=$(wc -l < "$TMP/d1.reg" | tr -d ' ')
+d1=""
+if [ "$d1_n" -eq 0 ]; then
+  d1="the register has no drafting choice rows"
+elif [ "$(sort -u "$TMP/d1.reg" | wc -l | tr -d ' ')" -ne "$d1_n" ]; then
+  d1="the register repeats a drafting choice row"
+elif ! cmp -s "$TMP/d1.reg" "$TMP/d1.pkt"; then
+  d1="the packet rows differ from the register rows (first difference: $(diff "$TMP/d1.reg" "$TMP/d1.pkt" | grep -m1 '^[<>]' | cut -c1-120))"
+elif ! cmp -s "$TMP/d1.pkt" "$TMP/d1.sec"; then
+  d1="a drafting choice row occurs outside the section Drafting choices DC-01 to DC-141"
+fi
+if [ -n "$d1" ]; then fail D1 "$d1"; else pass D1 "all $d1_n drafting choice rows of the register occur exactly once in the packet, in section 8, character for character"; fi
+
+# D2: the other register tables and lists are in the packet in their sections, and the 44 findings are
+# first cells of section 9 exactly once each.
+d2=""
+d2_counts=""
+d2_pair() {
+  local regsec=$1 kind=$2 pktsec=$3 pat n
+  if [ "$kind" = row ]; then pat='^\|'; else pat='^- '; fi
+  h2_all "$regsec" "$RG" | grep -E "$pat" > "$TMP/d2.reg" || true
+  h2_all "$pktsec" "$PK" > "$TMP/d2.pkt"
+  n=$(wc -l < "$TMP/d2.reg" | tr -d ' ')
+  if [ "$n" -eq 0 ]; then
+    d2="the register section [$regsec] has no ${kind}s to compare"
+    return
+  fi
+  d2_counts="$d2_counts $n"
+  miss=$(awk 'NR == FNR { a[$0] = 1; next } !($0 in a) { print; exit }' "$TMP/d2.pkt" "$TMP/d2.reg")
+  if [ -n "$miss" ]; then d2="the register line [$(printf '%s' "$miss" | cut -c1-100)] of [$regsec] is not in the section [$pktsec] of the packet"; fi
+}
+miss=""
+d2_pair "Dispositions of the open questions OQ-1 to OQ-7" row "Drafting choices DC-01 to DC-141"
+[ -n "$d2" ] || d2_pair "Dispositions of the review findings" row "Dispositions of the review findings"
+[ -n "$d2" ] || d2_pair "Flagged edge and prohibition items" row "Recorded findings and flagged items"
+[ -n "$d2" ] || d2_pair "Recorded findings" bullet "Recorded findings and flagged items"
+[ -n "$d2" ] || d2_pair "Unproven items" bullet "Unproven items (informational, for Phase 4)"
+[ -n "$d2" ] || d2_pair "Hand-off list (engine phases 5 to 8)" bullet "Hand-off list (informational, for the engine phases)"
+if [ -z "$d2" ]; then
+  h2_all "Dispositions of the review findings" "$RG" | awk -F'|' '{ c = $2; gsub(/ /, "", c); if (c ~ /^(CR|WR|IN)-[0-9][0-9]$/) print c }' | sort > "$TMP/d2.ids.reg"
+  h2_all "Dispositions of the review findings" "$PK" | awk -F'|' '/^\|/ { c = $2; gsub(/ /, "", c); if (c ~ /^(CR|WR|IN)-[0-9][0-9]$/) print c }' | sort > "$TMP/d2.ids.pkt"
+  d2_ids=$(wc -l < "$TMP/d2.ids.reg" | tr -d ' ')
+  if [ "$d2_ids" -ne 44 ] || [ "$(sort -u "$TMP/d2.ids.reg" | wc -l | tr -d ' ')" -ne 44 ]; then
+    d2="the register holds $d2_ids finding rows, expected 44 distinct ids"
+  elif ! cmp -s "$TMP/d2.ids.reg" "$TMP/d2.ids.pkt"; then
+    d2="the finding ids in section 9 are not the register's 44 ids once each (first difference: $(diff "$TMP/d2.ids.reg" "$TMP/d2.ids.pkt" | grep -m1 '^[<>]'))"
+  fi
+fi
+if [ -n "$d2" ]; then
+  fail D2 "$d2"
+else
+  pass D2 "register lines found in their packet sections (counts:$d2_counts); the 44 finding ids occur exactly once each"
+fi
 
 # section_lines TEXT FILE: the non-blank lines of the H2 section TEXT of FILE, trimmed.
 section_lines() {
