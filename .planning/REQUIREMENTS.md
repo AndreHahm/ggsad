@@ -43,7 +43,7 @@ decisions of O-1 to O-11. Changes are proposed text only (SPEC-13).
 
 ### Owner Approval (APPR)
 
-- [ ] **APPR-01**: The repository owner reviews the exact proposed normative diff (SPEC-01 through SPEC-18) and records explicit approval, or specific requested changes, before independent review begins
+- [x] **APPR-01**: The repository owner reviews the exact proposed normative diff (SPEC-01 through SPEC-18) and records explicit approval, or specific requested changes, before independent review begins
 
 ### Independent Review (REVIEW)
 
@@ -133,7 +133,7 @@ they are not the archived v1.0 phases of the same number.
 | SPEC-16 | Phase 2 | Complete |
 | SPEC-17 | Phase 2 | Complete |
 | SPEC-18 | Phase 2 | Complete |
-| APPR-01 | Phase 3 | Pending |
+| APPR-01 | Phase 3 | Complete |
 | REVIEW-01 | Phase 4 | Pending |
 | REVIEW-02 | Phase 4 | Pending |
 | ENG-01 | Phase 5 | Pending |
