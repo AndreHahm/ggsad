@@ -35,7 +35,12 @@
 # with six non-empty cells and a view command for its own requirement that returns a commit (SPEC-13: an
 # empty diff under src), M2 the drafting choices of the register and the rows of the review map agree both
 # ways, M3 every section number of the review map is a heading of the specification and every acceptance
-# example cited in the packet is defined in it.
+# example cited in the packet is defined in it, O1 the owner questions OQ-8 to OQ-15 occur once each, in
+# order, with their six bullets in order and the unanswered slot, O2 their Question and Drafted reading
+# bullets equal the register's cells, L1 every quoted line (a line starting with a greater-than sign and a
+# space) is a substring of a line of the specification and at least six exist. T1 also requires that the
+# twelve owner answer slots (eight in the owner questions, one each in the exempt set, the header, the
+# drafting choices and the recorded findings) read exactly as the unanswered form, in both stages.
 #
 # Stage recorded runs the checks above on the packet, with T1 in its recorded form (the one status line
 # reads "recorded in the owner approval record"), and on the record: P2 the packet as put to the owner is
@@ -424,6 +429,11 @@ else
   pass S1 "changed paths since $BASE are the specification and .planning/ only"
 fi
 
+# h2_all TEXT FILE: every line of the H2 section TEXT of FILE (fenced lines included, headings excluded).
+h2_all() {
+  awk -v sect="$1" '/^## / { on = ($0 == "## " sect); next } on' "$2"
+}
+
 # T1: the status line of the packet.
 t1=""
 want_status="- Owner approval: pending"
@@ -437,8 +447,22 @@ elif [ "$(grep -c '^- Owner reply date:' "$PK")" -ne 0 ]; then
   t1="the packet holds a reply date line; the reply belongs in the record only"
 elif [ "$(grep -c '^| Reply given by |' "$PK")" -ne 0 ]; then
   t1="the packet holds a Reply given by row; the reply belongs in the record only"
+else
+  slot_line="- Owner answer: unanswered (the answer is recorded only in the owner approval record)"
+  n_slots=$(grep -c '^- Owner answer:' "$PK")
+  n_exact=$(grep -c -x -F -e "$slot_line" "$PK")
+  if [ "$n_slots" -ne 12 ] || [ "$n_exact" -ne 12 ]; then
+    t1="the packet has $n_slots owner answer lines of which $n_exact read exactly [$slot_line]; twelve unanswered slots are expected, an answer belongs in the record only"
+  else
+    slot_dist=""
+    for sname in "Owner questions OQ-8 to OQ-15:8" "Exempt set of Section 24.1:1" "Header and heading:1" "Drafting choices DC-01 to DC-141:1" "Recorded findings and flagged items:1"; do
+      got=$(h2_all "${sname%:*}" "$PK" | grep -c '^- Owner answer:')
+      [ "$got" -eq "${sname##*:}" ] || { slot_dist="the section [${sname%:*}] has $got owner answer lines, expected ${sname##*:}"; break; }
+    done
+    [ -z "$slot_dist" ] || t1=$slot_dist
+  fi
 fi
-if [ -n "$t1" ]; then fail T1 "$t1"; else pass T1 "the status line is exactly [$want_status]; no reply date, no reply row"; fi
+if [ -n "$t1" ]; then fail T1 "$t1"; else pass T1 "the status line is exactly [$want_status]; no reply date, no reply row; the 12 owner answer slots read unanswered"; fi
 
 # H2: the twelve H2 headings of the packet, each once, in this order (fenced lines do not count).
 awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$PK" > "$TMP/h2.act"
@@ -564,11 +588,6 @@ PATTERNS
   done < <(grep -o -E '[0-9A-Za-z_]+' "$f" | grep -E '^[0-9A-Fa-f]{7,}$' | grep '[0-9]' | sort -u)
 done
 if [ -n "$x1" ]; then fail X1 "$x1"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
-
-# h2_all TEXT FILE: every line of the H2 section TEXT of FILE (fenced lines included, headings excluded).
-h2_all() {
-  awk -v sect="$1" '/^## / { on = ($0 == "## " sect); next } on' "$2"
-}
 
 # D1: every drafting choice row of the register occurs exactly once in the packet, in the section
 # Drafting choices DC-01 to DC-141 and nowhere else.
@@ -697,6 +716,71 @@ else
   fi
 fi
 if [ -n "$m3" ]; then fail M3 "$m3"; else pass M3 "every section number of the review map is a heading of the text; all $(wc -l < "$TMP/pkt.aes" | tr -d ' ') acceptance examples cited in the packet are defined"; fi
+
+# O1, O2: the eight owner questions OQ-8 to OQ-15 of the section Owner questions OQ-8 to OQ-15. The parse
+# writes "kind US id US label US text" for every bullet of an H3 "### OQ-k — " block and flags other text.
+OQ_TITLES=("Restore a review gate kind" "Combination mode for the core profile" "A change profile stricter than the project's" "Agent self-approval under lean" "An assurance floor for the decisions of 5.4" "Protecting the assurance configuration" "A question left open before the specify Definition of Done" "Opting out of the allowed path list")
+awk -v us="$US" '
+  function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+  /^```/ { fence = !fence; next }
+  !fence && /^## / { on = ($0 == "## Owner questions OQ-8 to OQ-15"); cur = ""; seen = 0; next }
+  !on || fence { next }
+  /^### / {
+    if (match($0, /^### OQ-[0-9]+ — /)) { cur = substr($0, 5, index(substr($0, 5), " ") - 1); print "HEAD" us cur us "" us $0 } else { cur = ""; print "HEAD" us "??" us "" us $0 }
+    seen = 1; next
+  }
+  !seen || /^[ \t]*$/ { next }
+  /^- [A-Za-z][A-Za-z ]*:( |$)/ { p = index($0, ":"); print "FIELD" us cur us substr($0, 3, p - 3) us trim(substr($0, p + 1)); next }
+  { print "TEXT" us cur us "" us $0 }
+' "$PK" > "$TMP/oq.tsv"
+declare -A OQ_HEAD=() OQ_LABS=() OQ_FLD=() OQ_CNT=()
+OQ_ORD=()
+OQ_ERR=""
+qload "$TMP/oq.tsv" OQ_ORD OQ_HEAD OQ_LABS OQ_FLD OQ_CNT OQ_ERR
+OQ_IDS=(OQ-8 OQ-9 OQ-10 OQ-11 OQ-12 OQ-13 OQ-14 OQ-15)
+OQ_WANT_LABS="Finding|Question|Drafted reading|Alternative reading|Text that changes under the alternative|Owner answer|"
+OQ_SLOT="unanswered (the answer is recorded only in the owner approval record)"
+o1=""
+o2=""
+if [ -n "$OQ_ERR" ]; then
+  o1=$OQ_ERR
+elif [ "${OQ_ORD[*]}" != "${OQ_IDS[*]}" ]; then
+  o1="the owner question blocks are [${OQ_ORD[*]}], expected exactly [${OQ_IDS[*]}] once each, in order"
+else
+  for i in "${!OQ_IDS[@]}"; do
+    id=${OQ_IDS[$i]}
+    if [ "${OQ_CNT[$id]}" -ne 1 ]; then o1="$id occurs ${OQ_CNT[$id]} times, expected once"; break; fi
+    if [ "${OQ_HEAD[$id]}" != "### $id — ${OQ_TITLES[$i]}" ]; then o1="$id: the heading is [${OQ_HEAD[$id]}], expected [### $id — ${OQ_TITLES[$i]}]"; break; fi
+    if [ "${OQ_LABS[$id]}" != "$OQ_WANT_LABS" ]; then o1="$id: the bullets are [${OQ_LABS[$id]}], expected [$OQ_WANT_LABS] once each, in order"; break; fi
+    for lab in Finding Question "Drafted reading" "Alternative reading" "Text that changes under the alternative"; do
+      if [ -z "${OQ_FLD["$id|$lab"]}" ]; then o1="$id: the bullet [$lab] is empty"; break 2; fi
+    done
+    if [ "${OQ_FLD["$id|Owner answer"]}" != "$OQ_SLOT" ]; then o1="$id: the Owner answer slot is [${OQ_FLD["$id|Owner answer"]}], expected [$OQ_SLOT]"; break; fi
+    if [ "${OQ_FLD["$id|Question"]}" != "${REG_Q[$id]:-}" ]; then o2="$id: the Question bullet is not the register's Question cell"; break; fi
+    if [ "${OQ_FLD["$id|Drafted reading"]}" != "${REG_R[$id]:-}" ]; then o2="$id: the Drafted reading bullet is not the register's Reading cell"; break; fi
+  done
+fi
+if [ -n "$o1" ]; then fail O1 "$o1"; else pass O1 "OQ-8 to OQ-15 occur once each, in order, with the six bullets in order, non-empty, and the unanswered slot"; fi
+if [ -n "$o1" ]; then
+  fail O2 "not compared: $o1"
+elif [ -n "$o2" ]; then
+  fail O2 "$o2"
+else
+  pass O2 "the Question and Drafted reading bullets of OQ-8 to OQ-15 equal the register's cells"
+fi
+
+# L1: every quoted line of the packet is a substring of a line of the specification, and there are at least six.
+l1=$(awk '
+  NR == FNR { spec[FNR] = $0; n = FNR; next }
+  /^> / {
+    q = substr($0, 3); count++
+    found = 0
+    for (i = 1; i <= n; i++) if (index(spec[i], q) > 0) { found = 1; break }
+    if (!found) { bad = q; exit }
+  }
+  END { if (bad != "") print "the quoted line [" substr(bad, 1, 80) "] is not in the specification"; else if (count < 6) print "the packet quotes " count + 0 " lines, at least six are expected" }
+' "$SP" "$PK")
+if [ -n "$l1" ]; then fail L1 "$l1"; else pass L1 "every quoted line of the packet is a substring of a line of the specification"; fi
 
 # section_lines TEXT FILE: the non-blank lines of the H2 section TEXT of FILE, trimmed.
 section_lines() {

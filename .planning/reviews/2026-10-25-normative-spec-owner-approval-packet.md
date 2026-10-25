@@ -183,9 +183,117 @@ Each row is one requirement of the milestone, SPEC-01 to SPEC-18. "What is appro
 
 ## Owner questions OQ-8 to OQ-15
 
+Each of these eight questions is left open by a conservative reading in the text. The register holds the reasoning for each reading, under the drafting choice named in the question. A finding is a point raised by the advisory review of the text, and its row is in the table under "Dispositions of the review findings". You give your answers at Q01 to Q08; the slot under each question stays unanswered here.
+
+### OQ-8 — Restore a review gate kind
+
+- Finding: CR-01 (its row is under "Dispositions of the review findings")
+- Question: Restore a `review` gate kind with an action that records a review result (reviewer, reviewed revision, result)?
+- Drafted reading: The kind is dropped; a review is a `sign-off` or a `check` gate (DC-111).
+- Alternative reading: Restore the `review` done-gate kind and add an action that records a review result (reviewer, reviewed revision, result).
+- Text that changes under the alternative: Sections 23.3 and 23.4 (the gate kind and a new action row), 22.1 (a new operation) and 25.1 (a new field), as the register and the review finding say; AE-272 shows the drafted reading and would change; whether further examples change is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-9 — Combination mode for the core profile
+
+- Finding: WR-18 (its row is under "Dispositions of the review findings")
+- Question: May a `core` change use combination mode, so that layer 6 applies to it?
+- Drafted reading: No; layer 6 gives a `core` change no gate and combination mode is specified for `full` (DC-134).
+- Alternative reading: A `core` change may use combination mode, and layer 6 applies to it (the register states this alternative in DC-134).
+- Text that changes under the alternative: Sections 5.3 and 17 and the examples AE-290 and AE-226 change; section 25.3 is unchanged in the draft, and whether it changes under the alternative is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-10 — A change profile stricter than the project's
+
+- Finding: WR-19 (its row is under "Dispositions of the review findings")
+- Question: May a change name a compliance profile that is stricter than the active one of the project?
+- Drafted reading: No; the compliance profile of a change equals the one of the project (DC-135).
+- Alternative reading: A change may name a compliance profile that is at least as strict as the active one of the project (the wording of the review finding, which DC-135 did not take).
+- Text that changes under the alternative: Sections 5.6 and 23.1 (the rule that the compliance profile of a change equals the one of the project) and the example AE-291; the register states that a later change of the compliance profile of the project is not addressed; further reach is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-11 — Agent self-approval under lean
+
+- Finding: WR-20 (its row is under "Dispositions of the review findings")
+- Question: May an agent self-approve under `lean`?
+- Drafted reading: No; self-approval means the requesting human (DC-136).
+- Alternative reading: An agent may self-approve under `lean` outside the non-delegable set of 5.4.
+- Text that changes under the alternative: The sentence that every approval needs a human would be restricted in 24.3 and in 23.4 to the approvals that 5.4 does not allow to be self-approved under `lean`, as the review finding says; sections 5.4 and 5.1 and the example AE-292 follow; the exact wording is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-12 — An assurance floor for the decisions of 5.4
+
+- Finding: WR-21 (its row is under "Dispositions of the review findings")
+- Question: Should the decisions of 5.4 have an assurance floor above A0?
+- Drafted reading: No floor; the level that 24.3 requires applies, A0 when none is stated (DC-137).
+- Alternative reading: The decisions of 5.4 get an assurance floor above A0.
+- Text that changes under the alternative: Sections 5.4 and 24.3 and the example AE-293; which level the floor would be is for the owner to name, and the exact wording is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-13 — Protecting the assurance configuration
+
+- Finding: WR-24 (its row is under "Dispositions of the review findings")
+- Question: Should the assurance-relevant configuration be protected beyond the recorded required level (hashed into the gate definitions or kept outside the working tree)?
+- Drafted reading: No; the ratchet covers the approval kinds and the residual is stated in 24.3 (DC-130).
+- Alternative reading: The assurance-relevant configuration is protected beyond the recorded required level, by hashing it into the approved gate definitions or by keeping it outside the working tree.
+- Text that changes under the alternative: Sections 24.3, 24.10 and 25.1 and the examples AE-289 and AE-159; the exact wording is not stated in the register. DC-130 states what the drafted reading leaves open: a participant that can change the configuration can still lower a minimum for a change whose history records no earlier approval of that kind, and for the kinds that record no required level.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-14 — A question left open before the specify Definition of Done
+
+- Finding: WR-25 (its row is under "Dispositions of the review findings")
+- Question: May a question stay open through the phases before the Definition of Done of the specify phase?
+- Drafted reading: The question stays open; `complete` answers `blocked` and the Definition of Done is not satisfied (DC-138).
+- Alternative reading: Questions raised in the specify phase are excluded from the Definition of Wait condition until the Definition of Done of that phase (DC-138 states this alternative).
+- Text that changes under the alternative: Sections 9.4, 24.8 and 8.5 and the example AE-263; the exact wording is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
+### OQ-15 — Opting out of the allowed path list
+
+- Finding: WR-26 (its row is under "Dispositions of the review findings")
+- Question: Should an approved opt-out replace the required allowed path list of a `full` change?
+- Drafted reading: No opt-out; the list is required for Ready-to-Build (DC-139).
+- Alternative reading: An approved opt-out replaces the required allowed path list for a `full` change that states its scope in words only (DC-139 states this alternative).
+- Text that changes under the alternative: Sections 6.1, 9.6, 24.5 and 16.1 and the examples AE-294 and AE-253; the review finding says an unmeasurable scope in `full` would then be `not_applicable` for a change that opts out with an approved record; the form of that record is not stated in the register.
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
 ## Exempt set of Section 24.1
 
+Section 24.1 fixes the gate definitions of a change when the change is approved. While the gate definitions differ from the approved ones, every state-changing operation is stopped, except the operations quoted below, so that a change whose definitions were altered can still be ended or approved again. The text exempts three operations, which is wider than the success criterion of the roadmap, which says every operation except cancellation.
+
+The text of Section 24.1 reads:
+
+> Three operations are exempt from the comparison and MUST NOT be stopped by it: `cancel`, `supersede`, and the approval of the gate definitions that replaces the approved hash.
+
+> The approval that replaces the approved hash is the re-approval; without the exemption, no change could leave this state.
+
+The register explains the difference as follows:
+
+The set of operations that the comparison of gate definitions does not stop is wider than the phrase "every operation except cancellation" in the success criterion: it holds `cancel`, `supersede` (which the move rule of 5.6 needs), and the re-approval of the gate definitions. The owner can overrule this (DC-03, DC-44).
+
+The choices behind the exempt set are DC-03 and DC-44, in Tier 1 under "Drafting choices DC-01 to DC-141". You give your answer at Q09.
+
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
 ## Header and heading
+
+The header and the heading of Section 24 are quoted from the pinned text:
+
+> **Version:** 1.4
+
+> **Revision:** 2026-10-25 — Added the method profiles `core` and `full`, the protections that both method profiles share, JSON state with a canonical form, and schema versions with explicit migration, and aligned the gate model, the evaluation order, the approval rules, and the identifier rules.
+
+> ## 24. Protections Shared by Both Profiles
+
+> | 24. Protections Shared by Both Profiles | Method Semantics |
+
+The register adds this note:
+
+The header of the proposed text reads `Version: 1.4` and a Revision line dated 2026-10-25 (DC-106, DC-141). The number is a drafting value so that it can be changed in one line. Version 1.3 stays pinned in three places that this phase does not touch (see the hand-off list).
+
+The choices behind the header are DC-20, DC-106 and DC-141; DC-106 and DC-141 are in Tier 1 and DC-20 is under the theme "Text-wide choices and the header", all under "Drafting choices DC-01 to DC-141". The version number is a drafting value and can be changed in one line. The check script of the drafting phase warns about the unqualified wording "Both Profiles" in the heading and in the section map row; this is a style heuristic and not a defect. You give your answer at Q10.
+
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
 
 ## Drafting choices DC-01 to DC-141
 
@@ -395,6 +503,10 @@ These seven questions were open in the research that preceded the draft; each ro
 | OQ-6 | `core` `supersede` | Closes as `cancelled` with `replaced_by` (DC-02). |
 | OQ-7 | Items no requirement owns: exit codes and the text-versus-binary rule | Exit codes: no requirement owns them and none were added; handed to the engine phases with the list of stable issue codes. The text-versus-binary rule: 25.2 states the constraint (depends on the bytes only) and a SHOULD default; the concrete rule goes to the engine phases. |
 
+Your answer at Q11 (all 141 drafting choices as drafted, or the ids you overrule):
+
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
+
 ## Dispositions of the review findings
 
 The advisory review of the proposed text found 3 critical findings (CR), 27 warnings (WR) and 14 information items (IN). Every finding has one row. FIXED means that the text was changed so that the finding no longer applies. FIXED-CONSERVATIVE means that the text was changed with the most conservative reading and that a question for the owner remains (OQ-8 to OQ-15). RECORDED means that no text was changed and the item is kept for the Phase 3 packet; no CR or WR finding is RECORDED. Counts: 30 FIXED, 10 FIXED-CONSERVATIVE, 0 DEFERRED-TO-OWNER, 4 RECORDED.
@@ -468,6 +580,10 @@ The advisory review of the proposed text found 3 critical findings (CR), 27 warn
 | F7 | E47 | 17 | Unclassified probe item, flagged. |
 
 No text, example or check was written for the flagged items.
+
+Your answer at Q12 (the four recorded findings and the seven flagged items as recorded):
+
+- Owner answer: unanswered (the answer is recorded only in the owner approval record)
 
 ## Unproven items (informational, for Phase 4)
 
