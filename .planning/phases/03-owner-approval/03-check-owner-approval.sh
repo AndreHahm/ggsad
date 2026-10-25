@@ -19,7 +19,10 @@
 # table, B1 the base blob, R1 the specification equals the result blob in the working file, the index
 # and HEAD, H1 SHA-256, line count and diffstat, C1 the count of commits that touch the specification,
 # K1 the register blob in the file and in HEAD, I1 the diff identity note agrees with the pins, S1
-# every changed path since the base is the specification or under .planning/, T1 the status line.
+# every changed path since the base is the specification or under .planning/, T1 the status line, H2
+# the twelve H2 headings in order, N1 the question blocks Q01 to Q15 (fields, labels, and the register,
+# specification and pin facts that Q01 to Q13 must contain), X1 self-containment: no local path, address,
+# link, scratch or transcript reference, unfinished marker or foreign hash-like token.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are not
 # counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check, 2 on a
@@ -295,6 +298,188 @@ elif [ "$(grep -c '^| Reply given by |' "$PK")" -ne 0 ]; then
   t1="the packet holds a Reply given by row; the reply belongs in the record only"
 fi
 if [ -n "$t1" ]; then fail T1 "$t1"; else pass T1 "the status line is exactly [$want_status]; no reply date, no reply row"; fi
+
+# H2: the twelve H2 headings of the packet, each once, in this order (fenced lines do not count).
+awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$PK" > "$TMP/h2.act"
+cat > "$TMP/h2.exp" << 'HEADINGS'
+## What you are asked to decide
+## The text under approval
+## Questions put to the owner
+## Review map: SPEC-01 to SPEC-18
+## Owner questions OQ-8 to OQ-15
+## Exempt set of Section 24.1
+## Header and heading
+## Drafting choices DC-01 to DC-141
+## Dispositions of the review findings
+## Recorded findings and flagged items
+## Unproven items (informational, for Phase 4)
+## Hand-off list (informational, for the engine phases)
+HEADINGS
+h2=""
+while IFS= read -r want; do
+  n=$(grep -c -x -F -e "$want" "$TMP/h2.act")
+  if [ "$n" -ne 1 ]; then h2="the heading [$want] occurs $n times, expected once"; break; fi
+done < "$TMP/h2.exp"
+if [ -z "$h2" ] && ! cmp -s "$TMP/h2.exp" "$TMP/h2.act"; then
+  h2="the H2 headings are not exactly the twelve in the stated order (first difference: $(diff "$TMP/h2.exp" "$TMP/h2.act" | grep -m1 '^[<>]'))"
+fi
+if [ -n "$h2" ]; then fail H2 "$h2"; else pass H2 "the twelve H2 headings occur once each, in order"; fi
+
+# qparse FILE SECTION OUT: write one line "kind US id US label US text" (US is the unit separator) for
+# every line of the H2 section SECTION that follows an H3 "### Qnn — " question heading. Kind is HEAD for
+# a heading, FIELD for a bullet "- Label: text", TEXT for any other line that is not blank.
+US=$'\037'
+qparse() {
+  awk -v sect="$2" -v us="$US" '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^```/ { fence = !fence; next }
+    !fence && /^## / { on = ($0 == "## " sect); cur = ""; next }
+    !on || fence { next }
+    /^### / {
+      if (match($0, /^### Q[0-9][0-9] — /)) { cur = substr($0, 5, 3); print "HEAD" us cur us "" us $0 }
+      else { cur = ""; print "HEAD" us "??" us "" us $0 }
+      seen = 1; next
+    }
+    !seen || /^[ \t]*$/ { next }
+    /^- [A-Za-z][A-Za-z ]*:( |$)/ {
+      p = index($0, ":"); print "FIELD" us cur us substr($0, 3, p - 3) us trim(substr($0, p + 1)); next
+    }
+    { print "TEXT" us cur us "" us $0 }
+  ' "$1" > "$3"
+}
+
+# qload TSV ORDER HEAD LABELS FIELDS COUNT ERROR: load the output of qparse into arrays and an error text.
+# The arrays are associative and reached through name references, which shellcheck does not follow.
+# shellcheck disable=SC2004,SC2034
+qload() {
+  local kind id label text cur="" first
+  local -n q_ord=$2 q_head=$3 q_labs=$4 q_fld=$5 q_cnt=$6 q_err=$7
+  q_ord=(); q_head=(); q_labs=(); q_fld=(); q_cnt=(); q_err=""
+  while IFS="$US" read -r kind id label text; do
+    case "$kind" in
+      HEAD)
+        if [ "$id" = "??" ]; then
+          [ -n "$q_err" ] || q_err="malformed question heading [$text]"
+          cur=""
+        else
+          q_cnt[$id]=$(( ${q_cnt[$id]:-0} + 1 ))
+          if [ "${q_cnt[$id]}" -eq 1 ]; then q_ord+=("$id"); q_head[$id]=$text; q_labs[$id]=""; fi
+          cur=$id
+        fi ;;
+      FIELD)
+        if [ -n "$cur" ]; then
+          q_labs[$cur]+="$label|"
+          first="${q_fld["$cur|$label"]+set}"
+          [ -n "$first" ] || q_fld["$cur|$label"]=$text
+        fi ;;
+      TEXT) [ -n "$q_err" ] || q_err="unexpected text in ${id:-the section}: [$text]" ;;
+    esac
+  done < "$1"
+}
+
+QIDS=(Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09 Q10 Q11 Q12 Q13 Q14 Q15)
+QTOPICS=("OQ-8" "OQ-9" "OQ-10" "OQ-11" "OQ-12" "OQ-13" "OQ-14" "OQ-15" "Exempt set" "Header and heading" "Drafting choices" "Recorded findings and flagged items" "Approval" "Reply given by" "Reply date")
+QSTAMP=" — "
+
+declare -A PQ_HEAD=() PQ_LABS=() PQ_FLD=() PQ_CNT=()
+PQ_ORD=()
+PQ_ERR=""
+qparse "$PK" "Questions put to the owner" "$TMP/pq.tsv"
+qload "$TMP/pq.tsv" PQ_ORD PQ_HEAD PQ_LABS PQ_FLD PQ_CNT PQ_ERR
+
+# The register: Question and Reading cells of OQ-8 to OQ-15, and the number of DC rows.
+declare -A REG_Q=() REG_R=()
+while IFS="$US" read -r k q r; do
+  REG_Q[$k]=$q
+  REG_R[$k]=$r
+done < <(awk -v us="$US" '
+  function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+  /^## / { on = ($0 == "## Owner questions OQ-8 to OQ-15"); next }
+  on && /^\| OQ-[0-9]+ \|/ { n = split($0, c, "|"); print trim(c[2]) us trim(c[3]) us trim(c[5]) }
+' "$RG")
+REG_DC=$(grep -c '^| DC-[0-9][0-9]* |' "$RG")
+
+# Facts of the specification that Q10 names: the Version, the date of the Revision line and the title of section 24.
+S_VER=$(head -n 10 "$SP" | sed -n 's/^\*\*Version:\*\* *//p' | head -n1)
+S_REVD=$(head -n 10 "$SP" | sed -n 's/^\*\*Revision:\*\* *\([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1/p' | head -n1)
+S_TITLE=$(sed -n 's/^## 24\. *//p' "$SP" | head -n1)
+
+# N1: the question blocks Q01 to Q15 and what each of them must contain.
+n1=""
+if [ -n "$PQ_ERR" ]; then
+  n1=$PQ_ERR
+elif [ "${PQ_ORD[*]}" != "${QIDS[*]}" ]; then
+  n1="the question blocks are [${PQ_ORD[*]}], expected exactly [${QIDS[*]}] once each, in order"
+else
+  for i in "${!QIDS[@]}"; do
+    id=${QIDS[$i]}
+    if [ "${PQ_CNT[$id]}" -ne 1 ]; then n1="$id occurs ${PQ_CNT[$id]} times, expected once"; break; fi
+    if [ "${PQ_HEAD[$id]}" != "### $id${QSTAMP}${QTOPICS[$i]}" ]; then n1="$id: the heading is [${PQ_HEAD[$id]}], expected [### $id${QSTAMP}${QTOPICS[$i]}]"; break; fi
+    if [ "$i" -le 12 ]; then want_labs="Header|Question|Accepting answer|Other answer|"; else want_labs="Header|Question|Answer form|"; fi
+    if [ "${PQ_LABS[$id]}" != "$want_labs" ]; then n1="$id: the fields are [${PQ_LABS[$id]}], expected [$want_labs] once each, in order"; break; fi
+    hdr=${PQ_FLD["$id|Header"]}
+    qt=${PQ_FLD["$id|Question"]}
+    if [ -z "$hdr" ] || [ -z "$qt" ]; then n1="$id: the Header or the Question is empty"; break; fi
+    if [ "${#hdr}" -gt 12 ]; then n1="$id: Header [$hdr] has ${#hdr} characters, at most 12 are allowed"; break; fi
+    if [ "$i" -le 12 ]; then
+      acc=${PQ_FLD["$id|Accepting answer"]}
+      oth=${PQ_FLD["$id|Other answer"]}
+      if [ -z "$acc" ] || [ -z "$oth" ] || [ "$acc" = "$oth" ]; then n1="$id: the two answer labels must be non-empty and differ"; break; fi
+      if [ "${#acc}" -gt 30 ] || [ "${#oth}" -gt 30 ]; then n1="$id: an answer label has more than 30 characters"; break; fi
+    elif [ -z "${PQ_FLD["$id|Answer form"]}" ]; then
+      n1="$id: the Answer form is empty"; break
+    fi
+    if [ "$i" -le 7 ]; then
+      k=${QTOPICS[$i]}
+      if [ -z "${REG_Q[$k]:-}" ] || [ -z "${REG_R[$k]:-}" ]; then n1="$id: the register has no Question and Reading cells for $k"; break; fi
+      [[ "$qt" == *"${REG_Q[$k]}"* ]] || { n1="$id: the question does not contain the register's Question cell of $k"; break; }
+      [[ "$qt" == *"${REG_R[$k]}"* ]] || { n1="$id: the question does not contain the register's Reading cell of $k"; break; }
+    fi
+    case "$id" in
+      Q10)
+        if [ -z "$S_VER" ] || [ -z "$S_REVD" ] || [ -z "$S_TITLE" ]; then n1="Q10: the specification has no Version, Revision date or section 24 title to compare with"; break; fi
+        for v in "$S_VER" "$S_REVD" "$S_TITLE"; do
+          [[ "$qt" == *"$v"* ]] || { n1="Q10: the question does not contain [$v] from the specification"; break 2; }
+        done ;;
+      Q11)
+        [[ "$qt" == *"$REG_DC"* ]] || { n1="Q11: the question does not contain the count $REG_DC of the register's DC rows"; break; }
+        [ "$acc" = "Accept all $REG_DC" ] || { n1="Q11: the accepting answer is [$acc], expected [Accept all $REG_DC]"; break; } ;;
+      Q13)
+        for v in "$P_RES" "$P_SHA" "$P_LINES"; do
+          [[ "$qt" == *"$v"* ]] || { n1="Q13: the question does not contain the pin [$v]"; break 2; }
+        done ;;
+    esac
+  done
+fi
+if [ -n "$n1" ]; then fail N1 "$n1"; else pass N1 "Q01 to Q15 are complete and agree with the register, the specification and the pins"; fi
+
+# X1: self-containment of the packet (and, in stage recorded, of the record).
+hex_allowed=" $P_BASE $P_RES $P_REGB $P_SHA "
+x1=""
+x1_files=("$PK")
+x1_names=("packet")
+for idx in "${!x1_files[@]}"; do
+  f=${x1_files[$idx]}
+  nm=${x1_names[$idx]}
+  while IFS='|' read -r label re; do
+    hit=$(grep -n -E -e "$re" "$f" | head -n1)
+    if [ -n "$hit" ]; then x1="$nm: $label at line ${hit%%:*}"; break 2; fi
+  done << 'PATTERNS'
+drive-letter or home-directory path|(^|[^A-Za-z0-9])[A-Za-z]:[\\/]|/Users/|/home/|~/
+web address|https?://
+markdown link|\]\(
+temporary directory|/tmp/
+scratch, local-data or transcript reference|[Ss][Cc][Rr][Aa][Tt][Cc][Hh][Pp][Aa][Dd]|[Aa][Pp][Pp][Dd][Aa][Tt][Aa]|[Tt][Rr][Aa][Nn][Ss][Cc][Rr][Ii][Pp][Tt]
+unfinished-text marker|(^|[^A-Za-z0-9])(TODO|FIXME|TBD|XXX)([^A-Za-z0-9]|$)|@@FILL@@
+PATTERNS
+  while IFS= read -r tok; do
+    case "$hex_allowed" in
+      *" $tok "*) ;;
+      *) x1="$nm: hash-like token [$tok] that is not a pin of the packet"; break 2 ;;
+    esac
+  done < <(grep -o -E '[0-9A-Za-z_]+' "$f" | grep -E '^[0-9A-Fa-f]{7,}$' | grep '[0-9]' | sort -u)
+done
+if [ -n "$x1" ]; then fail X1 "$x1"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
 
 if [ "$FAILS" -eq 0 ]; then
   echo "RESULT: PASS"
