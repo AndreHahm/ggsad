@@ -13,6 +13,11 @@
 #   --spec PATH       the specification file to hash (default: the specification path of the
 #                     repository); a test hook, the index and HEAD checks always read the real path
 #   --base REF        base ref of the diff (default origin/main); must name a commit
+#   --print-record-skeleton
+#                     print the record layout for the packet to standard output and exit 0 (exit 2 if
+#                     the packet status line is not the pending form); every field the owner answers
+#                     holds the fill marker, which the checks reject. This is the only way a record
+#                     is created
 #   -h, --help        print this text and exit 0
 #
 # Checks on the packet: E1 no byte order mark and valid UTF-8, E2 LF only and no tab, P0 the pin
@@ -23,6 +28,16 @@
 # the twelve H2 headings in order, N1 the question blocks Q01 to Q15 (fields, labels, and the register,
 # specification and pin facts that Q01 to Q13 must contain), X1 self-containment: no local path, address,
 # link, scratch or transcript reference, unfinished marker or foreign hash-like token.
+#
+# Stage recorded runs the checks above on the packet, with T1 in its recorded form (the one status line
+# reads "recorded in the owner approval record"), and on the record: P2 the packet as put to the owner is
+# unchanged except for its status line (blob and SHA-256 pinned by the record), A1 the record is complete
+# and well-formed, A2 its pins equal the packet's, A3 its questions are the packet's character for
+# character and each is answered, A4 the outcome follows from the answers. The outcome is exactly
+# "approved" (every answer to Q01 to Q13 is the accepting answer, Q13 is "Approve exact text", and the
+# requested changes read "None.") or "changes requested" (at least one answer differs and at least one
+# change is listed). The checks cannot prove who answered; they prove the record is complete, consistent
+# and tied to the pinned text.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are not
 # counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check, 2 on a
@@ -45,6 +60,7 @@ RECORD="$REC_DEFAULT"
 REGISTER="$REG"
 SPECFILE="$SPEC"
 BASE="origin/main"
+PRINT_SKEL=0
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -65,6 +81,7 @@ while [ "$#" -gt 0 ]; do
     --register) need_value "$@"; REGISTER="$2"; shift 2 ;;
     --spec) need_value "$@"; SPECFILE="$2"; shift 2 ;;
     --base) need_value "$@"; BASE="$2"; shift 2 ;;
+    --print-record-skeleton) PRINT_SKEL=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -72,16 +89,13 @@ done
 
 [ "$STAGE" = pending ] || [ "$STAGE" = recorded ] || { echo "--stage must be pending or recorded" >&2; exit 2; }
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
-if [ "$STAGE" = recorded ]; then
-  echo "--stage recorded (record $RECORD) is not available yet" >&2
-  exit 2
-fi
 
 TMP=$(mktemp -d) || { echo "cannot create a temporary directory" >&2; exit 2; }
 trap 'rm -rf "$TMP"' EXIT
 PK="$TMP/packet"
 SP="$TMP/spec"
 RG="$TMP/register"
+RC="$TMP/record"
 
 readable() {
   if [ -f "$2" ] && [ -r "$2" ] && cp "$2" "$1" 2> /dev/null; then
@@ -93,6 +107,7 @@ readable() {
 readable "$PK" "$PACKET"
 readable "$SP" "$SPECFILE"
 readable "$RG" "$REGISTER"
+if [ "$STAGE" = recorded ] && [ "$PRINT_SKEL" -eq 0 ]; then readable "$RC" "$RECORD"; fi
 
 FAILS=0
 pass() { echo "PASS $1 $2"; }
@@ -158,6 +173,124 @@ P_DIFF=$(pin_tok "$TMP/pkt.pins" "Diffstat")
 P_COMM=$(pin_tok "$TMP/pkt.pins" "Commits touching the file")
 P_REGF=$(pin_tok "$TMP/pkt.pins" "Register file")
 P_REGB=$(pin_tok "$TMP/pkt.pins" "Register blob")
+
+# qparse FILE SECTION OUT: write one line "kind US id US label US text" (US is the unit separator) for
+# every line of the H2 section SECTION that follows an H3 "### Qnn — " question heading. Kind is HEAD for
+# a heading, FIELD for a bullet "- Label: text", TEXT for any other line that is not blank.
+US=$'\037'
+qparse() {
+  awk -v sect="$2" -v us="$US" '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^```/ { fence = !fence; next }
+    !fence && /^## / { on = ($0 == "## " sect); cur = ""; next }
+    !on || fence { next }
+    /^### / {
+      if (match($0, /^### Q[0-9][0-9] — /)) { cur = substr($0, 5, 3); print "HEAD" us cur us "" us $0 }
+      else { cur = ""; print "HEAD" us "??" us "" us $0 }
+      seen = 1; next
+    }
+    !seen || /^[ \t]*$/ { next }
+    /^- [A-Za-z][A-Za-z ]*:( |$)/ {
+      p = index($0, ":"); print "FIELD" us cur us substr($0, 3, p - 3) us trim(substr($0, p + 1)); next
+    }
+    { print "TEXT" us cur us "" us $0 }
+  ' "$1" > "$3"
+}
+
+# qload TSV ORDER HEAD LABELS FIELDS COUNT ERROR: load the output of qparse into arrays and an error text.
+# The arrays are associative and reached through name references, which shellcheck does not follow.
+# shellcheck disable=SC2004,SC2034
+qload() {
+  local kind id label text cur="" first
+  local -n q_ord=$2 q_head=$3 q_labs=$4 q_fld=$5 q_cnt=$6 q_err=$7
+  q_ord=(); q_head=(); q_labs=(); q_fld=(); q_cnt=(); q_err=""
+  while IFS="$US" read -r kind id label text; do
+    case "$kind" in
+      HEAD)
+        if [ "$id" = "??" ]; then
+          [ -n "$q_err" ] || q_err="malformed question heading [$text]"
+          cur=""
+        else
+          q_cnt[$id]=$(( ${q_cnt[$id]:-0} + 1 ))
+          if [ "${q_cnt[$id]}" -eq 1 ]; then q_ord+=("$id"); q_head[$id]=$text; q_labs[$id]=""; fi
+          cur=$id
+        fi ;;
+      FIELD)
+        if [ -n "$cur" ]; then
+          q_labs[$cur]+="$label|"
+          first="${q_fld["$cur|$label"]+set}"
+          [ -n "$first" ] || q_fld["$cur|$label"]=$text
+        fi ;;
+      TEXT) [ -n "$q_err" ] || q_err="unexpected text in ${id:-the section}: [$text]" ;;
+    esac
+  done < "$1"
+}
+
+QIDS=(Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09 Q10 Q11 Q12 Q13 Q14 Q15)
+QTOPICS=("OQ-8" "OQ-9" "OQ-10" "OQ-11" "OQ-12" "OQ-13" "OQ-14" "OQ-15" "Exempt set" "Header and heading" "Drafting choices" "Recorded findings and flagged items" "Approval" "Reply given by" "Reply date")
+QSTAMP=" — "
+
+declare -A PQ_HEAD=() PQ_LABS=() PQ_FLD=() PQ_CNT=()
+PQ_ORD=()
+PQ_ERR=""
+qparse "$PK" "Questions put to the owner" "$TMP/pq.tsv"
+qload "$TMP/pq.tsv" PQ_ORD PQ_HEAD PQ_LABS PQ_FLD PQ_CNT PQ_ERR
+
+# --print-record-skeleton: the only way a record is created. Every pin and every question comes from the
+# packet; the packet's own blob and SHA-256 are computed from the packet file as it is.
+pin_raw() { awk -F'\t' -v l="$2" '$1 == l { print $2; exit }' "$1"; }
+if [ "$PRINT_SKEL" -eq 1 ]; then
+  sk=""
+  if [ "$(grep -c '^- Owner approval:' "$PK")" -ne 1 ] || ! grep -q -x -F -e "- Owner approval: pending" "$PK"; then
+    sk="the packet status line is not exactly [- Owner approval: pending]"
+  fi
+  if [ -z "$sk" ]; then
+    for l in "${PIN_LABELS[@]}"; do
+      if [ "$(pin_count "$TMP/pkt.pins" "$l")" -ne 1 ]; then sk="the packet pin table has no single row [$l]"; break; fi
+    done
+  fi
+  if [ -z "$sk" ]; then
+    if [ -n "$PQ_ERR" ] || [ "${PQ_ORD[*]}" != "${QIDS[*]}" ]; then sk="the packet question blocks are not Q01 to Q15 once each"; fi
+  fi
+  if [ -z "$sk" ]; then
+    for id in "${QIDS[@]}"; do
+      if [ -z "${PQ_FLD["$id|Question"]:-}" ]; then sk="the packet question $id has no Question"; break; fi
+    done
+  fi
+  if [ -n "$sk" ]; then echo "cannot print the record skeleton: $sk" >&2; exit 2; fi
+  printf '# Owner approval record: proposed normative method specification\n\n'
+  printf -- '- Owner approval: @@FILL@@\n- Owner reply date: @@FILL@@\n\n'
+  printf '| Field | Value |\n|---|---|\n'
+  for l in "${PIN_LABELS[@]}"; do printf '| %s | %s |\n' "$l" "$(pin_raw "$TMP/pkt.pins" "$l")"; done
+  # The backticks are literal markdown code marks in the printed record, not command substitutions.
+  # shellcheck disable=SC2016
+  printf '| Packet file | `%s` |\n' "$PKT_DEFAULT"
+  # shellcheck disable=SC2016
+  printf '| Packet blob | `%s` |\n' "$(git hash-object --no-filters "$PK")"
+  # shellcheck disable=SC2016
+  printf '| Packet SHA-256 | `%s` |\n' "$(sha256sum < "$PK" | cut -d ' ' -f1)"
+  printf '| Reply given by | @@FILL@@ |\n| Owner reply | @@FILL@@ |\n| Check results | @@FILL@@ |\n\n'
+  printf '## Questions and answers\n\n'
+  for id in "${QIDS[@]}"; do
+    printf '%s\n\n- Question: %s\n- Answer: @@FILL@@\n\n' "${PQ_HEAD[$id]}" "${PQ_FLD["$id|Question"]}"
+  done
+  printf '## Requested changes\n\n@@FILL@@\n\n## What follows\n\n@@FILL@@\n\n'
+  printf 'This record is evidence only. It does not change the reviewed file.\n'
+  exit 0
+fi
+
+# The record (stage recorded): its table rows and its question blocks.
+declare -A RQ_HEAD=() RQ_LABS=() RQ_FLD=() RQ_CNT=()
+RQ_ORD=()
+RQ_ERR=""
+: > "$TMP/rec.pins"
+if [ "$STAGE" = recorded ]; then
+  parse_pins "$RC" "" "$TMP/rec.pins"
+  qparse "$RC" "Questions and answers" "$TMP/rq.tsv"
+  qload "$TMP/rq.tsv" RQ_ORD RQ_HEAD RQ_LABS RQ_FLD RQ_CNT RQ_ERR
+fi
+R_PBLOB=$(pin_tok "$TMP/rec.pins" "Packet blob")
+R_PSHA=$(pin_tok "$TMP/rec.pins" "Packet SHA-256")
 
 # E1, E2: encoding of the packet.
 msg=$(enc1 "$PK")
@@ -325,67 +458,6 @@ if [ -z "$h2" ] && ! cmp -s "$TMP/h2.exp" "$TMP/h2.act"; then
 fi
 if [ -n "$h2" ]; then fail H2 "$h2"; else pass H2 "the twelve H2 headings occur once each, in order"; fi
 
-# qparse FILE SECTION OUT: write one line "kind US id US label US text" (US is the unit separator) for
-# every line of the H2 section SECTION that follows an H3 "### Qnn — " question heading. Kind is HEAD for
-# a heading, FIELD for a bullet "- Label: text", TEXT for any other line that is not blank.
-US=$'\037'
-qparse() {
-  awk -v sect="$2" -v us="$US" '
-    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
-    /^```/ { fence = !fence; next }
-    !fence && /^## / { on = ($0 == "## " sect); cur = ""; next }
-    !on || fence { next }
-    /^### / {
-      if (match($0, /^### Q[0-9][0-9] — /)) { cur = substr($0, 5, 3); print "HEAD" us cur us "" us $0 }
-      else { cur = ""; print "HEAD" us "??" us "" us $0 }
-      seen = 1; next
-    }
-    !seen || /^[ \t]*$/ { next }
-    /^- [A-Za-z][A-Za-z ]*:( |$)/ {
-      p = index($0, ":"); print "FIELD" us cur us substr($0, 3, p - 3) us trim(substr($0, p + 1)); next
-    }
-    { print "TEXT" us cur us "" us $0 }
-  ' "$1" > "$3"
-}
-
-# qload TSV ORDER HEAD LABELS FIELDS COUNT ERROR: load the output of qparse into arrays and an error text.
-# The arrays are associative and reached through name references, which shellcheck does not follow.
-# shellcheck disable=SC2004,SC2034
-qload() {
-  local kind id label text cur="" first
-  local -n q_ord=$2 q_head=$3 q_labs=$4 q_fld=$5 q_cnt=$6 q_err=$7
-  q_ord=(); q_head=(); q_labs=(); q_fld=(); q_cnt=(); q_err=""
-  while IFS="$US" read -r kind id label text; do
-    case "$kind" in
-      HEAD)
-        if [ "$id" = "??" ]; then
-          [ -n "$q_err" ] || q_err="malformed question heading [$text]"
-          cur=""
-        else
-          q_cnt[$id]=$(( ${q_cnt[$id]:-0} + 1 ))
-          if [ "${q_cnt[$id]}" -eq 1 ]; then q_ord+=("$id"); q_head[$id]=$text; q_labs[$id]=""; fi
-          cur=$id
-        fi ;;
-      FIELD)
-        if [ -n "$cur" ]; then
-          q_labs[$cur]+="$label|"
-          first="${q_fld["$cur|$label"]+set}"
-          [ -n "$first" ] || q_fld["$cur|$label"]=$text
-        fi ;;
-      TEXT) [ -n "$q_err" ] || q_err="unexpected text in ${id:-the section}: [$text]" ;;
-    esac
-  done < "$1"
-}
-
-QIDS=(Q01 Q02 Q03 Q04 Q05 Q06 Q07 Q08 Q09 Q10 Q11 Q12 Q13 Q14 Q15)
-QTOPICS=("OQ-8" "OQ-9" "OQ-10" "OQ-11" "OQ-12" "OQ-13" "OQ-14" "OQ-15" "Exempt set" "Header and heading" "Drafting choices" "Recorded findings and flagged items" "Approval" "Reply given by" "Reply date")
-QSTAMP=" — "
-
-declare -A PQ_HEAD=() PQ_LABS=() PQ_FLD=() PQ_CNT=()
-PQ_ORD=()
-PQ_ERR=""
-qparse "$PK" "Questions put to the owner" "$TMP/pq.tsv"
-qload "$TMP/pq.tsv" PQ_ORD PQ_HEAD PQ_LABS PQ_FLD PQ_CNT PQ_ERR
 
 # The register: Question and Reading cells of OQ-8 to OQ-15, and the number of DC rows.
 declare -A REG_Q=() REG_R=()
@@ -454,10 +526,14 @@ fi
 if [ -n "$n1" ]; then fail N1 "$n1"; else pass N1 "Q01 to Q15 are complete and agree with the register, the specification and the pins"; fi
 
 # X1: self-containment of the packet (and, in stage recorded, of the record).
-hex_allowed=" $P_BASE $P_RES $P_REGB $P_SHA "
+hex_allowed=" $P_BASE $P_RES $P_REGB $P_SHA $R_PBLOB $R_PSHA "
 x1=""
 x1_files=("$PK")
 x1_names=("packet")
+if [ "$STAGE" = recorded ]; then
+  x1_files+=("$RC")
+  x1_names+=("record")
+fi
 for idx in "${!x1_files[@]}"; do
   f=${x1_files[$idx]}
   nm=${x1_names[$idx]}
@@ -480,6 +556,154 @@ PATTERNS
   done < <(grep -o -E '[0-9A-Za-z_]+' "$f" | grep -E '^[0-9A-Fa-f]{7,}$' | grep '[0-9]' | sort -u)
 done
 if [ -n "$x1" ]; then fail X1 "$x1"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
+
+# section_lines TEXT FILE: the non-blank lines of the H2 section TEXT of FILE, trimmed.
+section_lines() {
+  awk -v sect="$1" '
+    /^## / { on = ($0 == "## " sect); next }
+    on && $0 !~ /^[ \t]*$/ { t = $0; sub(/^[ \t]+/, "", t); sub(/[ \t]+$/, "", t); print t }
+  ' "$2"
+}
+
+# Stage recorded: the checks on the record.
+recorded_checks() {
+  local msg n l pv rv id ans lower a1 a2 a3 a4 all_accepting first_other
+
+  # P2: the packet with its one status line put back to pending is the packet the record pins.
+  sed 's/^- Owner approval: recorded in the owner approval record$/- Owner approval: pending/' "$PK" > "$TMP/packet.pending"
+  local p2_blob p2_sha
+  p2_blob=$(git hash-object --no-filters "$TMP/packet.pending")
+  p2_sha=$(sha256sum < "$TMP/packet.pending" | cut -d ' ' -f1)
+  if [ "$p2_blob" = "$R_PBLOB" ] && [ "$p2_sha" = "$R_PSHA" ]; then
+    pass P2 "the packet differs from the pinned form in its status line only (blob $R_PBLOB)"
+  else
+    fail P2 "the packet with the status line pending has blob $p2_blob and SHA-256 $p2_sha; the record pins blob [$R_PBLOB] and SHA-256 [$R_PSHA]"
+  fi
+
+  # A1: the record is complete and well-formed.
+  a1=""
+  msg=$(enc1 "$RC")
+  [ -z "$msg" ] || a1="record: $msg"
+  msg=$(enc2 "$RC")
+  [ -n "$a1" ] || [ -z "$msg" ] || a1="record: $msg"
+  R_OUT=$(sed -n 's/^- Owner approval: //p' "$RC")
+  R_DATE=$(sed -n 's/^- Owner reply date: //p' "$RC")
+  if [ -z "$a1" ]; then
+    if [ "$(grep -c '^- Owner approval:' "$RC")" -ne 1 ]; then
+      a1="the record has $(grep -c '^- Owner approval:' "$RC") lines starting [- Owner approval:], expected one"
+    elif [ "$R_OUT" != "approved" ] && [ "$R_OUT" != "changes requested" ]; then
+      a1="the outcome is [$R_OUT], expected exactly [approved] or [changes requested]"
+    elif [ "$(grep -c '^- Owner reply date:' "$RC")" -ne 1 ]; then
+      a1="the record has $(grep -c '^- Owner reply date:' "$RC") lines starting [- Owner reply date:], expected one"
+    elif ! [[ "$R_DATE" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [ "$(date -u -d "$R_DATE" +%F 2> /dev/null)" != "$R_DATE" ]; then
+      a1="the reply date [$R_DATE] is not a valid calendar date in the form YYYY-MM-DD"
+    elif [ -z "$S_REVD" ]; then
+      a1="the specification has no Revision date to compare the reply date with"
+    elif [[ "$R_DATE" < "$S_REVD" ]]; then
+      a1="the reply date $R_DATE is earlier than the Revision date $S_REVD of the specification"
+    fi
+  fi
+  if [ -z "$a1" ]; then
+    for l in "${PIN_LABELS[@]}" "Packet file" "Packet blob" "Packet SHA-256"; do
+      n=$(pin_count "$TMP/rec.pins" "$l")
+      if [ "$n" -ne 1 ]; then a1="the record table has $n rows labelled [$l], expected one"; break; fi
+      if [ -z "$(pin_tok "$TMP/rec.pins" "$l")" ]; then a1="the value of [$l] is empty or not backticked"; break; fi
+    done
+  fi
+  if [ -z "$a1" ]; then
+    for l in "Reply given by" "Owner reply" "Check results"; do
+      n=$(pin_count "$TMP/rec.pins" "$l")
+      if [ "$n" -ne 1 ]; then a1="the record table has $n rows labelled [$l], expected one"; break; fi
+      if [ -z "$(pin_raw "$TMP/rec.pins" "$l")" ]; then a1="the value of [$l] is empty"; break; fi
+    done
+  fi
+  if [ -z "$a1" ]; then
+    if [ "$(pin_tok "$TMP/rec.pins" "Packet file")" != "$PKT_DEFAULT" ]; then
+      a1="Packet file is [$(pin_tok "$TMP/rec.pins" "Packet file")], expected $PKT_DEFAULT"
+    elif ! [[ "$R_PBLOB" =~ ^[0-9a-f]{40}$ ]]; then
+      a1="Packet blob [$R_PBLOB] is not 40 lowercase hexadecimal digits"
+    elif ! [[ "$R_PSHA" =~ ^[0-9a-f]{64}$ ]]; then
+      a1="Packet SHA-256 [$R_PSHA] is not 64 lowercase hexadecimal digits"
+    fi
+  fi
+  if [ -z "$a1" ]; then
+    awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$RC" > "$TMP/rh2.act"
+    printf '%s\n' "## Questions and answers" "## Requested changes" "## What follows" > "$TMP/rh2.exp"
+    cmp -s "$TMP/rh2.exp" "$TMP/rh2.act" || a1="the record H2 headings are not exactly: Questions and answers, Requested changes, What follows"
+  fi
+  section_lines "Requested changes" "$RC" > "$TMP/req.txt"
+  section_lines "What follows" "$RC" > "$TMP/follows.txt"
+  if [ -z "$a1" ] && [ ! -s "$TMP/follows.txt" ]; then a1="the section What follows is empty"; fi
+  if [ -z "$a1" ] && [ ! -s "$TMP/req.txt" ]; then a1="the section Requested changes is empty (write None. when nothing is requested)"; fi
+  if [ -z "$a1" ] && grep -q '@@FILL@@' "$RC"; then a1="the fill marker is still in the record (line $(grep -n -m1 '@@FILL@@' "$RC" | cut -d: -f1))"; fi
+  if [ -n "$a1" ]; then fail A1 "$a1"; else pass A1 "the record is complete: outcome [$R_OUT], reply date $R_DATE, every table row filled, no fill marker"; fi
+
+  # A2: the nine pin rows of the record equal those of the packet.
+  a2=""
+  for l in "${PIN_LABELS[@]}"; do
+    pv=$(pin_raw "$TMP/pkt.pins" "$l")
+    rv=$(pin_raw "$TMP/rec.pins" "$l")
+    if [ "$pv" != "$rv" ]; then a2="[$l] is $rv in the record and $pv in the packet"; break; fi
+  done
+  if [ -n "$a2" ]; then fail A2 "$a2"; else pass A2 "the nine pin rows of the record equal those of the packet"; fi
+
+  # A3: the record has the packet's questions character for character, each answered.
+  a3=""
+  if [ -n "$RQ_ERR" ]; then
+    a3=$RQ_ERR
+  elif [ "${RQ_ORD[*]}" != "${QIDS[*]}" ]; then
+    a3="the record question blocks are [${RQ_ORD[*]}], expected exactly [${QIDS[*]}] once each, in order"
+  else
+    for id in "${QIDS[@]}"; do
+      if [ "${RQ_CNT[$id]}" -ne 1 ]; then a3="$id occurs ${RQ_CNT[$id]} times in the record, expected once"; break; fi
+      if [ "${RQ_HEAD[$id]}" != "${PQ_HEAD[$id]:-}" ]; then a3="$id: the heading is [${RQ_HEAD[$id]}], the packet has [${PQ_HEAD[$id]:-}]"; break; fi
+      if [ "${RQ_LABS[$id]}" != "Question|Answer|" ]; then a3="$id: the fields are [${RQ_LABS[$id]}], expected [Question|Answer|]"; break; fi
+      if [ "${RQ_FLD["$id|Question"]}" != "${PQ_FLD["$id|Question"]:-}" ]; then a3="$id: the question in the record is not the packet's question character for character"; break; fi
+      ans=${RQ_FLD["$id|Answer"]}
+      lower=$(printf '%s' "$ans" | tr '[:upper:]' '[:lower:]')
+      if [ -z "$ans" ]; then a3="$id: the answer is empty"; break; fi
+      case "$lower" in unanswered*) a3="$id: the answer is [$ans], which is not an answer"; break ;; esac
+    done
+    if [ -z "$a3" ]; then
+      if [ "$(pin_raw "$TMP/rec.pins" "Reply given by")" != "${RQ_FLD["Q14|Answer"]}" ]; then
+        a3="Reply given by [$(pin_raw "$TMP/rec.pins" "Reply given by")] differs from the answer of Q14 [${RQ_FLD["Q14|Answer"]}]"
+      elif [ "$R_DATE" != "${RQ_FLD["Q15|Answer"]}" ]; then
+        a3="the Owner reply date [$R_DATE] differs from the answer of Q15 [${RQ_FLD["Q15|Answer"]}]"
+      fi
+    fi
+  fi
+  if [ -n "$a3" ]; then fail A3 "$a3"; else pass A3 "Q01 to Q15 are the packet's questions verbatim, each answered; Reply given by and the reply date equal the answers of Q14 and Q15"; fi
+
+  # A4: the outcome follows from the answers.
+  a4=""
+  all_accepting=1
+  first_other=""
+  for id in "${QIDS[@]:0:13}"; do
+    if [ "${RQ_FLD["$id|Answer"]:-}" != "${PQ_FLD["$id|Accepting answer"]:-}" ]; then
+      all_accepting=0
+      [ -n "$first_other" ] || first_other=$id
+    fi
+  done
+  case "$R_OUT" in
+    approved)
+      if [ "$all_accepting" -ne 1 ]; then
+        a4="outcome approved, but $first_other is answered [${RQ_FLD["$first_other|Answer"]:-}] and not with its accepting answer [${PQ_FLD["$first_other|Accepting answer"]:-}]; a differing answer is a requested change"
+      elif [ "${RQ_FLD["Q13|Answer"]:-}" != "Approve exact text" ]; then
+        a4="outcome approved, but Q13 is answered [${RQ_FLD["Q13|Answer"]:-}] and not [Approve exact text]"
+      elif [ "$(cat "$TMP/req.txt")" != "None." ]; then
+        a4="outcome approved, but the Requested changes section does not read exactly [None.]"
+      fi ;;
+    "changes requested")
+      if [ "$all_accepting" -eq 1 ]; then
+        a4="outcome changes requested, but every answer of Q01 to Q13 is its accepting answer; a requested change needs a differing answer (Q13 is [${RQ_FLD["Q13|Answer"]:-}])"
+      elif ! grep -q -E '^- .+' "$TMP/req.txt"; then
+        a4="outcome changes requested, but the Requested changes section lists no change (a bullet starting [- ] with text after it)"
+      fi ;;
+    *) a4="the outcome [$R_OUT] is neither approved nor changes requested" ;;
+  esac
+  if [ -n "$a4" ]; then fail A4 "$a4"; else pass A4 "the outcome [$R_OUT] follows from the answers and the Requested changes section"; fi
+}
+if [ "$STAGE" = recorded ]; then recorded_checks; fi
 
 if [ "$FAILS" -eq 0 ]; then
   echo "RESULT: PASS"
