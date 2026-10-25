@@ -14,7 +14,9 @@
 #                       higher level
 #   --ids LIST          comma-separated requirement ids (SPEC-01 to SPEC-18); also runs C1
 #   --final             the phase gate: R1, R2, R3 and R7 become failures, C1 runs for SPEC-01 to
-#                       SPEC-12 and SPEC-14 to SPEC-18, and R4, F1, W1 and A1 run
+#                       SPEC-12 and SPEC-14 to SPEC-18, and R4, F1, W1, D1 and A1 run
+#   --register FILE     the register that D1 reads (default: the register of this phase; relative
+#                       paths are taken from the repository root); with --final
 #   --version V         the method version R4 expects in the header (default 1.4); with --final
 #   -h, --help          print this text
 #
@@ -25,11 +27,15 @@
 # R8 qualified "profile" (warning only). With --ids, C1: every listed id is named in the
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
-# known ids; the single header subject of the last plan is accepted and counts toward no id.
+# known ids; the two header subjects (the header commit of plan 05 and the header commit of plan
+# 08) are accepted and count toward no id.
 # With --final: R4 header version and revision line, F1 an acceptance example for each of the 41
 # full rule units and a realization row for each of the 11 protections, W1 no status wording in the
-# specification or in the notes of the phase, and A1 the identity facts of the text (printed, not
-# judged).
+# specification or in the notes of the phase, D1 every finding of the review (CR-01 to CR-03, WR-01
+# to WR-27, IN-01 to IN-14) has exactly one row under the heading "Dispositions of the review
+# findings" of the register, whose first two cells are the id and one of FIXED, FIXED-CONSERVATIVE,
+# DEFERRED-TO-OWNER, RECORDED (no CR or WR row is RECORDED, and no other id has a row), and A1 the
+# identity facts of the text (printed, not judged).
 #
 # Two checks fail in every mode: R9 the acceptance example ids (lines "**AE-nn — ") are exactly AE-1
 # to AE-N with no gap and no repeat (N is printed), and J1 every json code fence parses (python3 with
@@ -60,6 +66,8 @@ IDS=""
 FINAL=0
 VERSION="1.4"
 HEADER_SUBJECT="docs(02-05): header Version 1.4 and revision line (D-12)"
+HEADER_SUBJECT2="docs(02-08): header revision line after the review fixes (D-12)"
+REGISTER=".planning/phases/02-normative-drafting/02-DRAFTING-CHOICES.md"
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0" >&2
@@ -83,6 +91,7 @@ while [ "$#" -gt 0 ]; do
     --section) need_value "$@"; SECTION="$2"; shift 2 ;;
     --ids) need_value "$@"; IDS="$2"; shift 2 ;;
     --final) FINAL=1; shift ;;
+    --register) need_value "$@"; REGISTER="$2"; shift 2 ;;
     --version) need_value "$@"; VERSION="$2"; shift 2 ;;
     -h|--help) usage ;;
     *) echo "unknown option: $1" >&2; usage ;;
@@ -566,8 +575,8 @@ awk '
 if [ -s "$TMP/r7.out" ]; then warn_or_fail "$TMP/r7.out"; else pass R7 "no old state file name outside Section 25.3; every reopen in Section 8 names the full profile"; fi
 
 # C1 (only with --ids): the commits since the base that touch the specification. Each subject starts
-# "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the one header
-# subject, which names none and counts toward none. Each listed id is named by some subject.
+# "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the two header
+# subjects, which name none and count toward none. Each listed id is named by some subject.
 # SPEC-13 is covered by S1 and S2 and needs no commit. Commits before the base never count.
 if [ -n "$IDS" ]; then
   git log --format=%s "$BASE..HEAD" -- "$SPEC" > "$TMP/subjects.txt" 2> /dev/null \
@@ -577,6 +586,7 @@ if [ -n "$IDS" ]; then
   prefix_re='^docs\(02-[0-9]{2}\): SPEC-[0-9]{2}'
   while IFS= read -r subj || [ -n "$subj" ]; do
     [ "$subj" = "$HEADER_SUBJECT" ] && continue
+    [ "$subj" = "$HEADER_SUBJECT2" ] && continue
     if ! [[ "$subj" =~ $prefix_re ]]; then
       [ -n "$c1" ] || c1="a commit that touches the specification does not start with docs(02-NN): SPEC-nn: [$subj]"
       continue
@@ -692,6 +702,46 @@ if [ "$FINAL" -eq 1 ]; then
     esac
   done < "$TMP/w1.files"
   if [ -n "$w1" ]; then fail W1 "$w1"; else pass W1 "no status wording in the specification or in the $(wc -l < "$TMP/w1.files" | tr -d ' ') note(s) of the phase; no owner reply row"; fi
+
+  # D1: every finding of the review has exactly one disposition row in the register, under the
+  # heading "Dispositions of the review findings". A row is read by its first two cells.
+  d1=""
+  if [ ! -f "$REGISTER" ] || [ ! -r "$REGISTER" ]; then
+    d1="cannot read the register $REGISTER"
+  else
+    d1=$(awk '
+      function trim(s) { gsub(/^ +| +$/, "", s); return s }
+      BEGIN {
+        n = split("CR-01 CR-02 CR-03", a, " "); for (i = 1; i <= n; i++) { want[a[i]] = 1; ord[++no] = a[i] }
+        for (k = 1; k <= 27; k++) { id = sprintf("WR-%02d", k); want[id] = 1; ord[++no] = id }
+        for (k = 1; k <= 14; k++) { id = sprintf("IN-%02d", k); want[id] = 1; ord[++no] = id }
+        okv["FIXED"] = 1; okv["FIXED-CONSERVATIVE"] = 1; okv["DEFERRED-TO-OWNER"] = 1; okv["RECORDED"] = 1
+      }
+      /^```/ { infence = !infence; next }
+      infence { next }
+      /^## / { insec = ($0 == "## Dispositions of the review findings"); if (insec) found++; next }
+      insec && /^\|/ {
+        m = split($0, c, "|")
+        id = trim(c[2]); val = trim(c[3])
+        if (id !~ /^[A-Za-z]+-[0-9]+$/) next
+        rows[id]++
+        if (rows[id] == 1) value[id] = val
+        if (!(id in want) && other == "") other = id
+      }
+      END {
+        if (found != 1) { print "the heading Dispositions of the review findings occurs " found + 0 " times, expected once"; exit }
+        if (other != "") { print "the row for " other " is not a finding of the review"; exit }
+        for (i = 1; i <= no; i++) {
+          id = ord[i]
+          if (rows[id] == 0) { print "no disposition row for " id; exit }
+          if (rows[id] > 1) { print "more than one disposition row for " id; exit }
+          if (!(value[id] in okv)) { print "the disposition of " id " is [" value[id] "], not FIXED, FIXED-CONSERVATIVE, DEFERRED-TO-OWNER or RECORDED"; exit }
+          if (value[id] == "RECORDED" && id !~ /^IN-/) { print id " is RECORDED; only an IN finding may be"; exit }
+        }
+      }
+    ' "$REGISTER")
+  fi
+  if [ -n "$d1" ]; then fail D1 "$d1"; else pass D1 "all 44 findings have exactly one disposition row; no CR or WR finding is RECORDED"; fi
 
   # A1: facts only, printed for the diff identity record of the phase. No verdict.
   echo "A1 base blob: ${base_now:-absent}"
