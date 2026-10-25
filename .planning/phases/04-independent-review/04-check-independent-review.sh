@@ -40,6 +40,12 @@
 #                     other entry (a name beginning with a dot is a warning), SN2 each file equals its
 #                     expected content by SHA-256 and REQUIREMENTS.md has eighteen lines. Read-only on DIR;
 #                     exit 2 if DIR is not a directory
+#   --report-file PATH
+#                     check one raw reviewer report (checks RP1 to RP9 below) and exit; needs --pass. No
+#                     stage check runs and the note is not read for its content. The specification is read
+#                     from --spec and the base text from git (--base); relative paths are taken from the
+#                     repository root. Exit 2 if the file is unreadable
+#   --pass ID         the pass of the report: RV-A, RV-B, RV-C, RV-D, RV-E or RV-X (exit 2 for another id)
 #   -h, --help        print this text and exit 0
 #
 # Checks of stage pins, all on the review note: E1 no byte order mark and valid UTF-8, E2 LF only, one final
@@ -63,6 +69,25 @@
 # severity bullets, the pass rows and the charter ids of the note equal the brief's; and on the pilot: PL1 the
 # pilot inputs carry no repository content, PL2 the pilot brief reuses the severity scale, the output format
 # and the rules of the brief byte for byte and carries the containment test.
+#
+# Report checks (--report-file; every message names the pass), on the report after normalisation (CR bytes
+# deleted, each tab replaced by four spaces, nothing else): RP1 the first non-blank line is REPORT BEGIN and
+# the last is REPORT END with the pass id, each once, nothing else outside them, RP2 the labels occur in the
+# order of the brief (BEGIN, IDENTITY, four INPUT, SCOPE, COVERAGE, FINDINGS, blocks of FINDING, SEVERITY, one
+# to four REFERENCE, SUMMARY, REASONING, DISPOSITION REQUIRED, then CHECKS PERFORMED, LIMITS, VERDICT, END),
+# a label only counts at the start of a line, only REASONING, DISPOSITION REQUIRED, CHECKS PERFORMED and
+# LIMITS may continue on further lines, REASONING and DISPOSITION REQUIRED hold text, RP3 the IDENTITY names
+# Devin and the four INPUT lines carry the expected SHA-256 values or the words "not computed" (a warning),
+# RP4 SCOPE and COVERAGE are well-formed and cover the headings of the pass range (an omitted heading is a
+# warning, more than half omitted a failure, a number that is no heading a warning), RP5 the FINDINGS count,
+# the finding ids numbered from 001, one of the four severity words, a one-line SUMMARY of at most 200
+# characters, no vertical bar in a REFERENCE or SUMMARY line, RP6 each REFERENCE has the form "file F; section
+# S; lines A-B; quote Q" and resolves in the specification or the base text (the section is a numbered heading
+# or header, the lines lie inside the file, a quote is a substring of a line of the file; a quote outside the
+# stated lines is a warning), RP7 CHECKS PERFORMED and LIMITS hold text and the VERDICT agrees with the
+# severities, RP8 self-containment of the report (x1_scan with the input hashes and the input files of the
+# mode), RP9 a warning "WARN RP9 <phrase> in LIMITS of <pass>" for each claim in LIMITS that the input was
+# truncated, cut off, read partially or not completed.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are not
 # counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check, 2 on a usage
@@ -98,6 +123,8 @@ PILOT=0
 PRINT_PILOT=""
 PRINT_RUNSET=""
 VERIFY_DIR=""
+REPORT_FILE=""
+REPORT_PASS=""
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -125,6 +152,8 @@ while [ "$#" -gt 0 ]; do
     --print-pilot-file) need_value "$@"; PRINT_PILOT="$2"; shift 2 ;;
     --print-run-set) need_value "$@"; PRINT_RUNSET="$2"; shift 2 ;;
     --verify-snapshot) need_value "$@"; VERIFY_DIR="$2"; shift 2 ;;
+    --report-file) need_value "$@"; REPORT_FILE="$2"; shift 2 ;;
+    --pass) need_value "$@"; REPORT_PASS="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -134,6 +163,14 @@ done
 if [ "$BRIEF_GIVEN" -eq 1 ] && [ "$STAGE_SET" -eq 0 ]; then STAGE="brief"; fi
 [ "$STAGE" = pins ] || [ "$STAGE" = brief ] || { echo "--stage must be pins or brief" >&2; exit 2; }
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
+if [ -n "$REPORT_FILE" ] || [ -n "$REPORT_PASS" ]; then
+  [ -n "$REPORT_FILE" ] && [ -n "$REPORT_PASS" ] || { echo "--report-file and --pass are used together" >&2; exit 2; }
+  case "$REPORT_PASS" in
+    RV-A|RV-B|RV-C|RV-D|RV-E|RV-X) ;;
+    *) echo "--pass must be RV-A, RV-B, RV-C, RV-D, RV-E or RV-X" >&2; exit 2 ;;
+  esac
+  [ -f "$REPORT_FILE" ] && [ -r "$REPORT_FILE" ] || { echo "cannot read $REPORT_FILE" >&2; exit 2; }
+fi
 
 TMP=$(mktemp -d) || { echo "cannot create a temporary directory" >&2; exit 2; }
 trap 'rm -rf "$TMP"' EXIT
@@ -531,6 +568,352 @@ PATTERNS
   return 0
 }
 
+# build_heads FILE OUT: one line "number TAB line" for every numbered heading of FILE ("## N. " or "### N.M "),
+# read fence-aware.
+build_heads() {
+  awk '
+    /^```/ { fence = !fence; next }
+    fence { next }
+    /^## [0-9]+\. / { id = $2; sub(/\.$/, "", id); print id "\t" NR; next }
+    /^### [0-9]+\.[0-9]+ / { print $2 "\t" NR }
+  ' "$1" > "$2"
+}
+
+# build_passes BRIEF OUT: one line "pass TAB scope TAB from TAB upto" for every row of the pass table of BRIEF.
+build_passes() {
+  h2_lines "Passes" "$1" | awk -F'|' '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^\| RV-/ { print trim($2) "\t" trim($3) "\t" trim($4) "\t" trim($5) }
+  ' > "$2"
+}
+
+# prep_ranges: the headings of the specification, its end line and the pass table of the brief, built once.
+RANGES_READY=0
+spec_end=0
+prep_ranges() {
+  [ "$RANGES_READY" -eq 0 ] || return 0
+  RANGES_READY=1
+  readable "$BR" "$BRIEFFILE"
+  build_heads "$SP" "$TMP/heads.tsv"
+  spec_end=$(( $(wc -l < "$SP" | tr -d ' ') + 1 ))
+  build_passes "$BR" "$TMP/passes.tsv"
+}
+
+# pass_line TOKEN: the line number for header, end or a heading number of the specification; empty when unknown.
+pass_line() {
+  case "$1" in
+    header) echo 1 ;;
+    end) echo "$spec_end" ;;
+    *) awk -F'\t' -v id="$1" '$1 == id { print $2; exit }' "$TMP/heads.tsv" ;;
+  esac
+}
+
+# report_source PASS: the one place from which the report checks read their sources. It sets RS_SPEC (the
+# specification text), RS_BASE (the base text), RS_SPEC_HEADS and RS_BASE_HEADS (their numbered headings),
+# RS_HASHES (the four expected SHA-256 values, lines "NAME SHA256"), RS_CORPUS (the directory of the five input
+# files that hash_token_allowed searches), and for PASS RS_FROM and RS_TO (the line range FROM up to, not
+# including, TO) and RS_TOP (1 when only top-level headings are expected in COVERAGE).
+RS_READY=0
+report_source() {
+  local id=$1 row a b
+  if [ "$RS_READY" -eq 0 ]; then
+    RS_READY=1
+    prep_ranges
+    RS_SPEC="$SP"
+    RS_BASE="$TMP/rs.base"
+    git cat-file blob "$BASE:$SPEC" > "$RS_BASE" 2> /dev/null || { echo "cannot read the base text $BASE:$SPEC" >&2; exit 2; }
+    RS_HASHES="$TMP/real.hashes"
+    RS_CORPUS="$TMP/real"
+    RS_SPEC_HEADS="$TMP/heads.tsv"
+    RS_BASE_HEADS="$TMP/rs.base.heads"
+    build_heads "$RS_BASE" "$RS_BASE_HEADS"
+  fi
+  row=$(awk -F'\t' -v i="$id" '$1 == i' "$TMP/passes.tsv")
+  a=$(pass_line "$(printf '%s' "$row" | cut -f3)")
+  b=$(pass_line "$(printf '%s' "$row" | cut -f4)")
+  if [ -z "$a" ] || [ -z "$b" ] || [ "$a" -ge "$b" ]; then echo "cannot resolve the line range of $id" >&2; exit 2; fi
+  RS_FROM=$a
+  RS_TO=$b
+  RS_TOP=0
+  if [ "$id" = RV-X ]; then RS_TOP=1; fi
+}
+
+# rp_norm IN OUT: the only normalisation applied to a report: CR bytes deleted, each tab replaced by four spaces.
+rp_norm() { tr -d '\r' < "$1" | sed 's/\t/    /g' > "$2"; }
+
+# rp_parse FILE: one line per label occurrence of a normalised report: "TOKEN TAB value on the label line TAB
+# value with the continuation lines joined by spaces TAB number of continuation lines TAB line number". The
+# tokens are B REPORT BEGIN, I IDENTITY, N INPUT, S SCOPE, C COVERAGE, F FINDINGS, K FINDING, V SEVERITY,
+# R REFERENCE, M SUMMARY, A REASONING, D DISPOSITION REQUIRED, P CHECKS PERFORMED, L LIMITS, T VERDICT, E
+# REPORT END. A label only counts at the start of a line; blank lines are skipped; a line before the first
+# label belongs to no field.
+rp_parse() {
+  awk '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    function flush() { if (tok != "") print tok "\t" first "\t" trim(full) "\t" ncont "\t" at }
+    function label(l) {
+      if (l ~ /^REPORT BEGIN( |$)/) { v = substr(l, 13); return "B" }
+      if (l ~ /^IDENTITY:/) { v = substr(l, 10); return "I" }
+      if (l ~ /^INPUT /) { v = substr(l, 7); return "N" }
+      if (l ~ /^SCOPE:/) { v = substr(l, 7); return "S" }
+      if (l ~ /^COVERAGE:/) { v = substr(l, 10); return "C" }
+      if (l ~ /^FINDINGS:/) { v = substr(l, 10); return "F" }
+      if (l ~ /^FINDING /) { v = substr(l, 9); return "K" }
+      if (l ~ /^SEVERITY:/) { v = substr(l, 10); return "V" }
+      if (l ~ /^REFERENCE:/) { v = substr(l, 11); return "R" }
+      if (l ~ /^SUMMARY:/) { v = substr(l, 9); return "M" }
+      if (l ~ /^REASONING:/) { v = substr(l, 11); return "A" }
+      if (l ~ /^DISPOSITION REQUIRED:/) { v = substr(l, 22); return "D" }
+      if (l ~ /^CHECKS PERFORMED:/) { v = substr(l, 18); return "P" }
+      if (l ~ /^LIMITS:/) { v = substr(l, 8); return "L" }
+      if (l ~ /^VERDICT:/) { v = substr(l, 9); return "T" }
+      if (l ~ /^REPORT END( |$)/) { v = substr(l, 11); return "E" }
+      return ""
+    }
+    {
+      t = label($0)
+      if (t != "") { flush(); tok = t; first = trim(v); full = first; ncont = 0; at = NR; next }
+      if ($0 ~ /^ *$/) next
+      if (tok != "") { full = full " " trim($0); ncont++ }
+    }
+    END { flush() }
+  ' "$1"
+}
+
+# seq_names TOKENS: the label names of a token string, separated by spaces.
+seq_names() {
+  awk -v s="$1" 'BEGIN {
+    n = split("B BEGIN I IDENTITY N INPUT S SCOPE C COVERAGE F FINDINGS K FINDING V SEVERITY R REFERENCE M SUMMARY A REASONING D DISPOSITION P CHECKS L LIMITS T VERDICT E END", a, " ")
+    for (i = 1; i < n; i += 2) nm[a[i]] = a[i + 1]
+    for (i = 1; i <= length(s); i++) printf "%s%s", nm[substr(s, i, 1)], (i < length(s) ? " " : "")
+    print ""
+  }'
+}
+
+# Accessors for the parsed report in RP_FIELDS: rp_first TOKEN (the first label-line value), rp_full TOKEN (the
+# first value with its continuation lines), rp_count TOKEN, rp_vals TOKEN (every label-line value, one per line).
+RP_FIELDS="$TMP/rp.fields"
+rp_first() { awk -F'\t' -v t="$1" '$1 == t { print $2; exit }' "$RP_FIELDS"; }
+rp_full() { awk -F'\t' -v t="$1" '$1 == t { print $3; exit }' "$RP_FIELDS"; }
+rp_count() { awk -F'\t' -v t="$1" '$1 == t { n++ } END { print n + 0 }' "$RP_FIELDS"; }
+rp_vals() { awk -F'\t' -v t="$1" '$1 == t { print $2 }' "$RP_FIELDS"; }
+
+# The phrases of RP9, kept as one list (case-insensitive search of the LIMITS text).
+RP_PHRASES=("truncat" "cut off" "cutoff" "ran out of context" "ran out of tokens" "context window" "context limit" "token limit" "output limit" "did not read the whole" "did not read the entire" "did not read the full" "could not read all" "could not read the whole" "could not read the entire" "unable to read all" "unable to read the whole" "unable to load" "only read the first" "partially read" "not fully read" "could not complete" "unable to complete" "did not complete" "incomplete")
+
+# head_known HEADINGS SECTION: succeed when SECTION is header or a number in the heading list HEADINGS.
+head_known() {
+  [ "$2" = header ] && return 0
+  awk -F'\t' -v s="$2" '$1 == s { f = 1 } END { exit !f }' "$1"
+}
+
+# report_checks FILE PASS: RP1 to RP9 on the normalised report FILE for the pass PASS (all sources through
+# report_source). Every message names the pass.
+report_checks() {
+  local f=$1 id=$2 m first last seq it v nm hv want_hash nc names n_exp n_omit i want nb fv a b fl_lines ffile fheads fname sec q text re ph low hit
+  local rp2_re='^BINNNNSCF(KVR{1,4}MAD)*PLTE$'
+  rp_parse "$f" > "$RP_FIELDS"
+  report_source "$id"
+
+  # RP1 framing.
+  m=""
+  first=$(grep -m1 '[^[:space:]]' "$f")
+  last=$(grep '[^[:space:]]' "$f" | tail -n1)
+  if [ "$first" != "REPORT BEGIN $id" ]; then
+    m="the first non-blank line is [${first:0:60}], expected [REPORT BEGIN $id]"
+  elif [ "$last" != "REPORT END $id" ]; then
+    m="the last non-blank line is [${last:0:60}], expected [REPORT END $id]"
+  elif [ "$(grep -c '^REPORT BEGIN' "$f")" -ne 1 ] || [ "$(grep -c '^REPORT END' "$f")" -ne 1 ]; then
+    m="REPORT BEGIN or REPORT END does not occur exactly once"
+  fi
+  if [ -n "$m" ]; then fail RP1 "$id: $m"; else pass RP1 "$id: the report begins with REPORT BEGIN $id, ends with REPORT END $id and holds nothing outside them"; fi
+
+  # RP2 label order and continuation lines.
+  m=""
+  seq=$(cut -f1 "$RP_FIELDS" | tr -d '\n')
+  if ! [[ "$seq" =~ $rp2_re ]]; then
+    m="the labels do not occur in the order of the brief (found: $(seq_names "${seq:0:150}"))"
+  else
+    it=$(awk -F'\t' '$4 > 0 && $1 !~ /^[APLD]$/ { print $1; exit }' "$RP_FIELDS")
+    if [ -n "$it" ]; then
+      m="the field $(seq_names "$it") has a continuation line, only REASONING, DISPOSITION REQUIRED, CHECKS PERFORMED and LIMITS may continue"
+    elif awk -F'\t' '($1 == "A" || $1 == "D") && $3 == "" { bad = 1 } END { exit !bad }' "$RP_FIELDS"; then
+      m="REASONING or DISPOSITION REQUIRED holds no text"
+    fi
+  fi
+  if [ -n "$m" ]; then fail RP2 "$id: $m"; else pass RP2 "$id: the labels occur in the order of the brief with no stray continuation line"; fi
+
+  # RP3 identity and inputs.
+  m=""
+  nc=""
+  v=$(rp_first I)
+  if ! [[ "$v" =~ (^|[^A-Za-z])Devin([^A-Za-z]|$) ]]; then
+    m="the IDENTITY line does not name Devin"
+  elif [ "$(rp_count N)" -ne 4 ]; then
+    m="the report has $(rp_count N) INPUT lines, expected four"
+  else
+    names=""
+    while IFS= read -r v; do
+      nm=${v%% *}
+      hv=${v#"$nm"}
+      hv=${hv# }
+      want_hash=$(awk -v n="$nm" '$1 == n { print $2 }' "$RS_HASHES")
+      names+="$nm "
+      if [ -z "$want_hash" ]; then
+        m="an INPUT line names [${nm:0:30}], expected SPEC.md, BASE.md, DECISIONS.md and REQUIREMENTS.md"
+        break
+      elif [ "$hv" = "not computed" ]; then
+        nc+=" $nm"
+      elif [ "$hv" != "$want_hash" ]; then
+        if [[ "$hv" =~ ^[0-9a-f]{64}$ ]]; then m="the INPUT $nm value is not the expected SHA-256"; else m="the INPUT $nm value [${hv:0:70}] is neither a SHA-256 nor the words not computed"; fi
+        break
+      fi
+    done < <(rp_vals N)
+    if [ -z "$m" ] && [ "$(tr ' ' '\n' <<< "$names" | grep . | sort | tr '\n' ' ')" != "BASE.md DECISIONS.md REQUIREMENTS.md SPEC.md " ]; then
+      m="the four INPUT lines do not name SPEC.md, BASE.md, DECISIONS.md and REQUIREMENTS.md once each"
+    fi
+  fi
+  if [ -n "$m" ]; then fail RP3 "$id: $m"; else pass RP3 "$id: the identity names Devin and the four INPUT lines carry the expected SHA-256 values or not computed"; fi
+  if [ -z "$m" ] && [ -n "$nc" ]; then warn RP3 "$id: SHA-256 not computed for$nc"; fi
+
+  # RP4 scope and coverage.
+  m=""
+  n_exp=0
+  n_omit=0
+  : > "$TMP/rp.cov"
+  if [ -z "$(rp_first S)" ]; then
+    m="SCOPE is empty"
+  elif [ -z "$(rp_first C)" ]; then
+    m="COVERAGE is empty"
+  else
+    while IFS= read -r it; do
+      if ! [[ "$it" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then m="COVERAGE holds [${it:0:30}], which is not a heading number"; break; fi
+      echo "$it" >> "$TMP/rp.cov"
+    done < <(rp_first C | awk -F, '{ for (i = 1; i <= NF; i++) { gsub(/^ +| +$/, "", $i); print $i } }')
+  fi
+  : > "$TMP/rp.omit"
+  : > "$TMP/rp.unk"
+  if [ -z "$m" ]; then
+    awk -F'\t' -v a="$RS_FROM" -v b="$RS_TO" -v top="$RS_TOP" '$2 + 0 >= a + 0 && $2 + 0 < b + 0 && (top == 0 || $1 !~ /\./) { print $1 }' "$RS_SPEC_HEADS" > "$TMP/rp.exp"
+    n_exp=$(wc -l < "$TMP/rp.exp" | tr -d ' ')
+    grep -v -x -F -f "$TMP/rp.cov" "$TMP/rp.exp" > "$TMP/rp.omit"
+    n_omit=$(wc -l < "$TMP/rp.omit" | tr -d ' ')
+    cut -f1 "$RS_SPEC_HEADS" > "$TMP/rp.known"
+    grep -v -x -F -f "$TMP/rp.known" "$TMP/rp.cov" > "$TMP/rp.unk"
+    if [ "$n_exp" -gt 0 ] && [ $((n_omit * 2)) -gt "$n_exp" ]; then m="COVERAGE omits $n_omit of the $n_exp headings of the pass range"; fi
+  fi
+  if [ -n "$m" ]; then fail RP4 "$id: $m"; else pass RP4 "$id: SCOPE and COVERAGE are well-formed and COVERAGE omits $n_omit of the $n_exp headings of the pass range"; fi
+  if [ -z "$m" ] && [ "$n_omit" -gt 0 ]; then
+    it=""
+    if [ "$n_omit" -gt 12 ]; then it=" and $((n_omit - 12)) more"; fi
+    warn RP4 "$id: COVERAGE omits $n_omit of the $n_exp headings of the pass range: $(head -n 12 "$TMP/rp.omit" | paste -sd ' ' -)$it"
+  fi
+  if [ -z "$m" ] && [ -s "$TMP/rp.unk" ]; then warn RP4 "$id: COVERAGE names no heading of the specification for: $(head -n 12 "$TMP/rp.unk" | paste -sd ' ' -)"; fi
+
+  # RP5 findings.
+  m=""
+  nb=$(rp_count K)
+  fv=$(rp_first F)
+  if [ "$fv" = none ]; then
+    [ "$nb" -eq 0 ] || m="FINDINGS says none but $nb FINDING blocks follow"
+  elif [[ "$fv" =~ ^[1-9][0-9]{0,5}$ ]]; then
+    [ "$fv" -eq "$nb" ] || m="FINDINGS says $fv but $nb FINDING blocks follow"
+  else
+    m="the FINDINGS value [${fv:0:40}] is neither none nor a positive integer"
+  fi
+  if [ -z "$m" ]; then
+    i=0
+    while IFS= read -r v; do
+      i=$((i + 1))
+      want="$id-$(printf '%03d' "$i")"
+      if [ "$v" != "$want" ]; then m="finding $i has the id [${v:0:40}], expected [$want]"; break; fi
+    done < <(rp_vals K)
+  fi
+  if [ -z "$m" ]; then
+    while IFS= read -r v; do
+      case "$v" in
+        BLOCKING|MAJOR|MINOR|INFO) ;;
+        *) m="a SEVERITY value is [${v:0:40}], expected BLOCKING, MAJOR, MINOR or INFO"; break ;;
+      esac
+    done < <(rp_vals V)
+  fi
+  if [ -z "$m" ]; then
+    while IFS= read -r v; do
+      if [ -z "$v" ]; then m="a SUMMARY line is empty"; break; fi
+      if [ "${#v}" -gt 200 ]; then m="a SUMMARY line has ${#v} characters, at most 200 are allowed"; break; fi
+    done < <(rp_vals M)
+  fi
+  if [ -z "$m" ] && awk -F'\t' '($1 == "R" || $1 == "M") && index($2, "|") { bad = 1 } END { exit !bad }' "$RP_FIELDS"; then
+    m="a REFERENCE or SUMMARY line holds a vertical bar"
+  fi
+  if [ -n "$m" ]; then fail RP5 "$id: $m"; else pass RP5 "$id: the FINDINGS count, the finding ids, the severity words and the summaries are well-formed ($nb findings)"; fi
+
+  # RP6 references resolve in the specification or the base text.
+  m=""
+  i=0
+  re='^file (SPEC|BASE); section ([^;]+); lines ([0-9]{1,7})-([0-9]{1,7}); quote (.*)$'
+  while IFS= read -r v; do
+    i=$((i + 1))
+    if ! [[ "$v" =~ $re ]]; then m="reference $i [${v:0:80}] does not have the form [file F; section S; lines A-B; quote Q]"; break; fi
+    fname=${BASH_REMATCH[1]}
+    sec=${BASH_REMATCH[2]}
+    a=$((10#${BASH_REMATCH[3]}))
+    b=$((10#${BASH_REMATCH[4]}))
+    q=${BASH_REMATCH[5]}
+    if [ "$fname" = SPEC ]; then ffile=$RS_SPEC; fheads=$RS_SPEC_HEADS; else ffile=$RS_BASE; fheads=$RS_BASE_HEADS; fi
+    fl_lines=$(wc -l < "$ffile" | tr -d ' ')
+    if ! head_known "$fheads" "$sec"; then m="reference $i names the section [$sec], which is no numbered heading of $fname"; break; fi
+    if [ "$a" -lt 1 ] || [ "$a" -gt "$b" ] || [ "$b" -gt "$fl_lines" ]; then m="reference $i has the lines $a-$b, which are not inside 1-$fl_lines of $fname"; break; fi
+    if [ "$q" != none ]; then
+      if [ "${#q}" -lt 3 ] || [ "${q:0:1}" != '"' ] || [ "${q: -1}" != '"' ]; then m="reference $i has a quote that is neither none nor text in double quotes"; break; fi
+      text=${q:1:${#q}-2}
+      if ! grep -q -F -e "$text" "$ffile"; then m="reference $i quotes text that is no part of any line of $fname"; break; fi
+      if ! sed -n "${a},${b}p" "$ffile" | grep -q -F -e "$text"; then
+        warn RP6 "$id: the quote of reference $i occurs in $fname but not between the lines $a-$b"
+      fi
+    fi
+  done < <(rp_vals R)
+  if [ -n "$m" ]; then fail RP6 "$id: $m"; else pass RP6 "$id: all $i references resolve in the pinned text or the base text"; fi
+
+  # RP7 closing lines.
+  m=""
+  want="NO BLOCKING FINDINGS"
+  if rp_vals V | grep -q -x BLOCKING; then want="BLOCKING FINDINGS PRESENT"; fi
+  if [ -z "$(rp_full P)" ]; then
+    m="CHECKS PERFORMED holds no text"
+  elif [ -z "$(rp_full L)" ]; then
+    m="LIMITS holds no text"
+  elif [ "$(rp_first T)" != "$want" ]; then
+    m="the VERDICT is [$(rp_first T | cut -c1-40)], the severities require [$want]"
+  fi
+  if [ -n "$m" ]; then fail RP7 "$id: $m"; else pass RP7 "$id: CHECKS PERFORMED and LIMITS hold text and the VERDICT [$want] agrees with the severities"; fi
+
+  # RP8 hygiene.
+  m=$(x1_scan "$f" "$RS_HASHES" "$RS_CORPUS")
+  if [ -n "$m" ]; then fail RP8 "$id: $m"; else pass RP8 "$id: no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
+
+  # RP9 claims of truncation or incompleteness (warnings only).
+  low=$(rp_full L | tr '[:upper:]' '[:lower:]')
+  hit=0
+  for ph in "${RP_PHRASES[@]}"; do
+    if [[ "$low" == *"$ph"* ]]; then warn RP9 "$ph in LIMITS of $id"; hit=1; fi
+  done
+  if [ "$hit" -eq 0 ]; then pass RP9 "$id: the LIMITS text makes no claim of truncation or incompleteness"; fi
+}
+
+# finish: print the result line and exit.
+finish() {
+  if [ "$FAILS" -eq 0 ]; then echo "RESULT: PASS"; exit 0; fi
+  echo "RESULT: FAIL $FAILS"
+  exit 1
+}
+
+if [ -n "$REPORT_FILE" ]; then
+  rp_norm "$REPORT_FILE" "$TMP/rp.norm"
+  report_checks "$TMP/rp.norm" "$REPORT_PASS"
+  finish
+fi
+
 # E1, E2: encoding of the note.
 msg=$(enc1 "$NT")
 if [ -n "$msg" ]; then fail E1 "note: $msg"; else pass E1 "note is valid UTF-8 without BOM"; fi
@@ -710,25 +1093,7 @@ if [ "$STAGE" = brief ]; then
 
   # V1: the pass table of the brief partitions the text. A heading number is mapped to the line of the heading
   # "## N. " or "### N.M " of the specification (fence-aware), header is line 1, end is the line count plus one.
-  awk '
-    /^```/ { fence = !fence; next }
-    fence { next }
-    /^## [0-9]+\. / { id = $2; sub(/\.$/, "", id); print id "\t" NR; next }
-    /^### [0-9]+\.[0-9]+ / { print $2 "\t" NR }
-  ' "$SP" > "$TMP/heads.tsv"
-  spec_end=$(( $(wc -l < "$SP" | tr -d ' ') + 1 ))
-  # pass_line TOKEN: the line number for header, end or a heading number; empty when unknown.
-  pass_line() {
-    case "$1" in
-      header) echo 1 ;;
-      end) echo "$spec_end" ;;
-      *) awk -F'\t' -v id="$1" '$1 == id { print $2; exit }' "$TMP/heads.tsv" ;;
-    esac
-  }
-  h2_lines "Passes" "$BR" | awk -F'|' '
-    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
-    /^\| RV-/ { print trim($2) "\t" trim($3) "\t" trim($4) "\t" trim($5) }
-  ' > "$TMP/passes.tsv"
+  prep_ranges
   v1=""
   v1_ranges=""
   mapfile -t pass_ids < <(cut -f1 "$TMP/passes.tsv")
