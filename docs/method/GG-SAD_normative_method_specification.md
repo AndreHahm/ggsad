@@ -500,7 +500,25 @@ Regardless of the active compliance profile or the `lean` profile's self-approva
 
 Self-approval under the `lean` profile is permitted only for decisions outside this non-delegable set.
 
-A decision that a human makes is evidenced at an assurance level (Section 24.3). A claim at the level A0 is self-declared, and it does not by itself satisfy a decision that needs a verified human. The self-approval allowance of the `lean` compliance profile that is stated above is unchanged.
+A decision that a human makes is evidenced at an assurance level (Section 24.3). A claim satisfies a decision of the set above only if its verified level is at least the level that Section 24.3 requires for the action that records the decision, which is A0 when neither a gate nor the project configuration states a minimum. A claim at the level A0 is self-declared, and it satisfies such a decision only where the required level is A0. See AE-293.
+
+Self-approval under the `lean` compliance profile means that the human who requested the work may approve it. It never means that a participant that is not a human approves it, because every approval is performed by a human (Sections 23.4 and 24.3). See AE-292.
+
+**AE-292 — Self-approval under `lean` is by a human only**
+
+- Covers: Section 5.4
+
+Given a `core` change with the compliance profile `lean`, a decision outside the non-delegable set, the identity `human:ada` who requested the work, and the identity `agent:builder`  
+When each identity approves the target `spec`  
+Then the approval by `human:ada` is recorded, although she requested the work, and the approval by `agent:builder` is rejected, because a participant that is not a human cannot approve
+
+**AE-293 — A claim at A0 satisfies a decision only where A0 is the required level**
+
+- Covers: Section 5.4
+
+Given a `sign-off` done gate `release-ok` that records a release approval, in a project whose configuration sets no minimum level for the sign-off of gates, and the same gate in a second project whose configuration sets the minimum level A2  
+When `human:ada` signs off `release-ok` with a claim at A0 in each project  
+Then the sign-off is recorded in the first project, because the required level is A0, and it is rejected in the second project, because the verified level A0 is below the required level A2
 
 ### 5.5 Phase Omission
 
