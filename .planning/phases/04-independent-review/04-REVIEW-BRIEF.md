@@ -107,6 +107,7 @@ REPORT END <PASS>
 ## Rules for this review
 
 - Read-only apart from the report: modify and delete no file, and create no file except `../out/REPORT-<PASS>.md`.
+- Attempt nothing that this brief does not ask for. A refused action ends your session without any output, so finish the whole analysis first, then create the report file in one step, and do not attempt any action that this brief forbids.
 - No network access. Run nothing except read-only inspection.
 - The vertical bar character appears nowhere in your report. Use no absolute paths and no tab characters.
 - A continuation line never begins with one of the label words above followed by a colon.
