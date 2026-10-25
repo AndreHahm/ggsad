@@ -33,7 +33,7 @@ decisions of O-1 to O-11. Changes are proposed text only (SPEC-13).
 - [x] **SPEC-09**: The proposed text records open questions as change state, supports structured answers (a choice among declared options), and blocks specification approval and closure while any question is unanswered (MAPPING P-09)
 - [x] **SPEC-10**: The proposed text defines evidence as executable and tied to a requirement; a change with no requirements has no complete evidence (MAPPING P-10)
 - [x] **SPEC-11**: The proposed text makes the interpreter that runs gate commands explicit and opt-in, and states the trust consequence: code in git-ignored locations is invisible to the scope check (MAPPING P-12)
-- [ ] **SPEC-12**: The proposed text specifies both profiles (O-1): `core` (the simplified four-state model) and `full` (the phases, DoR/DoD pairs, size classes and document hierarchy of the current specification), states which requirements apply to which, and how a change moves between them
+- [x] **SPEC-12**: The proposed text specifies both profiles (O-1): `core` (the simplified four-state model) and `full` (the phases, DoR/DoD pairs, size classes and document hierarchy of the current specification), states which requirements apply to which, and how a change moves between them
 - [x] **SPEC-13**: No file under `src/ggsad/` is modified while the normative text is drafted
 - [x] **SPEC-14**: `full` is revised to carry the protections of SPEC-01 to SPEC-11 as invariants of both profiles (O-9), is marked specified-but-not-implemented (O-8), and each `full` rule has an acceptance example of the kind the `core` rules have
 - [x] **SPEC-15**: State is a JSON document (`state.json`) with a defined canonical form for hashing, and the specification's examples and templates are updated accordingly (O-4)
@@ -126,7 +126,7 @@ they are not the archived v1.0 phases of the same number.
 | SPEC-09 | Phase 2 | Complete |
 | SPEC-10 | Phase 2 | Complete |
 | SPEC-11 | Phase 2 | Complete |
-| SPEC-12 | Phase 2 | Pending |
+| SPEC-12 | Phase 2 | Complete |
 | SPEC-13 | Phase 2 | Complete |
 | SPEC-14 | Phase 2 | Complete |
 | SPEC-15 | Phase 2 | Complete |
