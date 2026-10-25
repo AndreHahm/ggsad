@@ -4,6 +4,31 @@
 
 ## What you are asked to decide
 
+You are asked for one decision: approve the exact text of the proposed normative method specification that is identified under "The text under approval", or request changes. It is put to you as fifteen questions, Q01 to Q15, through the interactive question tool; they are listed under "Questions put to the owner". Your answers are recorded only in a separate owner approval record, never in this packet.
+
+What counts as the diff you approve: the whole of the specification file, identified by its content, from the base blob on origin/main to the result blob. The pin table gives both blob ids and the SHA-256. It is not a commit range, because a rebase merge rewrites commits and a range would then no longer identify the text. The register of drafting choices that the pin table also names is the companion source for the drafting choices and is pinned too.
+
+The two outcomes are `approved` and `changes requested`, and nothing else. An answer that differs from a drafted reading, an overruled drafting choice, and a change to the header, the exempt set or the heading are each a requested change, not an approval. Approval of the text with some readings overruled is not an available outcome.
+
+Reading order for a review by exception:
+
+1. The pins under "The text under approval".
+2. "Owner questions OQ-8 to OQ-15": eight readings the text left open.
+3. "Exempt set of Section 24.1".
+4. "Header and heading".
+5. Tier 1, the high-impact choices, under "Drafting choices DC-01 to DC-141".
+6. Any requirement in the review map whose diff you want to see.
+7. The rest on request.
+
+When this packet was put to the owner, owner approval and independent review of this text had not taken place.
+
+Independent review by a reviewer that is not the Requestor, the agent that drafted the text, follows an approval as a separate gate and is not part of this packet.
+
+What follows each outcome:
+
+- Approved: your reply is recorded in a separate record that pins this text. This phase closes only on that record. Any later edit of the specification voids the approval.
+- Changes requested: this phase stays open. A gap-closure plan edits the specification for the requested changes, and the diff identity note is re-recorded with new pins. The packet is regenerated and you are asked again. The record of this round stays as history.
+
 ## The text under approval
 
 | Field | Value |
@@ -17,6 +42,12 @@
 | Commits touching the file | `36` |
 | Register file | `.planning/phases/02-normative-drafting/02-DRAFTING-CHOICES.md` |
 | Register blob | `66344ffb26d26ce84b3c9a318eb8e7cb2db6146a` |
+
+The blob id is the git object id of the file as committed, and the SHA-256 is the hash of the same content. Neither value changes when the branch is rebased or rebase-merged, because both are computed from the content of the file and not from commits; a commit hash or a commit range would not survive that.
+
+How to review: run `git diff origin/main...HEAD -- docs/method/GG-SAD_normative_method_specification.md` for the whole diff, or use the commands in the review map to see the commits of one requirement at a time.
+
+Any edit of the specification file voids these values, and a new packet would be needed. The register is pinned because the sections from "Drafting choices DC-01 to DC-141" to the hand-off list reproduce it.
 
 ## Questions put to the owner
 
@@ -126,6 +157,29 @@ The questions are put to the owner through the interactive question tool in grou
 - Answer form: a calendar date typed by the owner; no option is recommended and the date is never taken from the clock
 
 ## Review map: SPEC-01 to SPEC-18
+
+Each row is one requirement of the milestone, SPEC-01 to SPEC-18. "What is approved" restates the requirement in plain language and adds no rule. "Sections" lists the numbered headings of the pinned text that implement it. "Acceptance examples" lists the worked cases of the text (AE-nn) that test it. "Drafting choices and questions" lists the drafting choices (DC-nn, reproduced under "Drafting choices DC-01 to DC-141") whose Block cell names the requirement, then the owner questions (OQ-8 to OQ-15, asked as Q01 to Q08) that touch them. "View the diff" gives the command, run from the repository root, that shows the commits of that requirement alone, found by the requirement id in the commit subject; SPEC-13 has no commit and its command prints nothing.
+
+| Requirement | What is approved | Sections | Acceptance examples | Drafting choices and questions | View the diff |
+|---|---|---|---|---|---|
+| SPEC-01 | The gate definitions of a change are fixed when the change is approved. Any later edit to them blocks every state-changing operation until a human re-approves; the exempt set is wider than the requirement states, see Q09. | 16.1, 16.4, 24, 24.1, 24.9 | AE-75 to AE-86, AE-286 | DC-03, DC-42, DC-43, DC-44, DC-125 | `git log -p --reverse --grep='SPEC-01' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-02 | Gate results have three values: satisfied, not satisfied, and could not be evaluated. A gate that cannot be evaluated is never treated as a failure and never counts toward a retry limit. | 8.5, 23.3, 23.4, 23.6, 23.7, 24, 24.2, 24.7, 25.1 | AE-61 to AE-74, AE-280, AE-222, AE-223, AE-273, AE-279, AE-281 | DC-04, DC-23, DC-40, DC-41, DC-45, DC-46, DC-47, DC-48, DC-57, DC-58, DC-112, DC-118, DC-120, DC-121 | `git log -p --reverse --grep='SPEC-02' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-03 | The result envelope gains a fourth result, `blocked`: a recorded evaluation that did not close the change, always with `changed` true. `rejected` means nothing was written and is never `changed`. | 4.3, 8.3, 8.5, 11.2, 12.1, 12.2, 16.1, 16.4, 20, 22.1, 22.2, 22.3, 23.1, 23.2, 23.4, 23.6, 24.2, 24.7 | AE-111 to AE-120, AE-259, AE-102, AE-121, AE-122, AE-154, AE-268, AE-280, AE-287, AE-288 | DC-05, DC-24, DC-25, DC-54, DC-55, DC-56, DC-119, DC-120, DC-122, DC-132, DC-133 | `git log -p --reverse --grep='SPEC-03' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-04 | Assurance levels A0 to A2 and the signed-approval statement (operation, change, position in the history of the change, signer, exact content approved) are normative; verifiers such as an SSH signature or a platform review are optional. An agent able to use the credentials of a human can act as that human. | 4.3, 5.3, 5.4, 23.7, 24.3, 24.4, 24.5, 24.10, 25.1, 25.2 | AE-125 to AE-136, AE-289, AE-292, AE-293, AE-102, AE-154, AE-159, AE-161, AE-198, AE-221, AE-227, AE-276 | DC-11, DC-59, DC-60, DC-61, DC-62, DC-63, DC-64, DC-115, DC-130, DC-131, DC-136, DC-137, DC-140; questions OQ-11 (Q04), OQ-12 (Q05), OQ-13 (Q06) | `git log -p --reverse --grep='SPEC-04' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-05 | History consistency is distinguished from history completeness. Where a profile demands high assurance, an external anchor, or an equivalent, is required to detect truncation. | 23.4, 24.3, 24.4 | AE-137 to AE-146, AE-278 | DC-11, DC-65, DC-66, DC-67, DC-116 | `git log -p --reverse --grep='SPEC-05' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-06 | A change has a scope, measured against the commit the change started from; work outside it is a hard failure. A change runs isolated from unrelated uncommitted work. | 6.1, 9.6, 16.1, 24.5, 25.1 | AE-147 to AE-157, AE-253, AE-282, AE-294 | DC-21, DC-68, DC-69, DC-70, DC-71, DC-72, DC-73, DC-123, DC-139; questions OQ-15 (Q08) | `git log -p --reverse --grep='SPEC-06' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-07 | A verification gate can carry a recorded baseline of already-failing tests: it passes when every failure is on the baseline, fails and names any new failure, and is not evaluable when the failures cannot be read. | 24.2, 24.6 | AE-87 to AE-96, AE-254 | DC-23, DC-50 | `git log -p --reverse --grep='SPEC-07' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-08 | A hard failure closes the change as failed without human action. A soft failure pauses the change for a human disposition: close as failed, or a recorded override that grants a bounded number of further attempts and lapses when the gates are amended. | 12.2, 16.4, 20, 24.2, 24.7 | AE-97 to AE-110, AE-255, AE-279 | DC-19, DC-49, DC-51, DC-52, DC-53, DC-55, DC-118 | `git log -p --reverse --grep='SPEC-08' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-09 | Open questions are recorded as change state and can be answered by a choice among declared options. Specification approval and closure are blocked while any question is unanswered. | 9.4, 9.5, 10.4, 23.4, 23.5, 24.8 | AE-171 to AE-182, AE-256, AE-263, AE-275 | DC-08, DC-77, DC-78, DC-79, DC-114, DC-138; questions OQ-14 (Q07) | `git log -p --reverse --grep='SPEC-09' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-10 | Evidence is executable and tied to a requirement. A change with no requirements has no complete evidence. | 16.1, 16.4, 23.7, 24, 24.1, 24.9 | AE-163 to AE-170, AE-257, AE-286 | DC-18, DC-75, DC-76, DC-125 | `git log -p --reverse --grep='SPEC-10' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-11 | The interpreter that runs gate commands is explicit and opt-in. The text states the trust consequence: code in git-ignored locations is invisible to the scope check. | 24.3, 24.10, 25.1 | AE-158 to AE-162, AE-258, AE-289 | DC-74, DC-130; questions OQ-13 (Q06) | `git log -p --reverse --grep='SPEC-11' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-12 | Both method profiles are specified: `core`, the simplified four-state model, and `full`, the phases, readiness and done pairs, size classes and document hierarchy of the current specification. The text states which requirements apply to which and how a change moves between them. | 3.7, 4.1, 4.3, 5.1, 5.2, 5.6, 6, 7, 8, 9, 10, 11.2, 12.1, 14.1, 16.5, 19, 20, 21, 22.2, 23, 23.1, 23.2, 23.3, 23.4, 23.5, 23.6, 23.7, 24, 24.2, 24.3, 24.5, 24.7, 24.8, 24.10, 25.2 | AE-01 to AE-08, AE-09 to AE-59, AE-291, AE-102, AE-129, AE-154, AE-161, AE-198, AE-222, AE-223, AE-268, AE-270, AE-271, AE-272, AE-273, AE-274, AE-275, AE-276, AE-277 | DC-02, DC-09, DC-22, DC-24, DC-26, DC-27, DC-28, DC-29, DC-30, DC-31, DC-32, DC-33, DC-34, DC-35, DC-36, DC-37, DC-38, DC-39, DC-57, DC-80, DC-108, DC-109, DC-110, DC-111, DC-112, DC-113, DC-114, DC-115, DC-117, DC-122, DC-131, DC-135; questions OQ-8 (Q01), OQ-10 (Q03) | `git log -p --reverse --grep='SPEC-12' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-13 | No file under `src/ggsad/` is modified while the normative text is drafted. | not applicable (no section; the diff under src/ is empty) | not applicable (no example; nothing is specified) | none | `git diff --stat origin/main...HEAD -- src` (prints nothing) |
+| SPEC-14 | `full` carries the protections of SPEC-01 to SPEC-11 as invariants of both profiles, is marked specified but not implemented, and each `full` rule has an acceptance example of the kind the `core` rules have. | 4.1, 4.3, 6, 7, 8, 9, 10, 16.1, 16.4, 21, 24, 24.5, 24.9, 25.1 | AE-229 to AE-269, AE-286 | DC-06, DC-07, DC-10, DC-21, DC-22, DC-101, DC-102, DC-103, DC-104, DC-107, DC-125 | `git log -p --reverse --grep='SPEC-14' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-15 | State is a JSON document (`state.json`) with a defined canonical form for hashing. The examples and templates of the specification are updated accordingly. | 4.3, 16.1, 23.1, 23.2, 23.4, 24.2, 24.3, 24.5, 24.10, 25.1, 25.2 | AE-183 to AE-202, AE-102, AE-129, AE-154, AE-161, AE-281, AE-282, AE-283, AE-284, AE-285, AE-288 | DC-07, DC-14, DC-16, DC-80, DC-81, DC-82, DC-83, DC-84, DC-85, DC-86, DC-95, DC-121, DC-123, DC-124, DC-127, DC-128, DC-129, DC-131, DC-133 | `git log -p --reverse --grep='SPEC-15' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-16 | Profile resolution is the six-layer order of section 5.3, and a lower layer must not weaken a higher one. `core` implements four of the six layers. | 3.8, 4.2, 5.3, 5.4, 17, 23.4, 23.7 | AE-218 to AE-228, AE-290, AE-293 | DC-12, DC-13, DC-96, DC-97, DC-98, DC-99, DC-100, DC-105, DC-134, DC-140; questions OQ-9 (Q02) | `git log -p --reverse --grep='SPEC-16' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-17 | `reopen` is specified for `full` and absent from `core`, and the transition table states this per profile. | 8.3, 8.4, 23.4 | AE-48, AE-217, AE-246 | DC-02, DC-94 | `git log -p --reverse --grep='SPEC-17' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
+| SPEC-18 | Every artifact carries `schema_version`, an unknown version is refused, and migration is an explicit, recorded command. | 4.3, 22.1, 22.2, 24.3, 24.5, 24.10, 25.2, 25.3 | AE-203 to AE-214, AE-102, AE-129, AE-154, AE-161, AE-198 | DC-15, DC-25, DC-87, DC-88, DC-89, DC-90, DC-91, DC-92, DC-93, DC-126, DC-131 | `git log -p --reverse --grep='SPEC-18' origin/main..HEAD -- docs/method/GG-SAD_normative_method_specification.md` |
 
 ## Owner questions OQ-8 to OQ-15
 

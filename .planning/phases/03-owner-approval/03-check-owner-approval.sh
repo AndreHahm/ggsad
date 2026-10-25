@@ -31,7 +31,11 @@
 # choice row of the register occurs exactly once in the packet, in its section, character for character,
 # D2 the research dispositions, the 44 finding rows, the flagged items, the recorded findings, the unproven
 # items and the hand-off items of the register occur in their sections of the packet and the 44 finding ids
-# occur once each as the first cell of a row.
+# occur once each as the first cell of a row, M1 the review map has one row for each of SPEC-01 to SPEC-18
+# with six non-empty cells and a view command for its own requirement that returns a commit (SPEC-13: an
+# empty diff under src), M2 the drafting choices of the register and the rows of the review map agree both
+# ways, M3 every section number of the review map is a heading of the specification and every acceptance
+# example cited in the packet is defined in it.
 #
 # Stage recorded runs the checks above on the packet, with T1 in its recorded form (the one status line
 # reads "recorded in the owner approval record"), and on the record: P2 the packet as put to the owner is
@@ -624,6 +628,75 @@ if [ -n "$d2" ]; then
 else
   pass D2 "register lines found in their packet sections (counts:$d2_counts); the 44 finding ids occur exactly once each"
 fi
+
+# The review map: its rows "| SPEC-nn |" (cells split at the bar; no cell may hold a bar).
+h2_all "Review map: SPEC-01 to SPEC-18" "$PK" | grep -E '^\| SPEC-' > "$TMP/map.rows" || true
+
+# M1: one row for each of SPEC-01 to SPEC-18 with six non-empty cells; the last cell holds the command for
+# its own requirement, and that command returns at least one commit (SPEC-13: an empty diff under src).
+m1=""
+if [ "$(wc -l < "$TMP/map.rows" | tr -d ' ')" -ne 18 ]; then
+  m1="the review map has $(wc -l < "$TMP/map.rows" | tr -d ' ') requirement rows, expected 18"
+else
+  for n in 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18; do
+    id="SPEC-$n"
+    row=$(grep -E "^\| $id \|" "$TMP/map.rows" || true)
+    if [ "$(printf '%s\n' "$row" | grep -c .)" -ne 1 ]; then m1="the review map has no single row for $id"; break; fi
+    bad=$(printf '%s\n' "$row" | awk -F'|' 'NF != 8 { print "cells"; exit } { for (i = 2; i <= 7; i++) { c = $i; gsub(/^ +| +$/, "", c); if (c == "") { print "empty"; exit } } }')
+    if [ -n "$bad" ]; then m1="the row of $id does not have six non-empty cells ($bad)"; break; fi
+    cmd=$(printf '%s\n' "$row" | awk -F'|' '{ c = $7; gsub(/^ +| +$/, "", c); print c }')
+    if [ "$id" = SPEC-13 ]; then
+      [[ "$cmd" == *"git diff --stat origin/main...HEAD -- src"* && "$cmd" == *"prints nothing"* ]] || { m1="the command of $id is not the diff under src with the words prints nothing"; break; }
+      if [ -n "$(git diff --name-only "$BASE...HEAD" -- src 2> /dev/null)" ]; then m1="the diff under src since $BASE is not empty"; break; fi
+    else
+      [[ "$cmd" == *"git log -p --reverse --grep='$id' origin/main..HEAD -- $SPEC"* ]] || { m1="the command of $id does not read git log -p --reverse --grep='$id' origin/main..HEAD -- $SPEC"; break; }
+      if [ "$(printf '%s\n' "$cmd" | grep -o -E -e "--grep='SPEC-[0-9]{2}'" | wc -l | tr -d ' ')" -ne 1 ]; then m1="the command of $id names another requirement"; break; fi
+      if [ -z "$(git log --format=%h --grep="$id" "$BASE..HEAD" -- "$SPEC" 2> /dev/null | head -n1)" ]; then m1="the command of $id returns no commit since $BASE"; break; fi
+    fi
+  done
+fi
+if [ -n "$m1" ]; then fail M1 "$m1"; else pass M1 "the review map has the 18 requirement rows, six cells each, each with its own live view command"; fi
+
+# M2: the drafting choices of the register and the review map agree both ways.
+m2=$(awk -F'|' '
+  function trim(s) { gsub(/^ +| +$/, "", s); return s }
+  FNR == 1 { fileno++ }
+  fileno == 1 {
+    id = trim($2); s = $6
+    while (match(s, /DC-[0-9]+/)) { has[id, substr(s, RSTART, RLENGTH)] = 1; listed[substr(s, RSTART, RLENGTH)] = id; s = substr(s, RSTART + RLENGTH) }
+    next
+  }
+  /^\| DC-[0-9][0-9]+ \|/ {
+    dc = trim($2); regset[dc] = 1; b = $3
+    while (match(b, /SPEC-[0-9][0-9]/)) {
+      sid = substr(b, RSTART, RLENGTH)
+      if (!((sid, dc) in has)) { err = "the row of " sid " does not list " dc; exit }
+      b = substr(b, RSTART + RLENGTH)
+    }
+  }
+  END { if (err == "") for (d in listed) if (!(d in regset)) { err = "the review map lists " d " that the register does not hold"; break } if (err != "") print err }
+' "$TMP/map.rows" "$RG")
+if [ -n "$m2" ]; then fail M2 "$m2"; else pass M2 "every drafting choice is listed in the row of each requirement its Block cell names, and every listed id exists in the register"; fi
+
+# M3: every section number of the map is a heading of the text; every AE id cited in the packet is defined.
+awk '/^```/ { fence = !fence; next } !fence && /^## [0-9]+\. / { s = $2; sub(/\.$/, "", s); print s } !fence && /^### [0-9]+\.[0-9]+ / { print $2 }' "$SP" | sort -u > "$TMP/spec.headings"
+grep -o -E '^\*\*AE-[0-9]+ — ' "$SP" | grep -o -E '[0-9]+' | sed 's/^0*//' | sort -un > "$TMP/spec.aes"
+m3=""
+if [ ! -s "$TMP/spec.headings" ] || [ ! -s "$TMP/spec.aes" ]; then
+  m3="the specification has no numbered headings or no acceptance example definitions to compare with"
+else
+  while IFS= read -r sec_cell; do
+    for t in $(printf '%s' "$sec_cell" | tr ',' ' '); do
+      if ! grep -q -x -F -e "$t" "$TMP/spec.headings"; then m3="the section number [$t] in the review map is not a heading of the specification"; break 2; fi
+    done
+  done < <(grep -v 'not applicable' "$TMP/map.rows" | awk -F'|' '{ print $4 }')
+  if [ -z "$m3" ]; then
+    grep -o -E 'AE-[0-9]+' "$PK" | sed 's/^AE-0*//' | sort -un > "$TMP/pkt.aes"
+    a=$(awk 'NR == FNR { d[$0] = 1; next } !($0 in d) { print; exit }' "$TMP/spec.aes" "$TMP/pkt.aes")
+    if [ -n "$a" ]; then m3="the packet cites AE-$a, which the specification does not define"; fi
+  fi
+fi
+if [ -n "$m3" ]; then fail M3 "$m3"; else pass M3 "every section number of the review map is a heading of the text; all $(wc -l < "$TMP/pkt.aes" | tr -d ' ') acceptance examples cited in the packet are defined"; fi
 
 # section_lines TEXT FILE: the non-blank lines of the H2 section TEXT of FILE, trimmed.
 section_lines() {
