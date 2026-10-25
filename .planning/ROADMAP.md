@@ -73,7 +73,7 @@ fresh context or subagent of the Requestor.
 **Phase checklist (v1.1):**
 
 - [x] **Phase 1: Decision Record** - Record the owner's eleven decisions (O-1 to O-11) in one document before any normative text is drafted (completed 2026-10-24)
-- [ ] **Phase 2: Normative Drafting** - Produce a proposed diff to the normative specification covering SPEC-01 to SPEC-18, with no change under `src/ggsad/`
+- [x] **Phase 2: Normative Drafting** - Produce a proposed diff to the normative specification covering SPEC-01 to SPEC-18, with no change under `src/ggsad/` (completed 2026-10-25)
 - [ ] **Phase 3: Owner Approval** - Repository owner reviews and explicitly approves (or requests changes to) the exact Phase 2 diff — hard gate
 - [ ] **Phase 4: Independent Review** - Independent review by a non-Requestor reviewer evaluates the owner-approved diff; blocking findings resolved — hard gate
 - [ ] **Phase 5: State and Gate Engine** - Implement the `core` engine in `src/ggsad/`: state, gates, frozen approvals, scope, failure handling, questions, and profile resolution
@@ -256,7 +256,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
-| 2. Normative Drafting | v1.1 | 8/8 | In Progress|  |
+| 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 0/TBD | Not started | - |
 | 4. Independent Review | v1.1 | 0/TBD | Not started | - |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |

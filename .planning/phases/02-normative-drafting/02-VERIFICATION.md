@@ -1,10 +1,14 @@
 ---
 phase: 02-normative-drafting
 verified: 2026-10-25T00:00:00Z
-status: human_needed
+status: passed
 score: 9/9 roadmap success criteria verified (SPEC-01 to SPEC-18 all specified in the text)
 behavior_unverified: 0
-overrides_applied: 0
+overrides_applied: 1
+overrides:
+  - item: "All four human_verification items below (owner questions OQ-8 to OQ-15, exempt set of 24.1, header number and heading, independent review of the unproven items)"
+    accepted_by: "repository owner, 2026-10-25, in reply to the question how to close Phase 2"
+    reason: "These items are owned by Phase 3 (owner approval of the exact diff) and Phase 4 (independent review by Devin CLI). They stay open there and are not decided by closing Phase 2."
 re_verification: false
 gaps: []
 deferred: []
