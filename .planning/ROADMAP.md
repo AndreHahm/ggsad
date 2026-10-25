@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 2/4 plans executed
+**Plans**: 3/4 plans executed
 
 Plans:
 **Wave 1**
@@ -209,7 +209,7 @@ Plans:
 
 **Wave 3** *(blocked on Wave 2 completion; has the consent checkpoint)*
 
-- [ ] 04-03-PLAN.md — Pre-flight (tracer), the owner consents to send exactly one run set to Devin (a containment and format pilot on synthetic input plus six passes), the pilot and six separate headless passes run with containment checks after each, then the verbatim reports, the derived findings table and the consent trail in the review note (REVIEW-01)
+- [x] 04-03-PLAN.md — Pre-flight (tracer), the owner consents to send exactly one run set to Devin (a containment and format pilot on synthetic input plus six passes), the pilot and six separate headless passes run with containment checks after each, then the verbatim reports, the derived findings table and the consent trail in the review note (REVIEW-01)
 
 **Wave 4** *(blocked on Wave 3 completion; has the owner dispositions checkpoint)*
 
@@ -288,7 +288,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 2/4 | In Progress|  |
+| 4. Independent Review | v1.1 | 3/4 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
