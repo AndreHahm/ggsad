@@ -5,15 +5,15 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-10-25T12:06:23.134Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-10-25T13:36:55.336Z"
 last_activity: 2026-10-25
 last_activity_desc: Plan 03-03 executed
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 18
-  completed_plans: 15
+  completed_plans: 16
   percent: 38
 ---
 
@@ -34,11 +34,11 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ## Current Position
 
 Phase: 4 (Independent Review) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-10-25 — Phase 4 execution started
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 89%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [████████░░] 83%
 | Phase 3 P02 | one session | 3 tasks | 3 files |
 | Phase 03 P03 | 15min | 3 tasks | 4 files |
 | Phase 04 P01 | n/a | 4 tasks | 3 files |
+| Phase 04-independent-review P02 | not measured | 4 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,7 @@ Recent decisions affecting current work:
 - Roadmap (v1.1): Suggestion, not an owner decision — require a plan before work in every phase, with no retroactive closure (v1.0 finding PROC-01)
 - [Phase 01]: Phase 01-02: owner confirmed all eleven decision record entries (O-1 to O-11) on 2026-10-24; no changes, no rationale added
 - [Phase 04]: Plan 04-01: the owner decided to proceed with the reviewer installation residue (two imported MCP servers and three user skills still loaded; four other servers disabled for the run)
+- [Phase 04]: Plan 04-02: a reviewer report is accepted only when it follows the brief's format and every reference resolves in the pinned or base text; the findings table is derived by the script and compared (F1, F2), the pilot mode reads synthetic inputs through the same source function
 
 ### Pending Todos
 
@@ -126,8 +128,8 @@ Items acknowledged at v1.0 milestone close:
 
 ## Session Continuity
 
-Last session: 2026-10-25T12:06:23.090Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-10-25T13:36:55.311Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
 
 ## Operator Next Steps

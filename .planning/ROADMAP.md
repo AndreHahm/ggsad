@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 1/4 plans executed
+**Plans**: 2/4 plans executed
 
 Plans:
 **Wave 1**
@@ -205,7 +205,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 04-02-PLAN.md — Report parser (tracer): framing, identity, inputs, coverage, findings, every reference resolved against the pinned text and a truncation-claim warning; then the mechanical findings table, the section printers, the stage reported and the pilot mode, verified on fixtures only (REVIEW-01)
+- [x] 04-02-PLAN.md — Report parser (tracer): framing, identity, inputs, coverage, findings, every reference resolved against the pinned text and a truncation-claim warning; then the mechanical findings table, the section printers, the stage reported and the pilot mode, verified on fixtures only (REVIEW-01)
 
 **Wave 3** *(blocked on Wave 2 completion; has the consent checkpoint)*
 
@@ -288,7 +288,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 1/4 | In Progress|  |
+| 4. Independent Review | v1.1 | 2/4 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
