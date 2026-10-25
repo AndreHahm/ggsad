@@ -4,9 +4,13 @@
 # the scope, status, encoding and self-containment of the note.
 #
 # Usage: 04-check-independent-review.sh [options]
-#   --stage STAGE     pins (default): the checks listed below. Later stages are added by later plans
+#   --stage STAGE     pins (default): the pin and note checks listed below; brief: those and the checks of
+#                     the review brief. Later stages are added by later plans
 #   --note PATH       the review note (default: the note path of the repository; relative paths are taken
 #                     from the repository root)
+#   --brief PATH      the review brief (default: the brief path of the repository), read in stage brief
+#                     and used as the BRIEF.md input while the brief is not yet committed; giving it
+#                     selects stage brief unless --stage is given too
 #   --approval-record PATH
 #                     the owner approval record (default: the record path of the repository)
 #   --approval-packet PATH
@@ -15,6 +19,18 @@
 #   --spec PATH       the specification file to hash (default: the specification path of the repository);
 #                     a test hook, the index and HEAD checks always read the real path
 #   --base REF        base ref of the diff (default origin/main); must name a commit
+#   --print-snapshot-file NAME
+#                     print the expected content of one input file to standard output and exit 0; NAME is
+#                     SPEC.md, BASE.md, DECISIONS.md, REQUIREMENTS.md or BRIEF.md. Built from git objects,
+#                     never from the working tree (exit 2 when nothing can be built)
+#   --print-input-hashes
+#                     print four lines "NAME SHA256" for SPEC.md, BASE.md, DECISIONS.md, REQUIREMENTS.md
+#                     and exit 0
+#   --verify-snapshot DIR
+#                     check an inputs directory and exit: SN1 it holds exactly the five input files and no
+#                     other entry (a name beginning with a dot is a warning), SN2 each file equals its
+#                     expected content by SHA-256 and REQUIREMENTS.md has eighteen lines. Read-only on DIR;
+#                     exit 2 if DIR is not a directory
 #   -h, --help        print this text and exit 0
 #
 # Checks of stage pins, all on the review note: E1 no byte order mark and valid UTF-8, E2 LF only, one final
@@ -28,6 +44,14 @@
 # headings once each in order, N1 the six labelled bullets of the Independence section, X1 self-containment:
 # no local path, address, link, scratch or transcript reference, unfinished marker or hash-like token that the
 # allow-list (function hash_token_allowed) rejects.
+#
+# Stage brief runs those checks and, on the brief: V1 the pass table partitions the text (every Up to is the
+# next From, every range is non-empty, the line range of each pass is printed), B2 no trace of the drafting
+# register, the advisory review, the unproven items, the approval packet or an expected finding, B3 the project
+# rule quotes AGENTS.md, B4 the expected SHA-256 column equals --print-input-hashes, B5 encoding and size (at
+# most 16384 bytes), B6 the eight H2 headings, the report labels, the four severity bullets, the charter ids
+# and the one start prompt, B7 self-containment of the brief (x1_scan in real mode); and on the note: N2 the
+# severity bullets, the pass rows and the charter ids of the note equal the brief's.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines are not
 # counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed check, 2 on a usage
@@ -49,12 +73,17 @@ DEC="docs/decisions/2026-10-23-executable-core-decisions.md"
 REQ=".planning/REQUIREMENTS.md"
 
 STAGE="pins"
+STAGE_SET=0
 NOTE="$NOTE_DEFAULT"
 APPROVAL="$ARC_DEFAULT"
 PACKET="$APK_DEFAULT"
 SPECFILE="$SPEC"
 BASE="origin/main"
 BRIEFFILE="$BRIEF_DEFAULT"
+BRIEF_GIVEN=0
+PRINT_SNAP=""
+PRINT_HASHES=0
+VERIFY_DIR=""
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -69,23 +98,30 @@ need_value() {
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --stage) need_value "$@"; STAGE="$2"; shift 2 ;;
+    --stage) need_value "$@"; STAGE="$2"; STAGE_SET=1; shift 2 ;;
     --note) need_value "$@"; NOTE="$2"; shift 2 ;;
     --approval-record) need_value "$@"; APPROVAL="$2"; shift 2 ;;
     --approval-packet) need_value "$@"; PACKET="$2"; shift 2 ;;
     --spec) need_value "$@"; SPECFILE="$2"; shift 2 ;;
     --base) need_value "$@"; BASE="$2"; shift 2 ;;
+    --brief) need_value "$@"; BRIEFFILE="$2"; BRIEF_GIVEN=1; shift 2 ;;
+    --print-snapshot-file) need_value "$@"; PRINT_SNAP="$2"; shift 2 ;;
+    --print-input-hashes) PRINT_HASHES=1; shift ;;
+    --verify-snapshot) need_value "$@"; VERIFY_DIR="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
-[ "$STAGE" = pins ] || { echo "--stage must be pins" >&2; exit 2; }
+# A brief given with --brief selects stage brief unless --stage is given too.
+if [ "$BRIEF_GIVEN" -eq 1 ] && [ "$STAGE_SET" -eq 0 ]; then STAGE="brief"; fi
+[ "$STAGE" = pins ] || [ "$STAGE" = brief ] || { echo "--stage must be pins or brief" >&2; exit 2; }
 git rev-parse --verify --quiet "$BASE^{commit}" > /dev/null || { echo "--base $BASE is not a commit" >&2; exit 2; }
 
 TMP=$(mktemp -d) || { echo "cannot create a temporary directory" >&2; exit 2; }
 trap 'rm -rf "$TMP"' EXIT
 NT="$TMP/note"
+BR="$TMP/brief"
 SP="$TMP/spec"
 AR="$TMP/arc"
 
@@ -204,6 +240,67 @@ input_hashes() {
     printf '%s %s\n' "$n" "$(snapshot_input "$n" | sha256sum | cut -d ' ' -f1)"
   done
 }
+
+# verify_snapshot DIR: SN1 and SN2 on an inputs directory, printed as check lines.
+INPUT_NAMES=(SPEC.md BASE.md DECISIONS.md REQUIREMENTS.md BRIEF.md)
+verify_snapshot() {
+  local dir=$1 e name n sn1="" sn2="" want got
+  local -a dots=()
+  declare -A seen=()
+  shopt -s dotglob nullglob
+  for e in "$dir"/*; do
+    name=${e##*/}
+    case " ${INPUT_NAMES[*]} " in
+      *" $name "*)
+        seen[$name]=1
+        if [ ! -f "$e" ] || [ -L "$e" ]; then sn1="the entry [$name] is not a regular file"; fi ;;
+      *)
+        if [[ "$name" == .* ]]; then dots+=("$name"); elif [ -z "$sn1" ]; then sn1="the directory holds the extra entry [$name]"; fi ;;
+    esac
+  done
+  shopt -u dotglob nullglob
+  if [ -z "$sn1" ]; then
+    for n in "${INPUT_NAMES[@]}"; do
+      if [ -z "${seen[$n]:-}" ]; then sn1="the directory lacks [$n]"; break; fi
+    done
+  fi
+  for name in "${dots[@]}"; do warn SN1 "the directory holds the hidden entry [$name]"; done
+  if [ -n "$sn1" ]; then fail SN1 "$sn1"; else pass SN1 "the directory holds exactly the five input files"; fi
+  for n in "${INPUT_NAMES[@]}"; do
+    [ -f "$dir/$n" ] || continue
+    want=$(snapshot_input "$n" | sha256sum | cut -d ' ' -f1)
+    got=$(sha256sum < "$dir/$n" | cut -d ' ' -f1)
+    if [ "$want" != "$got" ]; then sn2="[$n] has SHA-256 $got, expected $want"; break; fi
+  done
+  if [ -z "$sn2" ] && [ -f "$dir/REQUIREMENTS.md" ] && [ "$(wc -l < "$dir/REQUIREMENTS.md" | tr -d ' ')" -ne 18 ]; then
+    sn2="REQUIREMENTS.md does not have exactly eighteen lines"
+  fi
+  if [ -n "$sn2" ]; then fail SN2 "$sn2"; else pass SN2 "each input file equals its expected content"; fi
+}
+
+warn() { echo "WARN $1 $2"; }
+
+if [ -n "$PRINT_SNAP" ]; then
+  case "$PRINT_SNAP" in
+    SPEC.md|BASE.md|DECISIONS.md|REQUIREMENTS.md|BRIEF.md) ;;
+    *) echo "unknown snapshot file name: $PRINT_SNAP" >&2; exit 2 ;;
+  esac
+  snapshot_input "$PRINT_SNAP" > "$TMP/snap.out"
+  if [ ! -s "$TMP/snap.out" ]; then echo "cannot build $PRINT_SNAP from git objects" >&2; exit 2; fi
+  cat "$TMP/snap.out"
+  exit 0
+fi
+if [ "$PRINT_HASHES" -eq 1 ]; then
+  input_hashes
+  exit 0
+fi
+if [ -n "$VERIFY_DIR" ]; then
+  [ -d "$VERIFY_DIR" ] || { echo "$VERIFY_DIR is not a directory" >&2; exit 2; }
+  verify_snapshot "$VERIFY_DIR"
+  if [ "$FAILS" -eq 0 ]; then echo "RESULT: PASS"; exit 0; fi
+  echo "RESULT: FAIL $FAILS"
+  exit 1
+fi
 
 # Real-mode parameters of hash_token_allowed: the four real input hashes and a directory with the five real
 # input files, both built once in the temporary directory.
@@ -448,6 +545,178 @@ if [ -n "$n1" ]; then fail N1 "$n1"; else pass N1 "the Independence section has 
 # X1: self-containment of the note, in real mode (the real input hashes and the real input files).
 msg=$(x1_scan "$NT" "$TMP/real.hashes" "$TMP/real")
 if [ -n "$msg" ]; then fail X1 "note: $msg"; else pass X1 "no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
+
+if [ "$STAGE" = brief ]; then
+  readable "$BR" "$BRIEFFILE"
+
+  # V1: the pass table of the brief partitions the text. A heading number is mapped to the line of the heading
+  # "## N. " or "### N.M " of the specification (fence-aware), header is line 1, end is the line count plus one.
+  awk '
+    /^```/ { fence = !fence; next }
+    fence { next }
+    /^## [0-9]+\. / { id = $2; sub(/\.$/, "", id); print id "\t" NR; next }
+    /^### [0-9]+\.[0-9]+ / { print $2 "\t" NR }
+  ' "$SP" > "$TMP/heads.tsv"
+  spec_end=$(( $(wc -l < "$SP" | tr -d ' ') + 1 ))
+  # pass_line TOKEN: the line number for header, end or a heading number; empty when unknown.
+  pass_line() {
+    case "$1" in
+      header) echo 1 ;;
+      end) echo "$spec_end" ;;
+      *) awk -F'\t' -v id="$1" '$1 == id { print $2; exit }' "$TMP/heads.tsv" ;;
+    esac
+  }
+  h2_lines "Passes" "$BR" | awk -F'|' '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^\| RV-/ { print trim($2) "\t" trim($3) "\t" trim($4) "\t" trim($5) }
+  ' > "$TMP/passes.tsv"
+  v1=""
+  v1_ranges=""
+  mapfile -t pass_ids < <(cut -f1 "$TMP/passes.tsv")
+  if [ "${pass_ids[*]}" != "RV-A RV-B RV-C RV-D RV-E RV-X" ]; then
+    v1="the pass table does not hold exactly the rows RV-A RV-B RV-C RV-D RV-E RV-X in order"
+  else
+    mapfile -t pass_from < <(cut -f3 "$TMP/passes.tsv")
+    mapfile -t pass_upto < <(cut -f4 "$TMP/passes.tsv")
+    [ "${pass_from[0]}" = header ] || v1="RV-A does not start at header"
+    [ -n "$v1" ] || [ "${pass_upto[4]}" = end ] || v1="RV-E does not end at end"
+    if [ -z "$v1" ]; then
+      for i in 0 1 2 3; do
+        if [ "${pass_upto[$i]}" != "${pass_from[$((i + 1))]}" ]; then
+          v1="${pass_ids[$i]} ends at [${pass_upto[$i]}] but ${pass_ids[$((i + 1))]} starts at [${pass_from[$((i + 1))]}]"
+          break
+        fi
+      done
+    fi
+    [ -n "$v1" ] || { [ "${pass_from[5]}" = header ] && [ "${pass_upto[5]}" = end ]; } || v1="RV-X does not run from header to end"
+    if [ -z "$v1" ]; then
+      for i in 0 1 2 3 4 5; do
+        a=$(pass_line "${pass_from[$i]}")
+        b=$(pass_line "${pass_upto[$i]}")
+        if [ -z "$a" ] || [ -z "$b" ]; then v1="${pass_ids[$i]} names a heading [${pass_from[$i]}] or [${pass_upto[$i]}] that the specification does not have"; break; fi
+        if [ "$a" -ge "$b" ]; then v1="${pass_ids[$i]} has an empty or inverted range (line $a up to line $b)"; break; fi
+        v1_ranges+="${pass_ids[$i]} $a-$((b - 1)); "
+      done
+    fi
+  fi
+  if [ -n "$v1" ]; then fail V1 "$v1"; else pass V1 "the pass table partitions the text: ${v1_ranges%; }"; fi
+
+  # B2: no trace of the Requestor's conclusions (the pattern list lives here).
+  b2=""
+  while IFS='|' read -r label re; do
+    hit=$(grep -n -i -E -e "$re" "$BR" | head -n1)
+    if [ -n "$hit" ]; then b2="$label at line ${hit%%:*}"; break; fi
+  done << 'ANCHORS'
+drafting-choice id|(^|[^A-Za-z0-9])DC-[0-9]+
+owner-question id|(^|[^A-Za-z0-9])OQ-?[0-9]+
+review-finding id|(^|[^A-Za-z])(CR|WR|IN)-?[0-9]{2}([^0-9]|$)
+register of drafting choices|register
+approval packet|packet
+advisory review|advisory
+unproven items|unproven
+hand-off list|hand-off
+expected findings|expected finding
+known issues|known issue
+earlier review|already reviewed
+phase reference|Phase [23]([^0-9]|$)
+drafting-phase review file|02-REVIEW
+ANCHORS
+  if [ -n "$b2" ]; then fail B2 "the brief carries a trace of the Requestor's conclusions: $b2"; else pass B2 "the brief carries no drafting-choice id, review-finding id, register, packet, advisory review, unproven item or expected finding"; fi
+
+  # B3: the project rule of the brief equals the lines of AGENTS.md under Approval and review, joined by spaces.
+  rule=$(awk '/^## Approval and review$/ { on = 1; next } /^## / { on = 0 } on && NF' AGENTS.md | sed 's/^[ \t]*//; s/[ \t]*$//' | paste -sd ' ' -)
+  n_rule=$(grep -c '^Changes to the English normative specification require' "$BR")
+  if [ -z "$rule" ]; then
+    fail B3 "AGENTS.md has no text under Approval and review"
+  elif [ "$n_rule" -ne 1 ] || ! grep -q -x -F -e "$rule" "$BR"; then
+    fail B3 "the project rule of the brief does not equal the text of AGENTS.md under Approval and review"
+  else
+    pass B3 "the project rule of the brief equals the text of AGENTS.md under Approval and review"
+  fi
+
+  # B4: the Expected SHA-256 column of the Inputs table equals --print-input-hashes.
+  h2_lines "Inputs" "$BR" | awk -F'|' '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    /^\| [A-Z]+\.md \|/ { h = trim($(NF - 1)); gsub(/`/, "", h); print trim($2) " " h }
+  ' > "$TMP/brief.hashes"
+  if cmp -s "$TMP/brief.hashes" "$TMP/real.hashes"; then
+    pass B4 "the Expected SHA-256 column equals the four input hashes"
+  else
+    fail B4 "the Expected SHA-256 column differs from the input hashes (first difference: $(diff "$TMP/real.hashes" "$TMP/brief.hashes" | grep -m1 '^[<>]'))"
+  fi
+
+  # B5: encoding and size of the brief.
+  b5=$(enc1 "$BR")
+  [ -n "$b5" ] || b5=$(enc2 "$BR")
+  [ -n "$b5" ] || { [ "$(wc -c < "$BR" | tr -d ' ')" -le 16384 ] || b5="the brief is larger than 16384 bytes"; }
+  if [ -n "$b5" ]; then fail B5 "brief: $b5"; else pass B5 "the brief is valid UTF-8 without BOM, LF only, one final LF, no tab, at most 16384 bytes"; fi
+
+  # B6: headings, labels, severity bullets, charter ids and the start prompt.
+  b6=""
+  awk '/^```/ { fence = !fence; next } !fence && /^## / { print }' "$BR" > "$TMP/brief.h2"
+  cat > "$TMP/brief.h2.exp" << 'HEADINGS'
+## Your role
+## Inputs
+## What to evaluate
+## Severity scale
+## Passes
+## Output format
+## Rules for this review
+## Start prompt
+HEADINGS
+  cmp -s "$TMP/brief.h2.exp" "$TMP/brief.h2" || b6="the H2 headings are not exactly the eight in the stated order (first difference: $(diff "$TMP/brief.h2.exp" "$TMP/brief.h2" | grep -m1 '^[<>]'))"
+  if [ -z "$b6" ]; then
+    for lab in "REPORT BEGIN" "REPORT END" "IDENTITY:" "INPUT " "SCOPE:" "COVERAGE:" "FINDINGS:" "FINDING " "SEVERITY:" "REFERENCE:" "SUMMARY:" "REASONING:" "DISPOSITION REQUIRED:" "CHECKS PERFORMED:" "LIMITS:" "VERDICT:"; do
+      if ! grep -q -F -e "$lab" "$BR"; then b6="the label [$lab] does not occur"; break; fi
+    done
+  fi
+  if [ -z "$b6" ]; then
+    for sev in BLOCKING MAJOR MINOR INFO; do
+      if [ "$(grep -c "^- $sev: " "$BR")" -ne 1 ]; then b6="the severity bullet [- $sev: ] does not occur exactly once"; break; fi
+    done
+  fi
+  if [ -z "$b6" ]; then
+    for c in C1 C2 C3 C4 C5 C6 C7 C8; do
+      if [ "$(grep -c "^- $c " "$BR")" -ne 1 ]; then b6="the charter bullet [- $c ] does not occur exactly once"; break; fi
+    done
+  fi
+  if [ -z "$b6" ]; then
+    start=$(h2_lines "Start prompt" "$BR" | grep -v '^[[:space:]]*$')
+    want_start='Read BRIEF.md in this directory and carry out pass <PASS> exactly as it describes. Your final message must be the report in the format BRIEF.md defines and nothing else.'
+    [ "$start" = "$want_start" ] || b6="the Start prompt section is not exactly the one start-prompt line"
+  fi
+  if [ -n "$b6" ]; then fail B6 "$b6"; else pass B6 "the eight H2 headings, the sixteen labels, the four severity bullets, the charter ids C1 to C8 and the one start prompt are present"; fi
+
+  # B7: self-containment of the brief, in real mode.
+  msg=$(x1_scan "$BR" "$TMP/real.hashes" "$TMP/real")
+  if [ -n "$msg" ]; then fail B7 "brief: $msg"; else pass B7 "the brief has no local path, address, link, scratch reference, unfinished marker or foreign hash-like token"; fi
+
+  # N2: the severity bullets, the pass rows and the charter ids of the note equal the brief's.
+  n2=""
+  h2_lines "Severity scale" "$BR" | grep -E '^- (BLOCKING|MAJOR|MINOR|INFO): ' > "$TMP/sev.brief"
+  h2_lines "Severity scale" "$NT" | grep -E '^- (BLOCKING|MAJOR|MINOR|INFO): ' > "$TMP/sev.note"
+  if [ "$(wc -l < "$TMP/sev.note" | tr -d ' ')" -ne 4 ] || ! cmp -s "$TMP/sev.brief" "$TMP/sev.note"; then
+    n2="the four severity bullets of the note are not the brief's character for character"
+  fi
+  if [ -z "$n2" ]; then
+    cut -f1,2 "$TMP/passes.tsv" > "$TMP/passes.brief"
+    h2_lines "Passes" "$NT" | awk -F'|' '
+      function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+      /^\| RV-/ { print trim($2) "\t" trim($3) }
+    ' > "$TMP/passes.note"
+    if [ "$(wc -l < "$TMP/passes.note" | tr -d ' ')" -ne 6 ] || ! cmp -s "$TMP/passes.brief" "$TMP/passes.note"; then
+      n2="the six pass rows (Pass and Scope) of the note are not the brief's"
+    fi
+  fi
+  if [ -z "$n2" ]; then
+    ids=$(h2_lines "Charter" "$NT" | grep -E '^- C[0-9] ' | cut -d ' ' -f2 | tr '\n' ' ')
+    [ "$ids" = "C1 C2 C3 C4 C5 C6 C7 C8 " ] || n2="the Charter section of the note does not hold the bullets C1 to C8 once each, in order"
+  fi
+  if [ -z "$n2" ] && [ "$(h2_lines "Charter" "$NT" | grep -c -E '^- C[1-8] [^:]+: .+$')" -ne 8 ]; then
+    n2="a charter bullet of the note does not have the form [- Cn title: text]"
+  fi
+  if [ -n "$n2" ]; then fail N2 "$n2"; else pass N2 "the severity bullets, the pass rows and the charter ids of the note equal the brief's"; fi
+fi
 
 if [ "$FAILS" -eq 0 ]; then
   echo "RESULT: PASS"

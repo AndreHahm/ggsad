@@ -32,15 +32,34 @@
 
 ## Charter
 
-Stated below once the brief exists.
+The reviewer was asked to judge the changed text against eight items:
+
+- C1 Contradiction and ambiguity: whether any statements conflict, any term has two senses, or any rule leaves its outcome undetermined.
+- C2 Owner decisions: whether each of the eleven owner decisions is implemented as chosen, none is contradicted, and none lacks corresponding text.
+- C3 Requirements: whether each of the eighteen specification requirements is met by normative text, none is contradicted, and no requested content is missing.
+- C4 Testability and bypass: whether rules can be tested from outside, whether a hostile participant could meet a rule in letter and defeat its purpose, and whether failure behaviour is specified.
+- C5 Acceptance examples: whether each example follows from its rule and covers the case it names.
+- C6 Self-containment: whether the text refers to development artifacts, prototype identifiers, project decision or requirement identifiers, tools outside the method, or local paths.
+- C7 Weakening: whether any protection, MUST or SHOULD rule or prohibition of the base text is removed, relaxed or made conditional without saying so.
+- C8 References and terms: whether section numbers, example numbers and cross-references are right and each term is defined before use.
 
 ## Severity scale
 
-Stated below once the brief exists.
+- BLOCKING: the text must not be treated as final until the finding is fixed or the repository owner dispositions it.
+- MAJOR: a defect that an implementer or participant could plausibly act on incorrectly but that is not BLOCKING.
+- MINOR: a defect of wording, structure or reference that cannot change what a conforming participant does.
+- INFO: an observation or question that is not a defect.
 
 ## Passes
 
-Stated below once the brief exists.
+| Pass | Scope |
+|---|---|
+| RV-A | The header and sections 1 to 8 |
+| RV-B | Sections 9 to 22 |
+| RV-C | Section 23 |
+| RV-D | Section 24 up to the end of 24.5 |
+| RV-E | Sections 24.6 to 24.10 and section 25 |
+| RV-X | The whole text, read across sections |
 
 ## Reports
 
