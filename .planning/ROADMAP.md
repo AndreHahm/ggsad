@@ -196,12 +196,12 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 4 plans
+**Plans**: 1/4 plans executed
 
 Plans:
 **Wave 1**
 
-- [ ] 04-01-PLAN.md — Check script core and note skeleton: pins, approval tie, scope and status end-to-end (tracer), then the neutral review brief with its pass partition, the snapshot of inputs, the synthetic pilot inputs and the run set, seeded fixtures and a dry run that sends nothing (REVIEW-01)
+- [x] 04-01-PLAN.md — Check script core and note skeleton: pins, approval tie, scope and status end-to-end (tracer), then the neutral review brief with its pass partition, the snapshot of inputs, the synthetic pilot inputs and the run set, seeded fixtures and a dry run that sends nothing (REVIEW-01)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
@@ -288,7 +288,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 0/4 | Not started | - |
+| 4. Independent Review | v1.1 | 1/4 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
