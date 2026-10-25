@@ -58,7 +58,7 @@ From and Up to name headings of SPEC.md: `header` is the first line and `end` is
 
 ## Output format
 
-Your final message is the report and nothing else. Use these labels, each at the start of a line, in this order:
+Write the report with your file-writing tool as the single file `../out/REPORT-<PASS>.md` (with your pass id in the name; create it once and write it in full). The file holds the report and nothing else; your final message is not read. Use these labels, each at the start of a line, in this order:
 
 - `REPORT BEGIN <PASS>`: the first line, with your pass id.
 - `IDENTITY:` one line: product, vendor and model as you know them, and whether you share a session, prompt, notes or model with Claude Code.
@@ -106,7 +106,7 @@ REPORT END <PASS>
 
 ## Rules for this review
 
-- Read-only: do not modify, create or delete any file.
+- Read-only apart from the report: modify and delete no file, and create no file except `../out/REPORT-<PASS>.md`.
 - No network access. Run nothing except read-only inspection.
 - The vertical bar character appears nowhere in your report. Use no absolute paths and no tab characters.
 - A continuation line never begins with one of the label words above followed by a colon.
@@ -116,4 +116,4 @@ REPORT END <PASS>
 
 ## Start prompt
 
-Read BRIEF.md in this directory and carry out pass <PASS> exactly as it describes. Your final message must be the report in the format BRIEF.md defines and nothing else.
+Read BRIEF.md in this directory and carry out pass <PASS> exactly as it describes. Create the file ../out/REPORT-<PASS>.md holding the report in the format BRIEF.md defines and nothing else; your final message is not read.
