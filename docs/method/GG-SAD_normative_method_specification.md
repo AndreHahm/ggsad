@@ -2,7 +2,7 @@
 
 **Version:** 1.4
 **Status:** Normative Baseline  
-**Revision:** 2026-10-24 — Added the method profiles `core` and `full`, the protections that both method profiles share, JSON state with a canonical form, and schema versions with explicit migration.
+**Revision:** 2026-10-25 — Added the method profiles `core` and `full`, the protections that both method profiles share, JSON state with a canonical form, and schema versions with explicit migration, and aligned the gate model, the evaluation order, the approval rules, and the identifier rules.
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
 
 ---
