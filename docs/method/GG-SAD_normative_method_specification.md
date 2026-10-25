@@ -665,7 +665,7 @@ Minimum artifact:
 Minimum content:
 
 - goal,
-- scope,
+- scope, including the allowed path list (Section 24.5),
 - acceptance conditions,
 - verification.
 
@@ -677,7 +677,7 @@ See AE-231.
 
 - Covers: Section 6.1
 
-Given a Class S change with an inline specification that states the goal, the scope, the acceptance conditions, and the verification, and a second Class S change whose inline specification states no verification  
+Given a Class S change with an inline specification that states the goal, the scope with its allowed path list, the acceptance conditions, and the verification, and a second Class S change whose inline specification states no verification  
 When each inline specification is checked against the minimum content of Class S  
 Then the first meets the minimum content, and the second does not, and the missing verification is reported
 
@@ -1121,7 +1121,7 @@ At minimum:
 - affected system areas are roughly known,
 - no obvious conflict with the constitution exists.
 
-A question about the goal or the problem that is still open is recorded as an open question of the change (Section 24.8).
+A question about the goal or the problem that is still open is recorded as an open question of the change (Section 24.8). Ready-to-Spec is a statement about the criteria above alone. While the recorded question is unanswered, the `complete` action answers `blocked` (Section 24.8), and the Definition of Done of the specify phase is not satisfied.
 
 See AE-263.
 
@@ -1146,6 +1146,7 @@ At minimum:
 - critical risks have been assessed,
 - required dependencies are available,
 - test and verification criteria are defined,
+- the allowed path list is stated (Section 24.5),
 - no blocking decision is pending.
 
 See AE-265.
@@ -1261,8 +1262,8 @@ See AE-263.
 - Covers: Sections 9.4 and 10.4
 
 Given a specification whose goal, benefit, requestor, and constraints are known and that conflicts with no rule of the constitution, and a second specification with one unanswered question  
-When the Definition of Ready and the Definition of Done of the specify phase are evaluated for each specification  
-Then the first specification is ready, and the second is ready as well but does not satisfy the Definition of Done, because every open question has to be answered (Section 24.8) and the specification has to be approved
+When the Definition of Ready and the Definition of Done of the specify phase are evaluated for each specification, and the `complete` action is requested for the second  
+Then the criteria of Ready-to-Spec are met for both, and for the second the `complete` action answers `blocked` and the Definition of Done is not satisfied, because every open question has to be answered (Section 24.8) and the specification has to be approved
 
 ### 10.5 Plan-Done
 
@@ -1305,7 +1306,7 @@ See AE-265.
 
 - Covers: Sections 9.6 and 10.6
 
-Given an approved specification with a clear technical approach, assessed risks, available dependencies, and defined test criteria, and a build in which a path outside the allowed path list changed  
+Given an approved specification with a clear technical approach, assessed risks, available dependencies, and defined test criteria, a stated allowed path list, and a build in which a path outside that list changed  
 When the Definition of Ready and the Definition of Done of the build phase are evaluated  
 Then the specification is ready to build, and the build does not satisfy the Definition of Done, because unintended scope has been introduced, which is a hard failure (Section 24.5)
 
@@ -3031,6 +3032,14 @@ Given a `full` change that has started and whose Scope lists the allowed path `s
 When a file under `docs/` is found changed since the base revision of the first change, and the scope of the second change is measured  
 Then the first change has a scope violation, which is a hard failure naming the path, and the scope of the second change is `not_evaluable`, which is neither `satisfied` nor a violation
 
+**AE-294 — Full: the scope is evaluated from the first approval of the gate definitions**
+
+- Covers: Section 24.5 (full)
+
+Given a `full` change whose specification states no allowed path list, with a complete specification otherwise, and whose gate definitions are not yet approved  
+When the scope is measured before the approval, the gate definitions are approved, and the scope is measured again and the Definition of Ready of the build phase is evaluated  
+Then the record shows `not_applicable` before the approval and `not_evaluable` after it, and the change is not ready to build, because the allowed path list is not stated
+
 **AE-254 — Full: a verification condition carries a baseline**
 
 - Covers: Section 24.6 (full)
@@ -3657,7 +3666,7 @@ The paths changed since the base revision are the paths whose content differs fr
 
 The record files of the change itself are exempt from the measurement. In `core` they are the change definition, the specification, and the state document (Section 23.1). In `full` they are the specification and the state file or inline record of the change (Sections 16.1 and 4.3). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). In both method profiles, exactly two further names in the change directory are exempt: the in-progress file `state.json.tmp` and the lock object `state.json.lock` that the writer of the state document uses (Section 25.1), so that a file left behind by an interrupted write is never a scope violation. Every other file in the change directory is measured, including a file with a similar name such as `state.json.bak`. See AE-155, AE-282.
 
-Before the change has started there is no base revision, and the scope is not evaluated: the record shows `not_applicable` (Section 24.2). After the change has started, a scope that cannot be measured is `not_evaluable` (Section 24.2). That is the case when version control is unavailable, when no base revision was recorded, and when the allowed path list is absent. It is never recorded as `satisfied`, and it is never recorded as a scope violation. See AE-154, AE-157.
+In `core`, before the change has started there is no base revision, and the scope is not evaluated: the record shows `not_applicable` (Section 24.2). After the change has started, a scope that cannot be measured is `not_evaluable` (Section 24.2). That is the case when version control is unavailable, when no base revision was recorded, and when the allowed path list is absent. It is never recorded as `satisfied`, and it is never recorded as a scope violation. In `full`, the scope is evaluated from the first approval of the gate definitions (Section 24.1) on, and the record shows `not_applicable` before that approval. The allowed path list is a criterion of Ready-to-Build (Section 9.6), so that a `full` change that states none does not reach the build phase. See AE-154, AE-157, AE-294.
 
 An allowed path list that is present and empty allows no path: every path changed since the base revision is a scope violation. When no path has changed, the change is in scope, whatever the list holds. See AE-151.
 
