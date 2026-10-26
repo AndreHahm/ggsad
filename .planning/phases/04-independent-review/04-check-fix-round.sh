@@ -82,7 +82,11 @@
 # lines, the quoted sentences of the 14 findings that were not dispositioned, the changed paths, every changed
 # line inside a section that the register lists, no tab in an added line); FE4 every removed line that holds
 # MUST, SHOULD or MAY is listed in the register with a reason; FE5 the register (layout, fields, quoted
-# fragments, sections, examples, encoding, self-containment; with --complete all nine groups and the findings);
+# fragments, sections, examples, encoding, self-containment; with --complete all nine groups and the findings;
+# the bullet Notes of an entry may be followed by nested bullets, one per result of the sweep for stale
+# statements, and a bullet of the heading "Normative lines removed or reworded" has the form
+# "- <first 60 characters of the removed line> :: <reason>", and one of the heading "Findings whose quoted
+# sentence an edit touched" the form "- <finding id> :: <reason>");
 # FE6 the Phase 2 check ends RESULT: PASS in --final mode on the specification under test.
 #
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines and the
@@ -748,6 +752,7 @@ reg_mask() {
     /^### / { print; next }
     sec == "## The nine changes" && /^\| FG-/ { split($0, c, "|"); printf "|%s|%s|%s|%s|@|@|@|\n", c[2], c[3], c[4], c[5]; next }
     sec == "## Change details" && /^- (What changed|Why|My choice|Before|After|Notes): / { l = $0; sub(/: .*$/, "", l); print l ": @"; next }
+    sec == "## Change details" && /^  - / { next }
     sec == "## Normative lines removed or reworded" || sec == "## Findings whose quoted sentence an edit touched" {
       if ($0 != "" && !seen[sec]++) print "@"
       next
