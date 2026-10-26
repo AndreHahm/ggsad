@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 4/11 plans executed
+**Plans**: 4/9 plans executed
 
 Plans:
 **Wave 1**
@@ -215,33 +215,25 @@ Plans:
 
 - [x] 04-04-PLAN.md — Stage dispositioned and the disposition skeleton (tracer), seeded fixtures, the owner dispositions each BLOCKING finding (fix, accept, defer or reject, with reasons), the record and the closing check; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
 
-**Wave 5** *(gap closure from the round-1 dispositions, outcome `fix pending`; blocked on Wave 4 completion; has the owner decisions checkpoint)*
+**Wave 5** *(gap closure from the round-1 dispositions, outcome `fix pending`; blocked on Wave 4 completion; lighter fix round by the owner's direction)*
 
-- [ ] 04-05-PLAN.md — Fix round check script (state of the text, replay of round 1, decisions stage) as tracer, the Phase 2 check accepts the fix-round commit subjects, the owner decides the five design questions D-1 to D-5 (REVIEW-02)
+- [ ] 04-05-PLAN.md — Fix round check script (state of the text, replay of round 1) as tracer and the Phase 2 check that accepts the fix-round commit subjects (both executed); the design-decision checkpoint is removed by the owner's direction and the plan closes with its summary (REVIEW-02)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 04-06-PLAN.md — Fix drafting, part 1: the `wait` row, `start` with a gate that cannot be evaluated, the other actions that never answer `blocked`, `reopen` and a paused scope, the Definitions of Ready in the decision rules, the question-recording operation of `full`; stage edits with seeded fixtures (REVIEW-02)
+- [ ] 04-06-PLAN.md — All eleven fixes drafted as the smallest consistent edits, with a short plain-language register (tracer: the `wait` row; then the other eight groups, five of them the Requestor's picks marked `my choice`); the stage edits with light stale-statement and minimality checks (REVIEW-02)
 
-**Wave 7** *(blocked on Wave 6 completion)*
+**Wave 7** *(blocked on Wave 6 completion; has the owner approval checkpoint)*
 
-- [ ] 04-07-PLAN.md — Fix drafting, part 2: retry-limit severity, text and binary classification for the content hash, `guard` and verify-only CI, as the owner decided; complete register, trace of all eleven Fix findings, read-through of the whole delta (REVIEW-02)
+- [ ] 04-07-PLAN.md — Diff identity recorded again and approval packet printed from the register (tracer: nine changes in plain words with the real before-and-after text, the exact change), ONE approval of the exact new text by the owner (APPR-01, REVIEW-02)
 
-**Wave 8** *(blocked on Wave 7 completion; has the owner approval checkpoint)*
+**Wave 8** *(blocked on Wave 7 completion; has the consent checkpoint)*
 
-- [ ] 04-08-PLAN.md — Diff identity recorded again (tracer), approval packet with the exact delta against the approved text and the nine fix groups, the owner approves the exact new text or requests changes (APPR-01, REVIEW-02)
+- [ ] 04-08-PLAN.md — Round profile of the review check script with the derived brief and pending note (tracer) and the pre-flight, the owner consents to switch four Devin servers off and on and to send one run set, a test run and the review passes run with containment checks, then the verbatim reports and the consent trail in the round-2 note (REVIEW-01)
 
-**Wave 9** *(blocked on Wave 8 completion)*
+**Wave 9** *(blocked on Wave 8 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-09-PLAN.md — Review machinery of round 2: round profile of the review check script with the RR names (tracer), the brief of round 2 derived from the round-1 brief, the pass scope, the pending note; nothing is sent (REVIEW-01)
-
-**Wave 10** *(blocked on Wave 9 completion; has the consent checkpoint)*
-
-- [ ] 04-10-PLAN.md — Pre-flight (tracer), the owner consents to disable four servers and to send exactly one run set to Devin, the pilot and six separate headless passes run with containment checks, then the verbatim reports and the consent trail in the round-2 note (REVIEW-01)
-
-**Wave 11** *(blocked on Wave 10 completion; has the owner dispositions checkpoint)*
-
-- [ ] 04-11-PLAN.md — Round-2 dispositions (tracer: the open information of round 1 and check D9), seeded fixtures, the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
+- [ ] 04-09-PLAN.md — Plain disposition questions of round 2 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
@@ -316,7 +308,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 4/11 | In Progress|  |
+| 4. Independent Review | v1.1 | 4/9 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
