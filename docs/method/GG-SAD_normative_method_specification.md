@@ -912,6 +912,8 @@ An action whose evaluation closes the change as failed answers `success` (Sectio
 
 Section 24.2 states what `wait`, `fail`, `cancel`, `supersede`, and `reopen` of the `full` profile answer when a gate that applies to them cannot be evaluated.
 
+The contract operations `approve`, `ask`, `answer`, `adopt`, and `migrate` (Sections 22.1, 24.3, 24.4, 24.8, and 25.3) are not rows of this table: they leave the phase and the status unchanged, and each is recorded under its own action name (Section 25.1).
+
 **AE-121 — Complete is blocked when the Definition of Done is not satisfied**
 
 - Covers: Section 8.3
@@ -3028,7 +3030,7 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 | Scope and isolation | 24.5 | `scope.allow` of the change definition, and the base revision recorded when `start` succeeds | The allowed path list in the Scope of the change specification (Section 16.1), and the base revision recorded when the first phase begins |
 | Known-failure baselines | 24.6 | A baseline on a `check` done gate | A baseline on a verification condition that names a check command (Section 10.7) |
 | Hard and soft failure | 24.7 | The severity of a fail gate; a soft failure puts the change in a wait of kind `fail-gate` | The severity of a fail rule (Section 12.2); a soft failure puts the change in the status `waiting` with the category `WAIT_DECISION` |
-| Open questions as state | 24.8 | The actions `ask` and `answer` and the base gate `unanswered-question` | The question is recorded in the state file, and a Definition of Wait condition is active while it is unanswered |
+| Open questions as state | 24.8 | The actions `ask` and `answer` and the base gate `unanswered-question` | The action `ask` records the question in the state file, and a Definition of Wait condition is active while it is unanswered |
 | Executable evidence | 24.9 | The base gate `incomplete-evidence` | Verify-Done (Section 10.7) and the completion criteria (Section 20) |
 | Gate-command interpreter | 24.10 | The commands of `check` gates and the evidence commands | The commands of the Flow Gates and the evidence commands |
 | The result `blocked` | 22.2 | The actions `close` and `resume` (Section 23.4) | The actions `complete` and `resume` (Section 8.3) |
@@ -4072,7 +4074,7 @@ An open question is part of the state of the change and is recorded in its histo
 - `answer`: absent while the question is unanswered;
 - `answerer`: the participant that gave the answer.
 
-In `core`, the `ask` action records a question without pausing the change, and the `wait` action that names an unanswered question pauses the change with a wait record of kind `question`; the `wait` action never creates a question (Sections 23.4 and 23.5). In `full`, a question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1). A wait that a question causes has the category `WAIT_USER_INPUT` (Section 11.1).
+In `core`, the `ask` action records a question without pausing the change, and the `wait` action that names an unanswered question pauses the change with a wait record of kind `question`; the `wait` action never creates a question (Sections 23.4 and 23.5). In `full`, the operation that records a question is the action `ask`, which is not a transition: its entry has the action name `ask` (Section 25.1), it leaves the phase and the status unchanged, and it is legal for a change that is not in the `closed` phase. The question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1). See AE-301. A wait that a question causes has the category `WAIT_USER_INPUT` (Section 11.1).
 
 Two options are distinct when they differ as sequences of code points (Section 24). A structured question with fewer than two distinct options MUST be rejected, and so MUST a structured question whose list repeats an option. Question identifiers are compared in the same way, so that `Q1` and `q1` are different identifiers. See AE-177, AE-181.
 
@@ -4179,6 +4181,14 @@ Then the answer is rejected, because no question with the identifier `q1` exists
 Given a `full` change in the specify phase with the status `active` and the unanswered question Q1 in its state file  
 When the `complete` action is requested  
 Then the result is `blocked` with `changed` true, the issues name Q1, and the phase and status do not change
+
+**AE-301 — Full: asking a question is the action ask and changes neither the phase nor the status**
+
+- Covers: Section 24.8 (full)
+
+Given a `full` change in the build phase with the status `active`  
+When a participant records a question with a text and the owner of the change  
+Then the entry has the action `ask`, the phase and the status are unchanged, and the question is unanswered
 
 ### 24.9 Executable Evidence
 

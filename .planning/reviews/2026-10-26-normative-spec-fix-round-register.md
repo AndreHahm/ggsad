@@ -11,7 +11,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | drafted | 8.3, 8.5, 23.4 | AE-297 |
 | FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | drafted | 8.3, 8.4, 8.5, 23.4, 24.2 | AE-298, AE-299 |
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | drafted | 24.2 | AE-300 |
-| FG-06 | Recording a question in the full profile | RV-B-001 | repair | pending | - | - |
+| FG-06 | Recording a question in the full profile | RV-B-001 | repair | drafted | 8.3, 24, 24.8 | AE-301 |
 | FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | pending | - | - |
 | FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | pending | - | - |
 | FG-09 | The guard check for continuous integration | RV-X-003 | my choice | pending | - | - |
@@ -65,12 +65,12 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-06 — Recording a question in the full profile
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: The text now says that recording a question is the action ask in both profiles and that it is not a row of the transition table.
+- Why: One part said that ask exists for the full profile, while the transition table and the section on questions did not mention it.
+- My choice: none: the lists of contract operations and of entry actions already name ask for both profiles.
+- Before: "In `full`, a question is recorded in the state file, or in the inline record where no state file is persisted (Section 4.3), and the answer is recorded as a human decision (Section 22.1)."
+- After: "In `full`, the operation that records a question is the action `ask`, which is not a transition: its entry has the action name `ask` (Section 25.1), it leaves the phase and the status unchanged, and it is legal for a change that is not in the `closed` phase."
+- Notes: Section 24.8: the sentence for the full profile (the sentence for core is not edited). Section 8.3: one sentence after the pointer sentences below the table of results; no row ask is added. Section 24: the full cell of the realization row Open questions as state, which now names the action ask. Stale statements found by the sweep: the example AE-287 stays true, Section 22.1 stays true, Section 25.1 stays true because it already names ask in the closed set of entry actions, and the ask row of Section 23.4 stays true. The example AE-301 is placed after AE-182 and cited in the sentence of Section 24.8.
 
 ### FG-07 — What happens when a retry limit is reached
 
