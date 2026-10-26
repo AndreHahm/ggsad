@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 4/9 plans executed
+**Plans**: 5/9 plans executed
 
 Plans:
 **Wave 1**
@@ -217,7 +217,7 @@ Plans:
 
 **Wave 5** *(gap closure from the round-1 dispositions, outcome `fix pending`; blocked on Wave 4 completion; lighter fix round by the owner's direction)*
 
-- [ ] 04-05-PLAN.md — Fix round check script (state of the text, replay of round 1) as tracer and the Phase 2 check that accepts the fix-round commit subjects (both executed); the design-decision checkpoint is removed by the owner's direction and the plan closes with its summary (REVIEW-02)
+- [x] 04-05-PLAN.md — Fix round check script (state of the text, replay of round 1) as tracer and the Phase 2 check that accepts the fix-round commit subjects (both executed); the design-decision checkpoint is removed by the owner's direction and the plan closes with its summary (REVIEW-02)
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
@@ -308,7 +308,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 4/9 | In Progress|  |
+| 4. Independent Review | v1.1 | 5/9 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
