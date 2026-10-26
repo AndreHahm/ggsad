@@ -10,7 +10,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-02 | Re-opening a closed change when its new work would have to wait | RV-A-001, RV-X-002 | my choice | drafted | 8.3 | AE-296 |
 | FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | drafted | 8.3, 8.5, 23.4 | AE-297 |
 | FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | drafted | 8.3, 8.4, 8.5, 23.4, 24.2 | AE-298, AE-299 |
-| FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | pending | - | - |
+| FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | drafted | 24.2 | AE-300 |
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | pending | - | - |
 | FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | pending | - | - |
 | FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | pending | - | - |
@@ -56,12 +56,12 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-05 — Which rule decides when a ready condition is not met
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: One paragraph now says which decision rule applies when a ready condition of the full profile is not met, so that every outcome in the transition table follows from the rules.
+- Why: The rules listed fail, wait and done conditions but not ready conditions, so a reader could not tell how they rank.
+- My choice: none: the transition table already states the outcomes, and the paragraph writes down how the rules rank them.
+- Before: none (new text)
+- After: "The Definition of Ready of the current phase, for `complete` from `draft`, and the Definition of Ready of the resume phase, for `resume` and `reopen`, rank with rule 5 for the action concerned"
+- Notes: Section 24.2 only: one new paragraph between the five rules and the paragraph on a known hard failure; the five rules and that paragraph are not edited. Stale statements found by the sweep: the rules 1 to 5 stay true, the transition table of Section 8.3 stays true, and the example AE-240 stays true. The example AE-300 is placed after AE-74 and cited at the end of the new paragraph.
 
 ### FG-06 — Recording a question in the full profile
 
