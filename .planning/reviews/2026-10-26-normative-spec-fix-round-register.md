@@ -8,7 +8,7 @@ This register lists the nine changes made to the specification to fix the eleven
 |---|---|---|---|---|---|---|
 | FG-01 | A pause request on a change that has already hit a hard failure | RV-A-002, RV-X-001 | repair | drafted | 8.3 | AE-295 |
 | FG-02 | Re-opening a closed change when its new work would have to wait | RV-A-001, RV-X-002 | my choice | drafted | 8.3 | AE-296 |
-| FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | pending | - | - |
+| FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | drafted | 8.3, 8.5, 23.4 | AE-297 |
 | FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | pending | - | - |
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | pending | - | - |
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | pending | - | - |
@@ -38,12 +38,12 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-03 — Starting a change when a check cannot be run
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: Starting a change when a check cannot be run (for example because its tool is missing) is refused and nothing is written; every place that speaks of this now says so.
+- Why: One place already said it, while the others left it open or said that the change would wait.
+- My choice: none: the rule for deciding already says that the start is refused, and the other places are brought into line.
+- Before: "and the evaluation of Section 23.6 finds no fail gate and no wait gate active."
+- After: "and none of the steps 1 to 4 of Section 23.6 would decide, so that a fail gate that is active, a gate that cannot be evaluated, or a wait gate that is active prevents the start."
+- Notes: Section 23.4: the Precondition cell of the `start` row (the `close` row has similar words and stays true as it is). Section 8.3: the Rejection Behavior cell of the `start` row and the rejected cell of its row of the table of results. Section 8.5: the sentence on a gate that cannot be evaluated. Stale statements found by the sweep: Section 24.2 stays true, the rejected cell of the `start` row of the table of results of Section 23.4 stays true, and the examples AE-74, AE-117 and AE-124 stay true. The example AE-297 is placed after AE-239 and cited in the last See sentence of Section 8.3.
 
 ### FG-04 — Cancelling or replacing a change when a check cannot be run
 
