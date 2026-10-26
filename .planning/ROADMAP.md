@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 6/9 plans executed
+**Plans**: 7/9 plans executed
 
 Plans:
 **Wave 1**
@@ -225,7 +225,7 @@ Plans:
 
 **Wave 7** *(blocked on Wave 6 completion; has the owner approval checkpoint)*
 
-- [ ] 04-07-PLAN.md — Diff identity recorded again and approval packet printed from the register (tracer: nine changes in plain words with the real before-and-after text, the exact change), ONE approval of the exact new text by the owner (APPR-01, REVIEW-02)
+- [x] 04-07-PLAN.md — Diff identity recorded again and approval packet printed from the register (tracer: nine changes in plain words with the real before-and-after text, the exact change), ONE approval of the exact new text by the owner (APPR-01, REVIEW-02)
 
 **Wave 8** *(blocked on Wave 7 completion; has the consent checkpoint)*
 
@@ -308,7 +308,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 6/9 | In Progress|  |
+| 4. Independent Review | v1.1 | 7/9 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
