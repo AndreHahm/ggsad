@@ -12,7 +12,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | drafted | 8.3, 8.4, 8.5, 23.4, 24.2 | AE-298, AE-299 |
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | drafted | 24.2 | AE-300 |
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | drafted | 8.3, 24, 24.8 | AE-301 |
-| FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | pending | - | - |
+| FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | drafted | 12, 24.7 | - |
 | FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | pending | - | - |
 | FG-09 | The guard check for continuous integration | RV-X-003 | my choice | pending | - | - |
 
@@ -80,12 +80,15 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-07 — What happens when a retry limit is reached
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: The definition of failure now says openly that reaching a retry limit pauses the change for a human, who ends it as failed or records a bounded exception.
+- Why: The original rule said that exceeding a retry limit ends the flow, and the specification had softened this without saying so.
+- My choice: I kept the softer rule that the first approval accepted and only stated it openly; the other ways are to let each project choose hard or soft, or to go back to always ending as failed (both change examples). This is a proposal; the owner can pick another way.
+- Before: none (new text)
+- After: "A retry limit is a soft fail condition, so that reaching it pauses the flow for a human disposition, and the human closes the change as failed or records an override (Section 24.7)."
+- Notes: Section 12: one new paragraph after the paragraph that limits the obligation to terminate to hard fail conditions. Section 24.7: one new paragraph after the paragraph on a soft failure; both sentences say that the human closes the change as failed or records an override and that nothing ends the change automatically. Section 12.1 is not edited. No example is added, because AE-100 and AE-101 already show the behaviour. Stale statements found by the sweep:
+  - the first paragraph of Section 24.7, which makes a retry limit a soft fail condition and a hard retry limit invalid: stays true.
+  - the sentence of Section 12.1 on a retry limit: stays true.
+  - the examples AE-100, AE-101 and AE-108: each stays true.
 
 ### FG-08 — Deciding whether a file is text or binary before hashing it
 

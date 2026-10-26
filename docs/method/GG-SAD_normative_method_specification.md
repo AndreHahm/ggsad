@@ -1474,6 +1474,8 @@ DoF describes conditions under which the flow MUST terminate unsuccessfully.
 
 The obligation to terminate applies to a fail condition of the severity `hard`. A fail condition of the severity `soft` pauses the flow for a human disposition (Section 24.7).
 
+A retry limit is a soft fail condition, so that reaching it pauses the flow for a human disposition, and the human closes the change as failed or records an override (Section 24.7).
+
 ### 12.1 Typical Fail Categories
 
 - critical technical error,
@@ -3935,6 +3937,8 @@ A soft failure pauses the change for a human. When an action that evaluates gate
 - the human records an override of the soft failure.
 
 The `fail` action is valid only while a soft failure awaits disposition. See AE-99, AE-100, AE-101.
+
+When a retry limit is reached, the change waits as it does for a soft failure, and the human closes the change as failed or records an override. Nothing ends the change automatically.
 
 An override is recorded by a human as an approval with the target `override` (Section 23.4). It MUST name the soft fail condition that it applies to, MUST give a reason, and MUST give a number N of further attempts. N MUST be an integer greater than or equal to 1. This specification defines no default for N: a request that gives no number, a number below 1, or a number that is not an integer MUST be rejected, and so MUST a request that gives no reason. An override is valid only for a fail condition of the severity `soft` that awaits disposition. An override for any other fail condition MUST be rejected. See AE-104, AE-105, AE-106, AE-107, AE-109.
 
