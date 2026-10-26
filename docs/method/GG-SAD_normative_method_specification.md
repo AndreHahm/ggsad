@@ -910,6 +910,8 @@ Then the status `done` is legal as the local completion signal of the phase, and
 
 An action whose evaluation closes the change as failed answers `success` (Section 24.7). An action answers `blocked` only where this table lists a case, and a `complete` that preserves the current phase with the status `done` because the next-phase DoR is not satisfied answers `success`. See AE-121, AE-122, AE-123, AE-124.
 
+Section 24.2 states what `wait`, `fail`, `cancel`, `supersede`, and `reopen` of the `full` profile answer when a gate that applies to them cannot be evaluated.
+
 **AE-121 — Complete is blocked when the Definition of Done is not satisfied**
 
 - Covers: Section 8.3
@@ -942,7 +944,7 @@ Given a `full` change whose phase has the status `ready` and a Definition of Wai
 When the `start` action is requested  
 Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
-See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297.
+See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297, AE-298.
 
 **AE-239 — Start a ready phase**
 
@@ -1008,6 +1010,14 @@ Given a `full` change in the build phase with the status `waiting` because of an
 When the `cancel` action is requested for each change  
 Then the first change is in the `closed` phase with the status `cancelled`, and the second change is in the `closed` phase with the status `failed`, because the Definition of Fail has first priority
 
+**AE-298 — Cancel proceeds when a gate cannot be evaluated**
+
+- Covers: Section 8.3 (`cancel`)
+
+Given a `full` change in the build phase with the status `active`, an authorized cancellation decision, and a Definition of Fail condition that cannot be evaluated because its program is missing  
+When the `cancel` action is requested  
+Then the change is in the `closed` phase with the status `cancelled`, and the result `not_evaluable` of the condition is recorded with its cause
+
 **AE-245 — Supersede needs a later change**
 
 - Covers: Section 8.3 (`supersede`)
@@ -1039,7 +1049,8 @@ Then the result is `rejected` with `changed` false, and the change stays in the 
 For `cancel` and `supersede`, an active DoW condition does not prevent the authorized terminal
 action. DoW and the current- and next-phase readiness and completion gates are not applicable to
 these actions. DoF retains first priority; when DoF determines that the change has failed, the
-resulting terminal status is `failed` rather than `cancelled` or `superseded`.
+resulting terminal status is `failed` rather than `cancelled` or `superseded`. A gate that cannot be evaluated
+determines no failure, so that the action takes effect (Section 24.2).
 
 The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`.
 
@@ -1081,7 +1092,7 @@ A satisfied DoD does not override a satisfied DoF or DoW.
 
 This order defines evaluation precedence. A gate that is not applicable to the requested action or current state is skipped and, when gate evidence is recorded, MUST be recorded as `not_applicable`. Evaluation MUST stop as soon as a gate determines the requested action's outcome.
 
-A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, except that the action `start` is rejected instead of waiting (Section 24.2), and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order. It also states that the gates are evaluated by group, that a group is evaluated whole, and that the evaluation stops after the first group that decides.
+A gate evaluation has one of three results: `satisfied`, `not_satisfied`, or `not_evaluable`. A gate that cannot be evaluated is neither failed nor `not_applicable`: the change waits, except that the action `start` is rejected instead of waiting, `cancel` and `supersede` proceed, and `wait`, `fail`, and `reopen` of the `full` profile are rejected (Section 24.2), and a known hard failure is decided before it. Section 24.2 specifies these results and refines this order. It also states that the gates are evaluated by group, that a group is evaluated whole, and that the evaluation stops after the first group that decides.
 
 See AE-248.
 
@@ -2476,7 +2487,7 @@ A `core` change changes state only through the actions of the table below. An ac
 | `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. See AE-35, AE-36. |
 | `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
 | `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-39, AE-40, AE-41. |
-| `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
+| `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
 | `supersede` | Any state except `closed` | The preconditions of `cancel` hold, and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
 
@@ -2506,6 +2517,8 @@ A `follows` field is a reference and not a state transition: it never changes th
 | `adopt` | The history already has an anchor. | Never. |
 
 A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-117, AE-118, AE-119, AE-120.
+
+Section 24.2 states what `cancel` and `supersede` answer when a gate that applies to them cannot be evaluated: they take effect, and the result `not_evaluable` is recorded. See AE-299.
 
 **AE-117 — Start with an unmet gate is rejected**
 
@@ -2754,6 +2767,14 @@ Then the state is `closed` and the outcome is `cancelled`, although a wait was a
 Given an `active` change with a hard fail condition active  
 When a human performs the `cancel` action  
 Then the state is `closed` and the outcome is `failed`, not `cancelled`
+
+**AE-299 — Cancel proceeds when a fail gate cannot be evaluated**
+
+- Covers: Section 23.4 (`cancel`)
+
+Given an `active` `core` change with a fail gate of the severity `hard` whose command cannot start because its program is missing  
+When a human performs the `cancel` action  
+Then the state is `closed` and the outcome is `cancelled`, the result of the fail gate is `not_evaluable`, and no failure is recorded
 
 **AE-44 — Supersede a change**
 
@@ -3265,6 +3286,8 @@ An action that evaluates gates decides from the results in this order, and the f
 5. For an action that completes a change or a phase, a done gate that is `not_satisfied`: the change does not complete.
 
 A known hard failure therefore outranks a gate that cannot be evaluated. This order refines Section 8.5 and Section 23.6. The `start` action requires that none of the rules 1 to 4 would decide: when one would, `start` is rejected and no wait is created, and a hard failure included, because `start` never closes a change (Section 24.7). When the action is `resume`, the wait record created by rule 2 replaces the earlier record, whose resume condition was met. An action that only reports on a change reports the result and creates no wait. See AE-69, AE-71, AE-72, AE-74.
+
+Rule 2 does not make the actions that never answer `blocked` wait, because a wait is a recorded change that they cannot answer (Section 22.2). In `full`, these actions are `wait`, `fail`, `cancel`, `supersede`, and `reopen`; in `core`, they are `cancel` and `supersede`, which look for an active hard failure. When no hard failure is active and a gate that applies to one of them cannot be evaluated, `cancel` and `supersede` take effect, because an authorized cancellation is not held up by a check that cannot run and a gate that cannot be evaluated is never a failure, and the result `not_evaluable` of the gate and its cause are recorded in the entry of the action. The actions `wait`, `fail`, and `reopen` are rejected with `changed` false, nothing is written, no wait is created, and the stable issue code is `gate-not-evaluable`. See AE-298, AE-299.
 
 The gates are evaluated by group. The order of the groups is the order of Section 23.6 in `core`, that is the fail gates, the wait gates, and the done gates, and the order of Section 8.5 in `full`, that is the Definition of Fail, the Definition of Wait, the Definition of Ready of the current phase, the Definition of Done, and the Definition of Ready of the next phase. A group is evaluated whole: every gate of the group that applies to the action is evaluated, even when an earlier gate of the same group already decides. After a group, the evaluation stops if the results of the groups evaluated so far decide the action under the rules 1 to 5, so that a gate of a later group is not evaluated: its command is not run, and no result is recorded for it. The rules rank the results of the gates that were evaluated, so that a gate which is not evaluated cannot outrank a gate which is. In `core`, a wait gate that is active therefore decides before a done gate that cannot be evaluated, the change does not become `waiting` for that done gate, and the `close` action answers `blocked`. A wait gate that cannot be evaluated is `not_evaluable`, and it creates a wait record of kind `external` before any done gate is evaluated. See AE-280.
 

@@ -9,7 +9,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-01 | A pause request on a change that has already hit a hard failure | RV-A-002, RV-X-001 | repair | drafted | 8.3 | AE-295 |
 | FG-02 | Re-opening a closed change when its new work would have to wait | RV-A-001, RV-X-002 | my choice | drafted | 8.3 | AE-296 |
 | FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | drafted | 8.3, 8.5, 23.4 | AE-297 |
-| FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | pending | - | - |
+| FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | drafted | 8.3, 8.4, 8.5, 23.4, 24.2 | AE-298, AE-299 |
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | pending | - | - |
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | pending | - | - |
 | FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | pending | - | - |
@@ -47,12 +47,12 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-04 — Cancelling or replacing a change when a check cannot be run
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: When a check cannot be run, cancelling or replacing a change still goes ahead and the check is recorded as could not be evaluated, while pausing, failing or re-opening is refused with the code gate-not-evaluable.
+- Why: The old rule said that the change waits, which these actions cannot do.
+- My choice: I chose that a cancellation is never held up by a broken check, and I named the refusal code; the other ways are to refuse all five actions (simplest, but a broken check could stop a cancellation) or to let all five answer blocked and wait (the largest edit). This is a proposal; the owner can pick another way.
+- Before: none (new text)
+- After: "`cancel` and `supersede` take effect, because an authorized cancellation is not held up by a check that cannot run and a gate that cannot be evaluated is never a failure, and the result `not_evaluable` of the gate and its cause are recorded in the entry of the action."
+- Notes: Section 24.2: one new paragraph after the paragraph on a known hard failure (rule 2 and that paragraph are not edited). Sections 8.3 and 23.4: one pointer sentence each. Section 8.4: one sentence added to the paragraph on cancel and supersede. Section 23.4: the Precondition cell of the `cancel` row. Section 8.5: the sentence that FG-03 changed now also names the actions that proceed and are rejected. The name of the refusal code is my own. Stale statements found by the sweep: the sentence of Section 8.5 on a gate that cannot be evaluated updated; rule 2 of Section 24.2 stays true (its words are unchanged and the new paragraph names the actions it does not apply to); the sentence of Section 22.2 stays true; the blocked cells of both tables of results stay true; the realization rows for the three-valued results and for the result blocked stay true; the examples AE-111 to AE-116 and AE-154 stay true. The example AE-298 is placed after AE-244 and cited in the last See sentence of Section 8.3; AE-299 is placed after AE-43 and cited in the new sentence of Section 23.4.
 
 ### FG-05 — Which rule decides when a ready condition is not met
 
