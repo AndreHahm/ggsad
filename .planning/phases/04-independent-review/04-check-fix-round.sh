@@ -820,6 +820,104 @@ fe1_FG01() {
   f1_ex FG-01 AE-295 'Section 8.3 (`wait`)' success failed
 }
 
+# para FILE START END KEY: the paragraph (the block of lines between blank lines) in the range that holds KEY.
+para() {
+  rng "$1" "$2" "$3" | awk -v k="$4" 'BEGIN { RS = "" } index($0, k) > 0 { print; exit }'
+}
+# f1_is GROUP NAME FUNCTION EXPECTED: the place equals the expected text.
+f1_is() {
+  local new
+  new=$("$3" "$SP")
+  if [ "$new" != "$4" ]; then f1_note "$1: $2 is [$new], expected [$4]"; fi
+}
+# f1_line GROUP NAME FUNCTION FRAGMENT...: one line of the place holds every fragment.
+f1_line() {
+  local g=$1 name=$2 fn=$3 l w ok
+  shift 3
+  while IFS= read -r l; do
+    ok=1
+    for w in "$@"; do
+      if ! has "$l" "$w"; then ok=0; break; fi
+    done
+    if [ "$ok" -eq 1 ]; then return 0; fi
+  done < <("$fn" "$SP")
+  f1_note "$g: no line of $name holds all of [$*]"
+}
+
+# places of the checks FE1 (FG-02 to FG-06)
+p_reopen8() { trow "$1" '### 8.3 ' '### 8.4 ' reopen 7; }
+p_reopenres8() { trow "$1" '### 8.3 ' '### 8.4 ' reopen 4; }
+p_reopenblk8() { p_reopenres8 "$1" | awk -F'|' '{ c = $(NF - 1); gsub(/^ +| +$/, "", c); print c }'; }
+p_start8() { trow "$1" '### 8.3 ' '### 8.4 ' start 7; }
+p_startres8() { trow "$1" '### 8.3 ' '### 8.4 ' start 4; }
+p_start23() { trow "$1" '### 23.4 ' '### 23.5 ' start 5; }
+p_cancel23() { trow "$1" '### 23.4 ' '### 23.5 ' cancel 5; }
+p_para85() { para "$1" '### 8.5 ' '## 9. ' 'neither failed nor'; }
+p_para84() { para "$1" '### 8.4 ' '### 8.5 ' 'DoF retains first priority'; }
+p_lines83() { rng "$1" '### 8.3 ' '### 8.4 ' | grep -v '^|'; }
+p_lines234() { rng "$1" '### 23.4 ' '### 23.5 ' | grep -v '^|'; }
+p_after_hard242() {
+  rng "$1" '### 24.2 ' '### 24.3 ' | awk 'BEGIN { RS = "" } f { print; exit } index($0, "A known hard failure therefore outranks") == 1 { f = 1 }'
+}
+p_rules242() {
+  rng "$1" '### 24.2 ' '### 24.3 ' | awk 'index($0, "A known hard failure therefore outranks") == 1 { exit } index($0, "An action that evaluates gates decides from the results in this order") == 1 { on = 1 } on'
+}
+p_ask248() { para "$1" '### 24.8 ' '### 24.9 ' 'the `ask` action records a question without pausing the change'; }
+p_realask() { awk 'index($0, "| Open questions as state |") == 1 { print; exit }' "$1"; }
+p_realaskfull() { p_realask "$1" | awk -F'|' '{ print $(NF - 1) }'; }
+
+fe1_FG02() {
+  f1_gone FG-02 "the reopen row of the transition table of Section 8.3" p_reopen8 "wait when the new corrective scope's DoW determines a pause"
+  f1_has FG-02 "the reopen row of the transition table of Section 8.3" p_reopen8 "DoW"
+  f1_has FG-02 "the reopen row of the table of results of Section 8.3" p_reopenres8 "Definition of Wait"
+  f1_is FG-02 "the blocked cell of the reopen row of the table of results of Section 8.3" p_reopenblk8 "Never."
+  f1_ex FG-02 AE-296 'Section 8.3 (`reopen`)' rejected
+}
+
+fe1_FG03() {
+  f1_gone FG-03 "the start row of the transition table of Section 23.4" p_start23 "finds no fail gate and no wait gate active"
+  f1_has FG-03 "the start row of the transition table of Section 23.4" p_start23 "none of the steps 1 to 4"
+  f1_has FG-03 "the start row of the transition table of Section 23.4" p_start23 "cannot be evaluated"
+  f1_has FG-03 "the start row of the transition table of Section 8.3" p_start8 "cannot be evaluated"
+  f1_has FG-03 "the start row of the table of results of Section 8.3" p_startres8 "cannot be evaluated"
+  f1_has FG-03 "the paragraph of Section 8.5 on a gate that cannot be evaluated" p_para85 "start"
+  f1_ex FG-03 AE-297 'Section 8.3 (`start`)' rejected
+}
+
+fe1_FG04() {
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "cancel"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "supersede"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "wait"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "fail"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "reopen"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "gate-not-evaluable"
+  f1_has FG-04 "the paragraph of Section 24.2 after the paragraph on a known hard failure" p_after_hard242 "not_evaluable"
+  f1_line FG-04 "the lines of Section 8.3 outside the tables" p_lines83 "Section 24.2" "cannot be evaluated"
+  f1_line FG-04 "the lines of Section 23.4 outside the tables" p_lines234 "Section 24.2" "cannot be evaluated"
+  f1_has FG-04 "the cancel row of the transition table of Section 23.4" p_cancel23 "cannot be evaluated"
+  f1_has FG-04 "the paragraph of Section 8.4 on the priority of the Definition of Fail" p_para84 "cannot be evaluated"
+  f1_has FG-04 "the paragraph of Section 8.5 on a gate that cannot be evaluated" p_para85 "start"
+  f1_has FG-04 "the paragraph of Section 8.5 on a gate that cannot be evaluated" p_para85 "cancel"
+  f1_has FG-04 "the paragraph of Section 8.5 on a gate that cannot be evaluated" p_para85 "Section 24.2"
+  f1_ex FG-04 AE-298 'Section 8.3 (`cancel`)' cancelled
+  f1_ex FG-04 AE-299 'Section 23.4 (`cancel`)' cancelled
+}
+
+fe1_FG05() {
+  f1_has FG-05 "the rules of Section 24.2 and the paragraph that follows them" p_rules242 "Definition of Ready"
+  f1_has FG-05 "the rules of Section 24.2 and the paragraph that follows them" p_rules242 "Section 8.3"
+  f1_ex FG-05 AE-300 'Section 24.2 (full)' blocked
+}
+
+fe1_FG06() {
+  f1_has FG-06 "the paragraph of Section 24.8 on the action ask" p_ask248 'the action `ask`'
+  f1_has FG-06 "the paragraph of Section 24.8 on the action ask" p_ask248 "Section 25.1"
+  f1_line FG-06 "the lines of Section 8.3 outside the tables" p_lines83 "approve" "ask" "answer" "adopt" "migrate" "Section 25.1"
+  f1_gone FG-06 "the realization row Open questions as state" p_realask "The question is recorded in the state file"
+  f1_has FG-06 "the full cell of the realization row Open questions as state" p_realaskfull "ask"
+  f1_ex FG-06 AE-301 'Section 24.8 (full)' ask
+}
+
 fe1() {
   local g n=0 fn
   F1BAD=""
