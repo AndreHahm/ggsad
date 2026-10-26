@@ -4541,7 +4541,7 @@ The content hash of a text file is the hash string of the bytes of the file afte
 
 The content hash of a binary file is the hash string of the bytes of the file, exactly. See AE-198.
 
-Whether a file is text or binary is decided by the implementation. The decision MUST depend only on the bytes of the file, so that the same bytes are always classified in the same way, and an implementation SHOULD classify a file as text only when its bytes are valid UTF-8 and hold no zero byte. The hash string does not state which kind was applied. A content hash is therefore comparable only with a content hash that an implementation computed with the same decision, and a content hash that differs from the recorded one is a difference. See AE-198.
+A file is text exactly when its bytes are valid UTF-8 and hold no zero byte, and every other file is binary. An implementation MUST classify a file in this way. Valid UTF-8 is a sequence of bytes that encodes Unicode scalar values in the shortest form, with no surrogate code point and no value above U+10FFFF. The decision depends on the bytes only, so that every conforming implementation computes the same content hash for the same bytes. The hash string does not state which kind was applied, and a content hash that one implementation computed can be compared with one that another implementation computed. A content hash that differs from the recorded one is a difference. See AE-198, AE-302.
 
 The content hash of a parsed definition, such as the gate definitions of a change (Section 24.1), is the hash string of the canonical bytes of the parsed value (Section 25.1) and not of the text of the file. A YAML document is read as YAML 1.2 with its core schema, and an alias is replaced by the value it refers to. Comments, layout, the order of the keys of a mapping, and the quoting of a scalar that reads as the same value therefore have no effect, and the order of the elements of a sequence has an effect. A parsed value that is outside the domain of Section 25.1 has no content hash: this holds for a floating-point number, a mapping key that is not a string, a mapping that repeats a key, and a scalar that the core schema reads as a type that the domain does not hold. An operation that needs the content hash of such a definition MUST be rejected, and its issue states which value is outside the domain. See AE-199, AE-200.
 
@@ -4564,6 +4564,14 @@ Then the two content hashes are equal
 Given two files that each hold the byte 00 and differ only in that the first holds the bytes 0D 0A where the second holds the byte 0A, and a file whose bytes are not valid UTF-8  
 When the content hash of each file is computed  
 Then the content hashes of the two files differ, the file whose bytes are not valid UTF-8 is hashed on its exact bytes, and the same bytes give the same content hash each time
+
+**AE-302 — The kind of a file is decided by its bytes**
+
+- Covers: Section 25.2
+
+Given three files with the line ending carriage return and line feed, of which the first holds text that is valid UTF-8, the second holds the byte 00, and the third holds bytes that are not valid UTF-8, and for each of them a variant with the line ending line feed alone  
+When the content hash of each of the six files is computed  
+Then the first file has the same content hash as its variant, because it is text, and the second and the third file each have a content hash that differs from the content hash of their variant, because they are binary and are hashed byte for byte
 
 **AE-199 — Layout and comments do not change the hash of a parsed definition, and a list order does**
 

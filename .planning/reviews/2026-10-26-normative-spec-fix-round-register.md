@@ -13,7 +13,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | drafted | 24.2 | AE-300 |
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | drafted | 8.3, 24, 24.8 | AE-301 |
 | FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | drafted | 12, 24.7 | - |
-| FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | pending | - | - |
+| FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | drafted | 25.2 | AE-302 |
 | FG-09 | The guard check for continuous integration | RV-X-003 | my choice | pending | - | - |
 
 ## Change details
@@ -92,12 +92,15 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-08 — Deciding whether a file is text or binary before hashing it
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: A file is text exactly when its bytes are valid UTF-8 and contain no zero byte, and this is now a MUST instead of a recommendation.
+- Why: With only a recommendation, two tools could compute different hashes for the same file.
+- My choice: I made the recommended rule binding; the other way is to let each tool decide and to record text or binary with every stored hash (a much larger edit). This is a proposal; the owner can pick the other way.
+- Before: "an implementation SHOULD classify a file as text only when its bytes are valid UTF-8 and hold no zero byte"
+- After: "A file is text exactly when its bytes are valid UTF-8 and hold no zero byte, and every other file is binary. An implementation MUST classify a file in this way."
+- Notes: Section 25.2 only: the paragraph that left the decision to the implementation is replaced by the requirement, with a one-sentence definition of valid UTF-8; the example AE-198 is not edited. The recommendation and the sentence that made a content hash comparable only with one computed with the same decision are removed and listed under the heading Normative lines removed or reworded. The example AE-302 is placed after AE-198 and cited in the paragraph. Stale statements found by the sweep:
+  - the paragraphs on the content hash of a text file and of a binary file: each stays true.
+  - the examples AE-197 and AE-198: each stays true.
+  - no other passage of the specification leaves the decision between text and binary to the implementation: stays true.
 
 ### FG-09 — The guard check for continuous integration
 
@@ -110,7 +113,7 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ## Normative lines removed or reworded
 
-None.
+- Whether a file is text or binary is decided by the implement :: the recommendation (SHOULD) to classify a file as text only when its bytes are valid UTF-8 and hold no zero byte became a requirement (MUST), and the sentence that made a content hash comparable only with one computed with the same decision was removed, because every implementation now classifies in the same way
 
 ## Findings whose quoted sentence an edit touched
 
