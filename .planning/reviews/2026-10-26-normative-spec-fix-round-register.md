@@ -59,6 +59,7 @@ This register lists the nine changes made to the specification to fix the eleven
   - the blocked cells of both tables of results: each stays true.
   - the realization rows for the three-valued results and for the result blocked: each stays true.
   - the examples AE-111 to AE-116 and AE-154: each stays true.
+  - the first sentence of the new paragraph of Section 24.2 was reworded once after the read-through of the whole delta: it now speaks of the other actions that evaluate gates and never answer blocked, so that it does not seem to contradict the sentence on start, which is updated.
 
 ### FG-05 — Which rule decides when a ready condition is not met
 
