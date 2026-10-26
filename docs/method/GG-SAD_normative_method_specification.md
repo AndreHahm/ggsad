@@ -2194,7 +2194,7 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - migrate a schema-governed file to a newer schema version, as an explicit operation whose steps are recorded (Section 25.3);
 - record a question of a change (Section 24.8);
 - adopt the history of a change (Section 24.4);
-- report on a change, as the read-only actions `check`, `review`, and `guard` do;
+- report on a change, as the read-only actions `check`, `review`, and `guard` (Section 22.4) do;
 - evaluate and execute one controlled state transition under the transition table of the method profile of the change (Section 8.3 or Section 23.4). See AE-287.
 
 **AE-287 — Asking a question is an operation of the contract**
@@ -2281,6 +2281,48 @@ An invalid operation MUST be rejected without any partial mutation of persisted 
 A valid operation whose evaluation says that the requested transition does not occur is not an invalid operation. When the evaluation is recorded in the history, its result is `blocked` and `changed` is `true`; recording it is what makes the attempts countable under Section 24.2. An operation that is invalid, or whose precondition is not met, stays `rejected` or `error` with `changed` false. Sections 8.3 and 23.4 state per action which result applies. See AE-111, AE-112.
 
 For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the transition table of the method profile of the change (Section 8.3 or Section 23.4) and Section 15 Evidence Model.
+
+### 22.4 The `guard` Action
+
+The action `guard` is the verify-only action. It is defined for both method profiles. It is read-only: it never changes the state or the history of a change, it is legal from every state and phase, and it is not a row of the table of Section 8.3 or of Section 23.4.
+
+The action performs five verifications and reports the result of each:
+
+1. The history is consistent (Section 24.4) and, where the applicable configuration requires approvals at the level A2 (Section 24.3), it has an anchor.
+2. The gate definitions equal the approved ones (Section 24.1).
+3. Every approval is current for the content it names and has the level that the configuration or the gate requires (Section 24.3).
+4. The scope, measured against the base revision, holds (Section 24.5).
+5. No fail condition of the severity `hard` is active (Section 24.7). This is decided from the results that the history records and from the measurement of the scope, and not by running a command.
+
+The action `guard` MUST NOT execute any command that the change or the project defines, that is the commands of gates, the evidence commands, and the interpreter that the project names (Sections 24.9 and 24.10), and an implementation MUST NOT execute one on its behalf.
+
+The result is `success` with `changed` false when all five verifications hold. Otherwise the result is `rejected` with `changed` false and at least one issue that names each verification that failed, with these stable issue codes: `history-inconsistent` and `anchor-missing` for the first verification, `gates-changed` (Section 24.1) for the second, `approval-stale` for the third, `scope-violation` for the fourth, and `hard-failure-active` for the fifth. A verification that needs a state document that the change does not have is reported as not enforced, and it makes the result `rejected` (Sections 24.1 and 25.1).
+
+Because the action runs nothing, it proves the record and not the outcome: it cannot confirm that the checks of the change pass, and running them stays a separate task. A pipeline that runs `guard` on a change is the verify-only integration of the method, and enforcement is by the caller, which acts on the result. See AE-303, AE-304, AE-305.
+
+**AE-303 — A guard on a sound change succeeds and starts no program**
+
+- Covers: Section 22.4
+
+Given an `active` `core` change whose approved gate definitions are unchanged, with a consistent history, a scope that holds, no hard failure recorded, and a `check` gate whose program is missing  
+When the `guard` action is requested  
+Then the result is `success` with `changed` false, and no program is started
+
+**AE-304 — A guard rejects a change whose gate definitions were edited**
+
+- Covers: Section 22.4
+
+Given an `active` `core` change whose gate definitions were edited after their approval and have not been approved again  
+When the `guard` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `gates-changed`, and the history is unchanged
+
+**AE-305 — A guard on an inline record reports that the verifications are not enforced**
+
+- Covers: Section 22.4
+
+Given a `full` change in the build phase with the status `active` whose record is kept inline, without a state document  
+When the `guard` action is requested  
+Then the result is `rejected` with `changed` false, and an issue states that the verifications that need a state document are not enforced
 
 ---
 
@@ -2497,7 +2539,7 @@ A `core` change changes state only through the actions of the table below. An ac
 
 The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
 
-The actions `check`, `review`, and `guard` are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table. See AE-49.
+The actions `check`, `review`, and `guard` (Section 22.4) are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table. See AE-49.
 
 The method profile `core` has no `reopen` action. A change in the state `closed` is final, and follow-up work is a new change that names the closed change in `follows` (Section 23.1). See AE-48.
 

@@ -14,7 +14,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | FG-06 | Recording a question in the full profile | RV-B-001 | repair | drafted | 8.3, 24, 24.8 | AE-301 |
 | FG-07 | What happens when a retry limit is reached | RV-B-005 | my choice | drafted | 12, 24.7 | - |
 | FG-08 | Deciding whether a file is text or binary before hashing it | RV-E-001 | my choice | drafted | 25.2 | AE-302 |
-| FG-09 | The guard check for continuous integration | RV-X-003 | my choice | pending | - | - |
+| FG-09 | The guard check for continuous integration | RV-X-003 | my choice | drafted | 22.1, 22.4, 23.4 | AE-303, AE-304, AE-305 |
 
 ## Change details
 
@@ -104,12 +104,16 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-09 — The guard check for continuous integration
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: A new short section defines guard, a read-only check that a CI pipeline can run: it checks the history, the approved gates, the approvals, the scope and hard failures, never runs a command of the project, and proves the record, not the outcome.
+- Why: The decision on verify-only CI had no text in the specification, and guard was named but never defined.
+- My choice: I wrote the smallest definition; inside it I also chose (1) the names of six problem codes, (2) that a missing state file makes guard answer rejected, (3) that guard can run in any state, (4) that an anchor is required only where approvals need the strongest level; the other way is to leave CI out of the specification. This is a proposal; the owner can change any of these.
+- Before: none (new text)
+- After: "The action `guard` MUST NOT execute any command that the change or the project defines, that is the commands of gates, the evidence commands, and the interpreter that the project names (Sections 24.9 and 24.10), and an implementation MUST NOT execute one on its behalf."
+- Notes: Section 22.4: a new subsection after Section 22.3, with the five verifications, the prohibition to run any command of the change or the project, the results, the six issue codes and three examples; the section map of Section 1.1 lists top-level sections only and is not touched. Section 22.1: the reporting bullet names guard with a pointer. Section 23.4: the sentence on the read-only actions does the same. The text of the subsection follows the owner decisions on verify-only CI (five verifications, no execution of the commands of the change or the project, the record is proven and not the outcome); the four readings listed in My choice are my own. The issue code scope-violation has the same name as the identifier of a base gate of the core profile; an issue code and a gate identifier are different things. The examples AE-303 to AE-305 are placed at the end of the subsection and cited in its last paragraph. Stale statements found by the sweep:
+  - the other bullets of Section 22.1: each stays true.
+  - the sentence of Section 23.4 on the read-only actions: stays true, with the pointer added.
+  - the paragraph of Section 24.1 on read-only operations while the gate definitions differ: stays true, and the new subsection uses its issue code.
+  - no row of the realization table of Section 24 names guard: stays true.
 
 ## Normative lines removed or reworded
 
