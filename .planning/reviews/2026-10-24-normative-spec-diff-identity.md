@@ -4,10 +4,10 @@
 |---|---|
 | Reviewed file | `docs/method/GG-SAD_normative_method_specification.md` |
 | Base blob | `da29d6f3bdef2e88fdd85a762939017d7d7034fa` (the file on `origin/main`) |
-| Result blob | `ed758c46d5ac901359ab2c0df8e437ef89fed0f1` (equal to the working file and to the file at the branch head) |
-| Reviewed SHA-256 | `45ba09d929758f9aa7d4640d93ef07a7f994c497eed2999aad9fceeb2ef34ca3` |
-| Line count | 4649 |
-| Diffstat | 1 file changed, 3268 insertions(+), 41 deletions(-) |
+| Result blob | `93f8278f1b0427444016cdbfa4b0e4ff9d16d369` (equal to the working file and to the file at the branch head) |
+| Reviewed SHA-256 | `6c0e86dd39e74242566755db6702972d893a83cc4827d9fc7e4805f89db85d91` |
+| Line count | 4770 |
+| Diffstat | 1 file changed, 3393 insertions(+), 45 deletions(-) |
 | Check results | `RESULT: PASS` (`--final` of the check script of the phase: C1, D1, F1, J1, R1, R2, R3, R4, R5, R6, R7, R9, W1, S1, S2 and the encoding, normative-term and self-containment checks pass; three warnings remain: the word "prototype" in existing text of section 5.1, and the heading and map row "Protections Shared by Both Profiles" for the qualified-term heuristic) |
 | Python baseline | not run (no Python changed) |
 
@@ -17,6 +17,6 @@ The date in the file name is the date on which this note was created. The values
 
 How to review: open `docs/method/GG-SAD_normative_method_specification.md`, or run `git diff origin/main...HEAD -- docs/method/GG-SAD_normative_method_specification.md`.
 
-Owner approval is recorded in the owner approval record and the independent review in the independent review note, both under .planning/reviews/. The values above belong to exactly this text; any later edit to the file voids them, and new values have to be recorded.
+Owner approval of this text and the independent review of this text have not taken place. The owner approval records, the independent review note and the review disposition record that exist under .planning/reviews/ belong to an earlier text. The values above belong to exactly this text; any later edit to the file voids them, and new values have to be recorded.
 
 This note is evidence only. It does not change the reviewed file.
