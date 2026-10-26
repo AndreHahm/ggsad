@@ -28,7 +28,8 @@
 # subject of a commit since the base that touches the specification (SPEC-13 is covered by S1 and
 # S2 and needs no commit), and every such commit starts "docs(02-NN): SPEC-nn" and names only
 # known ids; the two header subjects (the header commit of plan 05 and the header commit of plan
-# 08) are accepted and count toward no id.
+# 08) and the subjects of the fix round of the independent review ("docs(04-NN): fix-round " and a
+# following word, any plan number) are accepted and count toward no id.
 # With --final: R4 header version and revision line, F1 an acceptance example for each of the 41
 # full rule units and a realization row for each of the 11 protections, W1 no status wording in the
 # specification or in the notes of the phase, D1 every finding of the review (CR-01 to CR-03, WR-01
@@ -576,7 +577,8 @@ if [ -s "$TMP/r7.out" ]; then warn_or_fail "$TMP/r7.out"; else pass R7 "no old s
 
 # C1 (only with --ids): the commits since the base that touch the specification. Each subject starts
 # "docs(02-NN): SPEC-nn" and names only known ids (SPEC-01 to SPEC-18), except the two header
-# subjects, which name none and count toward none. Each listed id is named by some subject.
+# subjects and the subjects of the fix round ("docs(04-NN): fix-round " and a following word), which
+# name none and count toward none. Each listed id is named by some subject.
 # SPEC-13 is covered by S1 and S2 and needs no commit. Commits before the base never count.
 if [ -n "$IDS" ]; then
   git log --format=%s "$BASE..HEAD" -- "$SPEC" > "$TMP/subjects.txt" 2> /dev/null \
@@ -584,9 +586,11 @@ if [ -n "$IDS" ]; then
   : > "$TMP/named.txt"
   c1=""
   prefix_re='^docs\(02-[0-9]{2}\): SPEC-[0-9]{2}'
+  fixround_re='^docs\(04-[0-9]{2}\): fix-round [^[:space:]]'
   while IFS= read -r subj || [ -n "$subj" ]; do
     [ "$subj" = "$HEADER_SUBJECT" ] && continue
     [ "$subj" = "$HEADER_SUBJECT2" ] && continue
+    [[ "$subj" =~ $fixround_re ]] && continue
     if ! [[ "$subj" =~ $prefix_re ]]; then
       [ -n "$c1" ] || c1="a commit that touches the specification does not start with docs(02-NN): SPEC-nn: [$subj]"
       continue
