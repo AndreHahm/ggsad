@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 5/9 plans executed
+**Plans**: 6/9 plans executed
 
 Plans:
 **Wave 1**
@@ -221,7 +221,7 @@ Plans:
 
 **Wave 6** *(blocked on Wave 5 completion)*
 
-- [ ] 04-06-PLAN.md — All eleven fixes drafted as the smallest consistent edits, with a short plain-language register (tracer: the `wait` row; then the other eight groups, five of them the Requestor's picks marked `my choice`); the stage edits with light stale-statement and minimality checks (REVIEW-02)
+- [x] 04-06-PLAN.md — All eleven fixes drafted as the smallest consistent edits, with a short plain-language register (tracer: the `wait` row; then the other eight groups, five of them the Requestor's picks marked `my choice`); the stage edits with light stale-statement and minimality checks (REVIEW-02)
 
 **Wave 7** *(blocked on Wave 6 completion; has the owner approval checkpoint)*
 
@@ -308,7 +308,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 5/9 | In Progress|  |
+| 4. Independent Review | v1.1 | 6/9 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
