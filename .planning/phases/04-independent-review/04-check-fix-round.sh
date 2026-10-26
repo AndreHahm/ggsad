@@ -2,14 +2,18 @@
 # Read-only check of the fix round that follows the independent review of the proposed normative method
 # specification: the pins of the text of round 1, whether the live specification still equals them, the replay
 # of the three round-1 checks at the commit that holds the round-1 text, the record of the five owner
-# decisions D-1 to D-5 with the printers of its questions and of its skeleton, and the edits of the fix round
-# with the register that lists them.
+# decisions D-1 to D-5 with the printers of its questions and of its skeleton, the edits of the fix round
+# with the register that lists them, and the owner approval of the exact new text with the printers of the
+# packet, of its questions, of the exact change and of the skeleton of the record.
 #
 # Usage: 04-check-fix-round.sh [options]
 #   --stage STAGE     state (default): ST1 and the fact line ST2; decisions: FD1 to FD8 on the decisions
-#                     record; edits: FE1 to FE6 on the specification and the fix register. The stages
-#                     identity, approval-pending and approval-recorded are added to this script by later plans
-#                     of the round; the list of stages is open
+#                     record; edits: FE1 to FE6 on the specification and the fix register; approval-pending:
+#                     AP1 to AP5 on the diff identity note and the approval packet; approval-recorded: AR1 to
+#                     AR5 on the approval record and the packet. The list of stages is open
+#   --packet PATH     the approval packet of the fix round (default: the packet path of the repository)
+#   --record PATH     the approval record of the fix round (default: the record path of the repository)
+#   --identity PATH   the diff identity note (default: the note path of the repository); a test hook
 #   --approval-record PATH
 #                     the owner approval record of round 1 (default: the record path of the repository;
 #                     relative paths are taken from the repository root)
@@ -51,6 +55,20 @@
 #                     print the skeleton of the decisions record (the only way the record is created); every
 #                     field that the owner completes holds the fill marker (@@FILL@@); exit 0 (exit 2 if the
 #                     records of round 1 cannot be read)
+#   --print-delta     print the hunks of the change from the text approved in round 1 to the working
+#                     specification, starting at the first line that begins with @@; exit 2 if the two texts
+#                     are equal
+#   --print-approval-questions
+#                     print the four questions of the owner approval in plain words: a line "Q0n header", the
+#                     question on one line and, for the first, one line "label: description" per option
+#   --print-approval-packet
+#                     print the approval packet in its pending form from the live specification, the register
+#                     and the records of round 1 (the only way the packet is created); exit 2 if the register
+#                     is not complete or the texts are equal
+#   --print-approval-record-skeleton
+#                     print the approval record in its unfilled form for the packet (the only way the record
+#                     is created); every field the owner completes holds the fill marker; exit 2 if the packet
+#                     status line is not the pending form
 #   -h, --help        print this text and exit 0
 #
 # Stage state: ST1 the approval record holds exactly one outcome line "- Owner approval: approved" and the pin
@@ -89,6 +107,20 @@
 # sentence an edit touched" the form "- <finding id> :: <reason>");
 # FE6 the Phase 2 check ends RESULT: PASS in --final mode on the specification under test.
 #
+# Stage approval-pending, on --identity, --packet, --register and --spec: AP1 the pins of the diff identity note
+# equal those computed from the working specification (result blob, SHA-256, line count, diffstat, base blob),
+# the working file, the index and HEAD hold one blob, the note is clean text and quotes RESULT: PASS; AP2 the
+# packet, its status line read as the pending form, equals the output of --print-approval-packet byte for byte;
+# AP3 the packet is clean text and passes the self-containment scan; AP4 the stage edits with --complete and the
+# Phase 2 check with --final end RESULT: PASS; AP5 the status line is the pending form, or the recorded form
+# when the record exists.
+#
+# Stage approval-recorded, on --record, --packet and --spec: AR1 the record is clean text, holds no fill marker,
+# passes the scan and has the expected structure; AR2 the pin rows equal those computed from the live text and
+# the pins of the packet, and the packet is the printed one; AR3 the Question bullets equal the printed
+# questions; AR4 the answers and the outcome follow the rule; AR5 the name and the date are complete and
+# consistent, and the date is not earlier than the disposition date of round 1.
+#
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines and the
 # "STATE:" lines are not counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed
 # check, 2 on a usage error or an unreadable input.
@@ -101,6 +133,7 @@
 set -u
 export LC_ALL=C
 export GIT_OPTIONAL_LOCKS=0
+SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 cd "$(git rev-parse --show-toplevel)" || { echo "not inside a git repository" >&2; exit 2; }
 ROOT=$(pwd)
 
@@ -113,6 +146,9 @@ DREC_DEFAULT=".planning/reviews/2026-10-25-normative-spec-review-disposition-rec
 NOTE_DEFAULT=".planning/reviews/2026-10-25-normative-spec-independent-review.md"
 FREG_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-register.md"
 FDEC_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-decisions.md"
+PACKET_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-packet.md"
+RECORD_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-record.md"
+IDENTITY_DEFAULT=".planning/reviews/2026-10-24-normative-spec-diff-identity.md"
 FILL="@@FILL@@"
 
 STAGE="state"
@@ -128,6 +164,13 @@ PRINT_Q=0
 PRINT_SKEL=0
 PRINT_REG=0
 COMPLETE=0
+PACKET="$PACKET_DEFAULT"
+RECORD="$RECORD_DEFAULT"
+IDENTITY="$IDENTITY_DEFAULT"
+PRINT_DELTA=0
+PRINT_AQ=0
+PRINT_APK=0
+PRINT_ARS=0
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -149,6 +192,13 @@ while [ "$#" -gt 0 ]; do
     --spec) need_value "$@"; SPECFILE="$2"; shift 2 ;;
     --register) need_value "$@"; REGISTER="$2"; shift 2 ;;
     --complete) COMPLETE=1; shift ;;
+    --packet) need_value "$@"; PACKET="$2"; shift 2 ;;
+    --record) need_value "$@"; RECORD="$2"; shift 2 ;;
+    --identity) need_value "$@"; IDENTITY="$2"; shift 2 ;;
+    --print-delta) PRINT_DELTA=1; shift ;;
+    --print-approval-questions) PRINT_AQ=1; shift ;;
+    --print-approval-packet) PRINT_APK=1; shift ;;
+    --print-approval-record-skeleton) PRINT_ARS=1; shift ;;
     --base) need_value "$@"; BASE="$2"; shift 2 ;;
     --replay-round-1) REPLAY=1; shift ;;
     --with-current-scripts) CURRENT=1; shift ;;
@@ -161,8 +211,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$STAGE" in
-  state|decisions|edits) ;;
-  *) echo "--stage must be state, decisions or edits" >&2; exit 2 ;;
+  state|decisions|edits|approval-pending|approval-recorded) ;;
+  *) echo "--stage must be state, decisions, edits, approval-pending or approval-recorded" >&2; exit 2 ;;
 esac
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
 [ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1 only" >&2; exit 2; }
@@ -254,6 +304,9 @@ SP="$TMP/spec"
 NT="$TMP/note"
 RG="$TMP/register"
 T1="$TMP/text1"
+PK="$TMP/packet"
+ID="$TMP/identity"
+RC="$TMP/record"
 
 readable() {
   if [ -f "$2" ] && [ -r "$2" ] && cp "$2" "$1" 2> /dev/null; then
@@ -272,6 +325,22 @@ if [ "$PRINT_REG" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] &&
 if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
   readable "$SP" "$SPECFILE"
   readable "$RG" "$REGISTER"
+fi
+AP_ON=0
+if [ "$REPLAY" -eq 0 ] && [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ]; then
+  if [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ] \
+    || [ "$STAGE" = approval-pending ] || [ "$STAGE" = approval-recorded ]; then
+    AP_ON=1
+  fi
+fi
+if [ "$AP_ON" -eq 1 ]; then
+  if [ "$STAGE" != edits ]; then
+    readable "$SP" "$SPECFILE"
+    readable "$RG" "$REGISTER"
+  fi
+  if [ "$PRINT_ARS" -eq 1 ] || [ "$STAGE" = approval-pending ] || [ "$STAGE" = approval-recorded ]; then readable "$PK" "$PACKET"; fi
+  if [ "$STAGE" = approval-pending ]; then readable "$ID" "$IDENTITY"; fi
+  if [ "$STAGE" = approval-recorded ]; then readable "$RC" "$RECORD"; fi
 fi
 
 FAILS=0
@@ -681,9 +750,11 @@ decisions_stage() {
   if [ -n "$bad8" ]; then fail FD8 "finding problems in:$bad8"; else pass FD8 "the findings of every decision are findings with the disposition fix in the disposition record"; fi
 }
 
-# fd1_scan FILE: print the first self-containment problem of FILE, nothing when there is none.
+# fd1_scan FILE [ALLOWED]: print the first self-containment problem of FILE, nothing when there is none. A
+# hash-like token is allowed when it is one of the round-1 pins, the blob of the disposition record at HEAD or
+# one of the words of ALLOWED (a string of tokens separated by spaces).
 fd1_scan() {
-  local f=$1 label re hit tok
+  local f=$1 label re hit tok extra=${2:-}
   while IFS='|' read -r label re; do
     hit=$(grep -n -E -e "$re" "$f" | head -n1)
     if [ -n "$hit" ]; then
@@ -700,7 +771,7 @@ unfinished-text marker|(^|[^A-Za-z0-9])(TODO|FIXME|TBD|XXX)([^A-Za-z0-9]|$)
 PATTERNS
   local drb allowed
   drb=$(git rev-parse --verify --quiet "HEAD:$DREC_DEFAULT") || drb=""
-  allowed=" $A_BLOB $A_SHA $drb "
+  allowed=" $A_BLOB $A_SHA $drb $extra "
   while IFS= read -r tok; do
     case "$allowed" in
       *" $tok "*) ;;
@@ -1215,9 +1286,11 @@ fe6() {
   fi
 }
 
-edits_stage() {
-  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
-  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-1 text cannot be read from the repository" >&2; exit 2; }
+# reg_load: read the register into $TMP/reg.rows (one line per group, seven tab-separated cells of the table) and
+# $TMP/reg.ent (group, label and value of every bullet of the entries).
+reg_load() {
+  : > "$TMP/reg.rows"
+  : > "$TMP/reg.ent"
   awk -v rows="$TMP/reg.rows" -v ent="$TMP/reg.ent" '
     function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
     /^## / { sec = $0; cur = ""; next }
@@ -1232,8 +1305,12 @@ edits_stage() {
       print cur "\t" l "\t" v >> ent
     }
   ' "$RG"
-  : >> "$TMP/reg.rows"
-  : >> "$TMP/reg.ent"
+}
+
+edits_stage() {
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
+  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-1 text cannot be read from the repository" >&2; exit 2; }
+  reg_load
   fe_diff
   fe1
   fe2
@@ -1243,8 +1320,413 @@ edits_stage() {
   fe6
 }
 
+# ---- the owner approval of the exact new text --------------------------------------------------------------
+
+AP_H1='# Owner approval packet, fix round: proposed normative method specification'
+AR_H1='# Owner approval record, fix round: proposed normative method specification'
+AP_PENDING='- Owner approval: pending'
+AP_RECORDED='- Owner approval: recorded in the owner approval record'
+AP_CLOSING='This packet is evidence only. It does not change the reviewed file.'
+AR_CLOSING='This record is evidence only. It does not change the reviewed file.'
+OPT_APPROVE='Approve exact text'
+OPT_APPROVE_DESC='The text is approved as it stands and goes to the limited independent review that the packet describes.'
+OPT_CHANGES='Request changes'
+OPT_CHANGES_DESC='Nothing is approved; you say what to change.'
+NOT_ASKED='None. (not asked, because the text was approved)'
+AQ_HEADS=(Approval Changes Name Date)
+AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. That review is limited: it has one pass over the header and Sections 1 to 8, one pass over Sections 9 to 22 and one pass over the whole text read across sections. Sections 23, 24 and 25 have no pass of their own and are read only by the pass over the whole text. Any later edit of the specification voids the approval.'
+AP_FOLLOWS_2='If you request changes, nothing is approved, the text is edited for them, the packet is printed again and you are asked again.'
+AP_FOLLOWS_3='The tick of the requirement for owner approval from the first round is not changed by any plan and rests, for this text, on the record that follows this packet.'
+
+# ap_facts: the pins of the working specification, read once into globals.
+ap_facts() {
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
+  AP_BASEBLOB=$(git rev-parse --verify --quiet "$BASE:$SPEC") || { echo "the specification is not on $BASE" >&2; exit 2; }
+  git cat-file blob "$AP_BASEBLOB" > "$TMP/base.txt" 2> /dev/null || { echo "the base text cannot be read" >&2; exit 2; }
+  AP_BLOB=$(git hash-object --no-filters "$SP")
+  AP_SHA=$(sha256sum < "$SP" | cut -d ' ' -f1)
+  AP_LINES=$(wc -l < "$SP" | tr -d ' ')
+  AP_DIFF=$(git diff --no-index --shortstat -- "$TMP/base.txt" "$SP" | sed 's/^ *//')
+  AP_COMM=$(git rev-list --count "$BASE..HEAD" -- "$SPEC" 2> /dev/null) || AP_COMM=""
+  AP_REGBLOB=$(git hash-object --no-filters "$RG")
+  AP_FPR=${AP_BLOB:0:12}
+  AP_ADATE=$(line_val "- Owner reply date:" "$AR")
+}
+
+# ap_pin_rows: the pin rows of the packet and of the record, in order.
+ap_pin_rows() {
+  printf '| Reviewed file | `%s` |\n' "$SPEC"
+  printf '| Base blob | `%s` |\n' "$AP_BASEBLOB"
+  printf '| Result blob | `%s` |\n' "$AP_BLOB"
+  printf '| Reviewed SHA-256 | `%s` |\n' "$AP_SHA"
+  printf '| Line count | `%s` |\n' "$AP_LINES"
+  printf '| Diffstat | `%s` |\n' "$AP_DIFF"
+  printf '| Commits touching the file | `%s` |\n' "$AP_COMM"
+  printf '| Previously approved blob and SHA-256 | `%s` and `%s` |\n' "$A_BLOB" "$A_SHA"
+  printf '| Register file | `%s` |\n' "$FREG_DEFAULT"
+  printf '| Register blob | `%s` |\n' "$AP_REGBLOB"
+}
+
+# aq_q N: the question N (1 to 4) as the owner is asked it.
+aq_q() {
+  case "$1" in
+    1) printf 'Do you approve the new text exactly as it now stands (fingerprint %s, %s lines), or do you want changes?' "$AP_FPR" "$AP_LINES" ;;
+    2) printf 'What would you like changed? Say it in your own words.' ;;
+    3) printf 'Under which name should this approval be recorded?' ;;
+    4) printf 'Which date should be recorded? Use the form YYYY-MM-DD.' ;;
+  esac
+}
+
+print_aq() {
+  local i
+  for i in 1 2 3 4; do
+    if [ "$i" -gt 1 ]; then printf '\n'; fi
+    printf 'Q0%s %s\n%s\n' "$i" "${AQ_HEADS[$((i - 1))]}" "$(aq_q "$i")"
+    if [ "$i" -eq 1 ]; then
+      printf '%s: %s\n%s: %s\n' "$OPT_APPROVE" "$OPT_APPROVE_DESC" "$OPT_CHANGES" "$OPT_CHANGES_DESC"
+    fi
+  done
+}
+
+# make_delta: the hunks of the change from the round-1 text to the working specification in $TMP/delta.txt.
+# Return 0, 2 when the two texts are equal, 3 when the round-1 text cannot be read.
+make_delta() {
+  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || return 3
+  if cmp -s "$T1" "$SP"; then return 2; fi
+  git diff --no-index --no-color --no-ext-diff --no-textconv --unified=3 --diff-algorithm=myers --indent-heuristic -- "$T1" "$SP" \
+    | awk '/^@@/ { on = 1 } on' > "$TMP/delta.txt"
+  [ -s "$TMP/delta.txt" ] || return 2
+  return 0
+}
+
+# ap_ready: succeed when the packet can be printed; print the reason to stderr otherwise.
+ap_ready() {
+  local n st
+  n=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
+  if [ "$n" -ne 9 ]; then echo "the register does not hold nine changes" >&2; return 1; fi
+  st=$(cut -f5 "$TMP/reg.rows" | sort -u | tr '\n' ' ')
+  if [ "$st" != "drafted " ]; then echo "not all nine changes of the register are drafted" >&2; return 1; fi
+  make_delta
+  case $? in
+    0) ;;
+    2) echo "the working specification equals the text approved in round 1: there is no change to show" >&2; return 1 ;;
+    *) echo "the round-1 text cannot be read from the repository" >&2; return 1 ;;
+  esac
+  return 0
+}
+
+ap_reading() {
+  if [ "$1" = repair ]; then printf 'repair: the text had one consistent reading'; else printf 'my choice: you can change it'; fi
+}
+
+print_ap() {
+  local n=0 g t f k total maxrun fl fence hunks added removed i
+  total=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
+  printf '%s\n\n%s\n\n' "$AP_H1" "$AP_PENDING"
+  printf '## What you are asked\n\n'
+  printf 'On %s the owner approved the text of the specification. The independent reviewer then reported its findings, and the owner asked for eleven of them to be fixed. The text has been changed in nine places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
+  printf '## The nine changes\n\n| # | What changed | Why | Whose reading |\n|---|---|---|---|\n'
+  while IFS=$'\t' read -r g _ _ k _ _ _; do
+    n=$((n + 1))
+    printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ap_reading "$k")"
+  done < "$TMP/reg.rows"
+  printf '\n## Before and after\n\n'
+  n=0
+  while IFS=$'\t' read -r g t f k _ _ _; do
+    n=$((n + 1))
+    printf '### Change %s of %s: %s\n\n' "$n" "$total" "$t"
+    printf -- '- Findings: %s\n- My choice: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "My choice")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
+  done < "$TMP/reg.rows"
+  printf '## The text under approval\n\n| Field | Value |\n|---|---|\n'
+  ap_pin_rows
+  printf '\n## The exact change\n\n'
+  hunks=$(grep -c '^@@' "$TMP/delta.txt")
+  added=$(grep -c '^+' "$TMP/delta.txt")
+  removed=$(grep -c '^-' "$TMP/delta.txt")
+  printf 'The change from the text approved in round 1 has %s hunks, adds %s lines and removes %s lines.\n\n' "$hunks" "$added" "$removed"
+  maxrun=$(grep -o '`*' "$TMP/delta.txt" | awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }')
+  fl=3
+  if [ "$maxrun" -ge 3 ]; then fl=$((maxrun + 1)); fi
+  fence=""
+  for ((i = 0; i < fl; i++)); do fence="$fence\`"; done
+  printf '%s\n' "$fence"
+  cat "$TMP/delta.txt"
+  printf '%s\n\n' "$fence"
+  printf '## Questions\n\n'
+  for i in 1 2 3 4; do
+    printf '### Q0%s — %s\n\n- Question: %s\n' "$i" "${AQ_HEADS[$((i - 1))]}" "$(aq_q "$i")"
+    if [ "$i" -eq 1 ]; then
+      printf -- '- Options:\n  - %s: %s\n  - %s: %s\n' "$OPT_APPROVE" "$OPT_APPROVE_DESC" "$OPT_CHANGES" "$OPT_CHANGES_DESC"
+    fi
+    printf -- '- Answer: (unanswered)\n\n'
+  done
+  printf '## What follows\n\n%s\n\n%s\n\n%s\n\n%s\n' "$AP_FOLLOWS_1" "$AP_FOLLOWS_2" "$AP_FOLLOWS_3" "$AP_CLOSING"
+}
+
+# pk_pending FILE OUT: the packet read as its pending form.
+pk_pending() {
+  sed "s/^$AP_RECORDED\$/$AP_PENDING/" "$1" > "$2"
+}
+
+print_ars() {
+  local i
+  if [ "$(grep -c '^- Owner approval:' "$PK")" -ne 1 ] || ! grep -q -x -F -e "$AP_PENDING" "$PK"; then
+    echo "cannot print the record skeleton: the packet status line is not exactly [$AP_PENDING]" >&2
+    exit 2
+  fi
+  printf '%s\n\n' "$AR_H1"
+  printf -- '- Owner approval: %s\n- Owner reply date: %s\n\n' "$FILL" "$FILL"
+  printf '| Field | Value |\n|---|---|\n'
+  ap_pin_rows
+  printf '| Packet file | `%s` |\n' "$PACKET_DEFAULT"
+  printf '| Packet blob | `%s` |\n' "$(git hash-object --no-filters "$PK")"
+  printf '| Packet SHA-256 | `%s` |\n' "$(sha256sum < "$PK" | cut -d ' ' -f1)"
+  printf '| Reply given by | %s |\n| Owner reply | %s |\n| Check results | %s |\n\n' "$FILL" "$FILL" "$FILL"
+  printf '## Questions and answers\n\n'
+  for i in 1 2 3 4; do
+    printf '### Q0%s — %s\n\n- Question: %s\n- Answer: %s\n\n' "$i" "${AQ_HEADS[$((i - 1))]}" "$(aq_q "$i")" "$FILL"
+  done
+  printf '## What follows\n\n%s\n\n%s\n' "$FILL" "$AR_CLOSING"
+}
+
+# tbl_tokens: the hash-like backticked tokens of the table rows on stdin, separated by spaces.
+tbl_tokens() {
+  { grep '^| ' | grep -o '`[0-9A-Fa-f]\{7,\}`' | tr -d '`' | sort -u | tr '\n' ' '; } || true
+}
+
+# ---- stage approval-pending ----
+
+approval_pending_stage() {
+  local m t w i h out rc last n st
+  ap_facts
+  reg_load
+
+  # AP1
+  m=$(enc1 "$ID")
+  if [ -z "$m" ]; then m=$(enc2 "$ID"); fi
+  parse_pins "$ID" "$TMP/id.pins"
+  for t in "Result blob" "Reviewed SHA-256" "Line count" "Diffstat" "Base blob" "Check results"; do
+    if [ -z "$m" ] && [ "$(pin_count "$TMP/id.pins" "$t")" -ne 1 ]; then m="the identity note does not hold the row [$t] exactly once"; fi
+  done
+  if [ -z "$m" ]; then
+    if [ "$(pin_tok "$TMP/id.pins" "Result blob")" != "$AP_BLOB" ]; then m="the Result blob row of the identity note differs from the working specification ($AP_BLOB)"
+    elif [ "$(pin_tok "$TMP/id.pins" "Reviewed SHA-256")" != "$AP_SHA" ]; then m="the Reviewed SHA-256 row of the identity note differs from the working specification"
+    elif [ "$(pin_raw "$TMP/id.pins" "Line count")" != "$AP_LINES" ]; then m="the Line count row of the identity note differs from the working specification ($AP_LINES)"
+    elif [ "$(pin_raw "$TMP/id.pins" "Diffstat")" != "$AP_DIFF" ]; then m="the Diffstat row of the identity note differs from the working specification ($AP_DIFF)"
+    elif [ "$(pin_tok "$TMP/id.pins" "Base blob")" != "$AP_BASEBLOB" ]; then m="the Base blob row of the identity note differs from the specification on $BASE ($AP_BASEBLOB)"
+    elif ! has "$(pin_raw "$TMP/id.pins" "Check results")" 'RESULT: PASS'; then m="the Check results row of the identity note does not quote RESULT: PASS"
+    fi
+  fi
+  if [ -z "$m" ]; then
+    i=$(git rev-parse --verify --quiet ":$SPEC" 2> /dev/null) || i=""
+    h=$(git rev-parse --verify --quiet "HEAD:$SPEC" 2> /dev/null) || h=""
+    w=$(git hash-object --no-filters -- "$SPECFILE" 2> /dev/null) || w=""
+    if [ "$w" != "$AP_BLOB" ] || [ "$i" != "$AP_BLOB" ] || [ "$h" != "$AP_BLOB" ]; then
+      m="the working file, the index and HEAD do not hold one blob for the specification ([$w] [$i] [$h])"
+    fi
+  fi
+  if [ -n "$m" ]; then fail AP1 "$m"; else pass AP1 "the identity note equals the working specification ($AP_BLOB, $AP_LINES lines) and the file, the index and HEAD agree"; fi
+
+  # AP2
+  m=""
+  pk_pending "$PK" "$TMP/packet.pend"
+  if ! ap_ready 2> "$TMP/ap.err"; then
+    m="the packet cannot be printed: $(head -n1 "$TMP/ap.err")"
+  else
+    print_ap > "$TMP/packet.exp"
+    if ! cmp -s "$TMP/packet.exp" "$TMP/packet.pend"; then
+      m="the packet differs from the printed one (first difference: $(diff "$TMP/packet.exp" "$TMP/packet.pend" | grep '^[<>]' | head -n1 | cut -c1-80))"
+    fi
+  fi
+  if [ -n "$m" ]; then fail AP2 "$m"; else pass AP2 "the packet equals the output of --print-approval-packet byte for byte"; fi
+
+  # AP3
+  m=$(enc1 "$PK")
+  if [ -z "$m" ]; then m=$(enc2 "$PK"); fi
+  if [ -z "$m" ]; then m=$(fd1_scan "$PK" "$(h2sec "$PK" "The text under approval" | tbl_tokens) $AP_FPR"); fi
+  if [ -n "$m" ]; then fail AP3 "$m"; else pass AP3 "the packet is valid UTF-8 without byte order mark, LF only, and passes the self-containment scan"; fi
+
+  # AP4
+  m=""
+  out=$(bash "$SELF" --stage edits --complete --register "$REGISTER" --spec "$SPECFILE" --base "$BASE" 2>&1)
+  rc=$?
+  last=$(printf '%s\n' "$out" | tail -n1)
+  if [ "$rc" -ne 0 ] || [ "$last" != "RESULT: PASS" ]; then m="the stage edits with --complete does not pass ($last)"; fi
+  if [ "$SPECFILE" != "$SPEC" ]; then
+    out=$(bash "$CHK2" --final --file "$SPECFILE" 2>&1)
+  else
+    out=$(bash "$CHK2" --final 2>&1)
+  fi
+  rc=$?
+  last=$(printf '%s\n' "$out" | tail -n1)
+  if [ "$rc" -ne 0 ] || [ "$last" != "RESULT: PASS" ]; then m="${m:+$m; }the Phase 2 check with --final does not pass ($last)"; fi
+  if [ -n "$m" ]; then fail AP4 "$m"; else pass AP4 "the stage edits with --complete and the Phase 2 check with --final end RESULT: PASS"; fi
+
+  # AP5
+  m=""
+  n=$(grep -c '^- Owner approval:' "$PK")
+  st=$(grep '^- Owner approval:' "$PK" | head -n1)
+  if [ "$n" -ne 1 ]; then
+    m="the packet holds $n status lines, expected one"
+  elif [ "$st" = "$AP_PENDING" ]; then
+    :
+  elif [ "$st" = "$AP_RECORDED" ] && [ -f "$RECORD" ]; then
+    :
+  else
+    m="the packet status line is [$st], expected the pending form (the recorded form only when the record exists)"
+  fi
+  if [ -n "$m" ]; then fail AP5 "$m"; else pass AP5 "the packet status line is consistent with the existence of the record"; fi
+}
+
+# ---- stage approval-recorded ----
+
+approval_recorded_stage() {
+  local m i expq blk out dt drdate nm pk_blob pk_sha exp_h3 rec_h3 q1 q2 q3 q4 allowed
+  ap_facts
+  reg_load
+  pk_pending "$PK" "$TMP/packet.pend"
+  pk_blob=$(git hash-object --no-filters "$TMP/packet.pend")
+  pk_sha=$(sha256sum < "$TMP/packet.pend" | cut -d ' ' -f1)
+  parse_pins "$RC" "$TMP/rc.pins"
+  exp_h3=$(for i in 1 2 3 4; do printf '### Q0%s — %s\n' "$i" "${AQ_HEADS[$((i - 1))]}"; done)
+  rec_h3=$(grep '^### ' "$RC")
+  out=$(line_val "- Owner approval:" "$RC")
+  dt=$(line_val "- Owner reply date:" "$RC")
+
+  # AR1
+  m=$(enc1 "$RC")
+  if [ -z "$m" ]; then m=$(enc2 "$RC"); fi
+  if [ -z "$m" ] && grep -q -F "$FILL" "$RC"; then m="a fill marker is left (line $(grep -n -F "$FILL" "$RC" | head -n1 | cut -d: -f1))"; fi
+  if [ -z "$m" ]; then
+    allowed="$(tbl_tokens < "$RC") $AP_FPR $pk_blob $pk_sha"
+    m=$(fd1_scan "$RC" "$allowed")
+  fi
+  if [ -z "$m" ]; then
+    if [ "$(head -n1 "$RC")" != "$AR_H1" ]; then m="the first line is not the H1 [$AR_H1]"
+    elif [ "$(grep -c '^- Owner approval:' "$RC")" -ne 1 ]; then m="the record does not hold exactly one line [- Owner approval:]"
+    elif [ "$out" != approved ] && [ "$out" != "changes requested" ]; then m="the outcome [$out] is neither approved nor changes requested"
+    elif [ "$(grep -c '^- Owner reply date:' "$RC")" -ne 1 ]; then m="the record does not hold exactly one line [- Owner reply date:]"
+    elif [ "$rec_h3" != "$exp_h3" ]; then m="the question blocks are not Q01 to Q04 once each in order"
+    elif [ "$(grep '^## ' "$RC" | tr '\n' '|')" != "## Questions and answers|## What follows|" ]; then m="the H2 headings are not Questions and answers and What follows"
+    elif [ "$(tail -n1 "$RC")" != "$AR_CLOSING" ] || [ "$(grep -c -x -F "$AR_CLOSING" "$RC")" -ne 1 ]; then m="the closing line is not the last line, once"
+    fi
+  fi
+  if [ -n "$m" ]; then fail AR1 "$m"; else pass AR1 "the record is clean text without fill markers, passes the scan and has the expected structure"; fi
+
+  # AR2
+  m=""
+  if ! ap_ready 2> /dev/null; then
+    m="the packet cannot be printed"
+  else
+    print_ap > "$TMP/packet.exp"
+    { ap_pin_rows
+      printf '| Packet file | `%s` |\n| Packet blob | `%s` |\n| Packet SHA-256 | `%s` |\n' "$PACKET_DEFAULT" "$pk_blob" "$pk_sha"
+    } > "$TMP/rows.exp"
+    grep '^| ' "$RC" | grep -v -e '^| Field ' -e '^|[-| ]*$' | head -n 13 > "$TMP/rows.rec"
+    if ! cmp -s "$TMP/rows.exp" "$TMP/rows.rec"; then
+      m="the pin rows differ from those computed from the live text and the packet (first difference: $(diff "$TMP/rows.exp" "$TMP/rows.rec" | grep '^[<>]' | head -n1 | cut -c1-80))"
+    elif ! cmp -s "$TMP/packet.exp" "$TMP/packet.pend"; then
+      m="the packet differs from the printed one (first difference: $(diff "$TMP/packet.exp" "$TMP/packet.pend" | grep '^[<>]' | head -n1 | cut -c1-80))"
+    fi
+  fi
+  if [ -n "$m" ]; then fail AR2 "$m"; else pass AR2 "the pin rows equal those computed from the live text, the previously approved pins and the packet, and the packet is the printed one"; fi
+
+  # AR3
+  m=""
+  for i in 1 2 3 4; do
+    blk="$TMP/q$i.blk"
+    h3blk "$RC" "### Q0$i — ${AQ_HEADS[$((i - 1))]}" > "$blk"
+    expq="- Question: $(aq_q "$i")"
+    if [ "$(grep -c '^- Question: ' "$blk")" -ne 1 ] || [ "$(grep '^- Question: ' "$blk")" != "$expq" ]; then
+      m="${m:+$m; }the Question bullet of Q0$i differs from the printed one"
+    fi
+  done
+  if [ -n "$m" ]; then fail AR3 "$m"; else pass AR3 "the four Question bullets equal the printed questions"; fi
+
+  # AR4
+  m=""
+  for i in 1 2 3 4; do
+    if [ "$(grep -c '^- Answer: ' "$TMP/q$i.blk")" -ne 1 ]; then m="${m:+$m; }Q0$i does not hold exactly one Answer line"; fi
+  done
+  q1=$(line_val "- Answer:" "$TMP/q1.blk")
+  q2=$(line_val "- Answer:" "$TMP/q2.blk")
+  q3=$(line_val "- Answer:" "$TMP/q3.blk")
+  q4=$(line_val "- Answer:" "$TMP/q4.blk")
+  if [ -z "$m" ]; then
+    if [ "$q1" != "$OPT_APPROVE" ] && [ "$q1" != "$OPT_CHANGES" ]; then
+      m="the answer of Q01 [$q1] is neither [$OPT_APPROVE] nor [$OPT_CHANGES]"
+    elif [ "$q1" = "$OPT_APPROVE" ] && [ "$q2" != "$NOT_ASKED" ]; then
+      m="Q01 is [$OPT_APPROVE] but the answer of Q02 is not the sentence [$NOT_ASKED]"
+    elif [ "$q1" = "$OPT_CHANGES" ] && { [ -z "$(trim_ws "$q2")" ] || [ "$q2" = "$NOT_ASKED" ]; }; then
+      m="Q01 is [$OPT_CHANGES] but the answer of Q02 is empty or the not-asked sentence"
+    elif [ "$q1" = "$OPT_APPROVE" ] && [ "$out" != approved ]; then
+      m="Q01 is [$OPT_APPROVE] but the outcome is [$out], expected approved"
+    elif [ "$q1" = "$OPT_CHANGES" ] && [ "$out" != "changes requested" ]; then
+      m="Q01 is [$OPT_CHANGES] but the outcome is [$out], expected changes requested"
+    fi
+  fi
+  if [ -n "$m" ]; then fail AR4 "$m"; else pass AR4 "the answers of Q01 and Q02 and the outcome [$out] follow the rule"; fi
+
+  # AR5
+  m=""
+  nm=$(pin_raw "$TMP/rc.pins" "Reply given by")
+  drdate=$(line_val "- Owner disposition date:" "$DR")
+  if [ -z "$(trim_ws "$q3")" ] || [ "$q3" != "$(trim_ws "$q3")" ]; then
+    m="the name (the answer of Q03) is empty or padded"
+  elif [ "$(pin_count "$TMP/rc.pins" "Reply given by")" -ne 1 ] || [ "$nm" != "$q3" ]; then
+    m="the Reply given by row is missing or differs from the answer of Q03"
+  elif ! [[ "$q4" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [ "$(date -u -d "$q4" +%F 2> /dev/null)" != "$q4" ]; then
+    m="the date [$q4] is not a valid calendar date in the form YYYY-MM-DD"
+  elif [ "$dt" != "$q4" ]; then
+    m="the Owner reply date line [$dt] differs from the answer of Q04 [$q4]"
+  elif ! [[ "$drdate" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+    m="the owner disposition date of the disposition record is not a date"
+  elif [[ "$q4" < "$drdate" ]]; then
+    m="the date [$q4] is earlier than the owner disposition date of round 1 [$drdate]"
+  elif [ "$(pin_count "$TMP/rc.pins" "Owner reply")" -ne 1 ] || [ -z "$(trim_ws "$(pin_raw "$TMP/rc.pins" "Owner reply")")" ]; then
+    m="the Owner reply row is missing or empty"
+  fi
+  if [ -n "$m" ]; then fail AR5 "$m"; else pass AR5 "the name and the date are complete and consistent, and the date is not earlier than $drdate"; fi
+}
+
+if [ "$PRINT_DELTA" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
+  make_delta
+  case $? in
+    0) cat "$TMP/delta.txt"; exit 0 ;;
+    2) echo "the working specification equals the text approved in round 1" >&2; exit 2 ;;
+    *) echo "the round-1 text cannot be read from the repository" >&2; exit 2 ;;
+  esac
+fi
+if [ "$PRINT_AQ" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
+  ap_facts
+  print_aq
+  exit 0
+fi
+if [ "$PRINT_APK" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
+  ap_facts
+  reg_load
+  ap_ready || exit 2
+  print_ap
+  exit 0
+fi
+if [ "$PRINT_ARS" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
+  ap_facts
+  print_ars
+  exit 0
+fi
+
 if [ "$REPLAY" -eq 1 ]; then
   replay
+  finish
+fi
+
+if [ "$AP_ON" -eq 1 ] && [ "$STAGE" = approval-pending ]; then
+  approval_pending_stage
+  finish
+fi
+
+if [ "$AP_ON" -eq 1 ] && [ "$STAGE" = approval-recorded ]; then
+  approval_recorded_stage
   finish
 fi
 
