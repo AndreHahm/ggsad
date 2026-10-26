@@ -771,7 +771,7 @@ ev() {
 
 # F1 helpers: F1BAD collects the problems of FE1.
 F1BAD=""
-f1_note() { F1BAD="$F1BAD${F1BAD:+; }$1"; }
+f1_note() { if [[ "; $F1BAD;" != *"; $1;"* ]]; then F1BAD="$F1BAD${F1BAD:+; }$1"; fi; }
 # f1_gone GROUP NAME FUNCTION FRAGMENT: the fragment is in the place in the round-1 text and not in the new text.
 f1_gone() {
   local old new
@@ -921,6 +921,53 @@ fe1_FG06() {
   f1_gone FG-06 "the realization row Open questions as state" p_realask "The question is recorded in the state file"
   f1_has FG-06 "the full cell of the realization row Open questions as state" p_realaskfull "ask"
   f1_ex FG-06 AE-301 'Section 24.8 (full)' ask
+}
+
+# f1_nounless GROUP NAME FUNCTION: no line of the place that holds retry limit holds the word unless (either case).
+f1_nounless() {
+  if "$3" "$SP" | grep -F 'retry limit' | grep -q -i -w 'unless'; then f1_note "$1: a retry limit sentence of $2 holds the word unless"; fi
+}
+
+# places of the checks FE1 (FG-07 to FG-09)
+p_open12() { rng "$1" '## 12. ' '### 12.1 '; }
+p_new247() {
+  rng "$1" '### 24.7 ' '### 24.8 ' | grep -v -x -F -f <(rng "$T1" '### 24.7 ' '### 24.8 ')
+}
+p_sec252() { rng "$1" '### 25.2 ' '### 25.3 '; }
+p_sec224() { rng "$1" '### 22.4 ' '## 23. '; }
+p_order22() { awk '/^### 22\.[0-9]+ / { printf "%s ", $2 }' "$1"; }
+p_bullet221() { rng "$1" '### 22.1 ' '### 22.2 ' | grep -F '`guard`'; }
+p_read234() { rng "$1" '### 23.4 ' '### 23.5 ' | grep -F 'are read-only'; }
+
+fe1_FG07() {
+  f1_has FG-07 "the opening of Section 12" p_open12 "retry limit"
+  f1_has FG-07 "the opening of Section 12" p_open12 "soft"
+  f1_has FG-07 "the opening of Section 12" p_open12 "Section 24.7"
+  f1_line FG-07 "the opening of Section 12" p_open12 "retry limit" "closes the change as failed or records an override"
+  f1_line FG-07 "the new lines of Section 24.7" p_new247 "retry limit" "human" "closes the change as failed or records an override"
+  f1_nounless FG-07 "the opening of Section 12" p_open12
+  f1_nounless FG-07 "the new lines of Section 24.7" p_new247
+}
+
+fe1_FG08() {
+  f1_line FG-08 "Section 25.2" p_sec252 "MUST" "valid UTF-8" "zero byte"
+  f1_gone FG-08 "Section 25.2" p_sec252 "an implementation SHOULD classify a file as text only when"
+  f1_gone FG-08 "Section 25.2" p_sec252 "A content hash is therefore comparable only with a content hash that an implementation computed with the same decision"
+  f1_ex FG-08 AE-302 'Section 25.2' text binary
+}
+
+fe1_FG09() {
+  local w
+  f1_is FG-09 "the order of the subsections of Section 22" p_order22 "22.1 22.2 22.3 22.4 "
+  for w in 'guard' 'MUST NOT' 'Section 24.1' 'Section 24.3' 'Section 24.4' 'Section 24.5' 'Section 24.7' 'success' 'rejected' 'changed' \
+    'history-inconsistent' 'anchor-missing' 'gates-changed' 'approval-stale' 'scope-violation' 'hard-failure-active'; do
+    f1_has FG-09 "Section 22.4" p_sec224 "$w"
+  done
+  f1_has FG-09 "the reporting bullet of Section 22.1" p_bullet221 "Section 22.4"
+  f1_has FG-09 "the sentence on the read-only actions in Section 23.4" p_read234 "Section 22.4"
+  f1_ex FG-09 AE-303 'Section 22.4' success
+  f1_ex FG-09 AE-304 'Section 22.4' rejected gates-changed
+  f1_ex FG-09 AE-305 'Section 22.4' rejected
 }
 
 fe1() {
@@ -1098,6 +1145,11 @@ fe5() {
         case "$v" in "none"*) bad "$g: a choice between readings must not give My choice as none" ;; esac
         if ! has "$v" "other"; then bad "$g: My choice does not name the other readings"; fi ;;
     esac
+    if [ "$g" = FG-09 ]; then
+      for tok in '(1)' '(2)' '(3)' '(4)'; do
+        if ! has "$v" "$tok"; then bad "FG-09: My choice lacks the marker $tok of the numbered list of my own readings"; fi
+      done
+    fi
     for lab in Before After; do
       v=$(ev "$g" "$lab")
       if [ "$lab" = Before ] && [ "$v" = "none (new text)" ]; then continue; fi
