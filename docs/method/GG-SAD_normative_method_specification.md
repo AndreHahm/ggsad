@@ -893,7 +893,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
-| `reopen` (`full` only) | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; wait when the new corrective scope's DoW determines a pause; fail when the new corrective scope's DoF determines failure. |
+| `reopen` (`full` only) | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied or a DoW condition of the new corrective scope is active; fail when the new corrective scope's DoF determines failure. |
 
 **Rejected and Blocked Results per Action (`full`)**
 
@@ -906,7 +906,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `fail` | The change is closed, or no DoF condition is active. | Never. |
 | `cancel` | The change is closed, or no authorized cancellation decision exists. | Never. |
 | `supersede` | The change is closed, or no later change is authorized to replace this change. | Never. |
-| `reopen` | The change is not in the `closed` phase, the corrective follow-up work is not authorized with a reason and a new goal-bound scope, or the resume-phase DoR is not satisfied. | Never. |
+| `reopen` | The change is not in the `closed` phase, the corrective follow-up work is not authorized with a reason and a new goal-bound scope, the resume-phase DoR is not satisfied, or a Definition of Wait condition of the new corrective scope is active. | Never. |
 
 An action whose evaluation closes the change as failed answers `success` (Section 24.7). An action answers `blocked` only where this table lists a case, and a `complete` that preserves the current phase with the status `done` because the next-phase DoR is not satisfied answers `success`. See AE-121, AE-122, AE-123, AE-124.
 
@@ -942,7 +942,7 @@ Given a `full` change whose phase has the status `ready` and a Definition of Wai
 When the `start` action is requested  
 Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
-See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295.
+See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296.
 
 **AE-239 — Start a ready phase**
 
@@ -1015,6 +1015,14 @@ Then the first change is in the `closed` phase with the status `superseded`, and
 Given a `full` change in the `closed` phase with the status `done` whose resume phase recorded at closure is the build phase, and a second `full` change in the build phase with the status `active`  
 When the `reopen` action is requested for each change, with a reason and a new goal-bound scope  
 Then the first change returns to the build phase with the status `active`, and the request for the second change is rejected with `changed` false, because that change is not in the `closed` phase
+
+**AE-296 — Reopen of a `full` change is rejected when the new corrective scope would have to wait**
+
+- Covers: Section 8.3 (`reopen`)
+
+Given a `full` change in the `closed` phase with the status `done` whose resume phase recorded at closure is the build phase, and a Definition of Wait condition of the new corrective scope that is active  
+When the `reopen` action is requested with a reason and a new goal-bound scope  
+Then the result is `rejected` with `changed` false, and the change stays in the `closed` phase
 
 ### 8.4 Cancellation, Supersession, Reopening, and Terminal Behavior
 

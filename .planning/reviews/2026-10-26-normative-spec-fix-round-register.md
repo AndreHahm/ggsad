@@ -7,7 +7,7 @@ This register lists the nine changes made to the specification to fix the eleven
 | Change | Title | Findings | Kind | Status | Sections | Examples |
 |---|---|---|---|---|---|---|
 | FG-01 | A pause request on a change that has already hit a hard failure | RV-A-002, RV-X-001 | repair | drafted | 8.3 | AE-295 |
-| FG-02 | Re-opening a closed change when its new work would have to wait | RV-A-001, RV-X-002 | my choice | pending | - | - |
+| FG-02 | Re-opening a closed change when its new work would have to wait | RV-A-001, RV-X-002 | my choice | drafted | 8.3 | AE-296 |
 | FG-03 | Starting a change when a check cannot be run | RV-C-001, RV-A-003 | repair | pending | - | - |
 | FG-04 | Cancelling or replacing a change when a check cannot be run | RV-A-003 | my choice | pending | - | - |
 | FG-05 | Which rule decides when a ready condition is not met | RV-D-001 | repair | pending | - | - |
@@ -29,12 +29,12 @@ This register lists the nine changes made to the specification to fix the eleven
 
 ### FG-02 — Re-opening a closed change when its new work would have to wait
 
-- What changed: pending
-- Why: pending
-- My choice: pending
-- Before: pending
-- After: pending
-- Notes: pending
+- What changed: Re-opening a closed change is now refused when its new work would have to wait (for example for an answer still owed), and the change stays closed.
+- Why: The table said the re-open waits and also said it can never be blocked, so its result was undefined.
+- My choice: I chose to refuse the re-open, as starting a change is refused when a wait applies, because it changes the least; the other ways are to let the re-open succeed and then wait, or to record it and answer blocked (the largest edit). This is a proposal; the owner can pick another way.
+- Before: "Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied; wait when the new corrective scope's DoW determines a pause; fail when the new corrective scope's DoF determines failure."
+- After: "Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied or a DoW condition of the new corrective scope is active; fail when the new corrective scope's DoF determines failure."
+- Notes: Section 8.3 only: the Rejection Behavior cell of the `reopen` row of the transition table, and the rejected cell of the `reopen` row of the table of results, which now names a Definition of Wait condition of the new corrective scope. Stale statements found by the sweep: the blocked cell of the `reopen` row (`Never.`) stays true, the sentence of Section 22.2 on the actions that can answer blocked stays true, the realization row for the result blocked stays true, and the examples AE-217, AE-246 and AE-259 stay true. The example AE-296 is placed after AE-246 and cited in the last See sentence of Section 8.3.
 
 ### FG-03 — Starting a change when a check cannot be run
 
