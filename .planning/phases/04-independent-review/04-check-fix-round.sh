@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # Read-only check of the fix round that follows the independent review of the proposed normative method
 # specification: the pins of the text of round 1, whether the live specification still equals them, the replay
-# of the three round-1 checks at the commit that holds the round-1 text, and the record of the five owner
-# decisions D-1 to D-5 with the printers of its questions and of its skeleton.
+# of the three round-1 checks at the commit that holds the round-1 text, the record of the five owner
+# decisions D-1 to D-5 with the printers of its questions and of its skeleton, and the edits of the fix round
+# with the register that lists them.
 #
 # Usage: 04-check-fix-round.sh [options]
 #   --stage STAGE     state (default): ST1 and the fact line ST2; decisions: FD1 to FD8 on the decisions
-#                     record. The stages edits, identity, approval-pending and approval-recorded are added to
-#                     this script by later plans of the round; the list of stages is open
+#                     record; edits: FE1 to FE6 on the specification and the fix register. The stages
+#                     identity, approval-pending and approval-recorded are added to this script by later plans
+#                     of the round; the list of stages is open
 #   --approval-record PATH
 #                     the owner approval record of round 1 (default: the record path of the repository;
 #                     relative paths are taken from the repository root)
@@ -15,9 +17,12 @@
 #                     the review disposition record of round 1 (default: the record path of the repository)
 #   --decisions PATH  the record of the owner decisions, read in stage decisions (default: the record path of
 #                     the repository)
-#   --spec PATH       the specification file to hash (default: the specification path of the repository);
-#                     a test hook that replaces the working file for the hash reads only, the index and HEAD
-#                     reads always use the real path
+#   --spec PATH       the specification file to hash or to judge (default: the specification path of the
+#                     repository); a test hook that replaces the working file for the hash reads and for the
+#                     stage edits only, the index and HEAD reads always use the real path
+#   --register PATH   the fix register, read in stage edits (default: the register path of the repository)
+#   --complete        modifier of --stage edits: all nine groups must be drafted and the Findings cells of the
+#                     register must cover exactly the eleven findings with the disposition fix
 #   --base REF        base ref of the diff (default origin/main); must name a commit; in the replay the
 #                     remote-tracking ref origin/main of the throwaway clone is set to this commit
 #   --replay-round-1  run FR1 to FR4 instead of a stage (no other check runs): FR1 the newest commit reachable
@@ -38,6 +43,10 @@
 #                     a line Findings:, the question on one line, one line per option "- label: description"
 #                     (the label is the text before the first colon followed by a space), and a blank line
 #                     between decisions; exit 0
+#   --print-register-skeleton
+#                     print the skeleton of the fix register (the only way the register is created): the nine
+#                     groups with the status pending and the 14 findings that the owner did not disposition;
+#                     exit 0 (exit 2 if the review note cannot be read)
 #   --print-decisions-skeleton
 #                     print the skeleton of the decisions record (the only way the record is created); every
 #                     field that the owner completes holds the fill marker (@@FILL@@); exit 0 (exit 2 if the
@@ -64,13 +73,26 @@
 # line of each decision equals the printed one and names only findings with the disposition fix in the
 # disposition record.
 #
+# Stage edits, on --spec and --register: the text of round 1 is read with git from the blob that the approval
+# record names. A group counts as drafted when the Status cell of its row in the register reads drafted.
+# FE1 for each drafted group the old statement is gone and the new facts are present in the places the group
+# names, and its examples exist with their tags; FE2 the statements that stay true are unchanged (the sentence
+# of Section 22.2 on the actions that can answer blocked, the last cell of every row of both tables of results,
+# the realization row of the result blocked, the examples AE-259 and AE-287); FE3 minimality (the first eight
+# lines, the quoted sentences of the 14 findings that were not dispositioned, the changed paths, every changed
+# line inside a section that the register lists, no tab in an added line); FE4 every removed line that holds
+# MUST, SHOULD or MAY is listed in the register with a reason; FE5 the register (layout, fields, quoted
+# fragments, sections, examples, encoding, self-containment; with --complete all nine groups and the findings);
+# FE6 the Phase 2 check ends RESULT: PASS in --final mode on the specification under test.
+#
 # Output: one line per check, "PASS ID message" or "FAIL ID message"; "WARN ID message" lines and the
 # "STATE:" lines are not counted; then "RESULT: PASS" or "RESULT: FAIL N". Exit 0 on pass, 1 on any failed
 # check, 2 on a usage error or an unreadable input.
 # Nothing is written outside a temporary directory that is removed on exit.
 
 # The printf formats contain backticks on purpose: they are literal text of the printed records.
-# shellcheck disable=SC2016
+# The check functions of the groups are called by name; the fixed message texts hold backticks.
+# shellcheck disable=SC2016,SC2329
 
 set -u
 export LC_ALL=C
@@ -84,6 +106,8 @@ CHK2=".planning/phases/02-normative-drafting/02-check-normative-diff.sh"
 CHK3=".planning/phases/03-owner-approval/03-check-owner-approval.sh"
 ARC_DEFAULT=".planning/reviews/2026-10-25-normative-spec-owner-approval-record.md"
 DREC_DEFAULT=".planning/reviews/2026-10-25-normative-spec-review-disposition-record.md"
+NOTE_DEFAULT=".planning/reviews/2026-10-25-normative-spec-independent-review.md"
+FREG_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-register.md"
 FDEC_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-decisions.md"
 FILL="@@FILL@@"
 
@@ -91,12 +115,15 @@ STAGE="state"
 APPROVAL="$ARC_DEFAULT"
 DISPO="$DREC_DEFAULT"
 DECISIONS="$FDEC_DEFAULT"
+REGISTER="$FREG_DEFAULT"
 SPECFILE="$SPEC"
 BASE="origin/main"
 REPLAY=0
 CURRENT=0
 PRINT_Q=0
 PRINT_SKEL=0
+PRINT_REG=0
+COMPLETE=0
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -116,20 +143,24 @@ while [ "$#" -gt 0 ]; do
     --disposition-record) need_value "$@"; DISPO="$2"; shift 2 ;;
     --decisions) need_value "$@"; DECISIONS="$2"; shift 2 ;;
     --spec) need_value "$@"; SPECFILE="$2"; shift 2 ;;
+    --register) need_value "$@"; REGISTER="$2"; shift 2 ;;
+    --complete) COMPLETE=1; shift ;;
     --base) need_value "$@"; BASE="$2"; shift 2 ;;
     --replay-round-1) REPLAY=1; shift ;;
     --with-current-scripts) CURRENT=1; shift ;;
     --print-decision-questions) PRINT_Q=1; shift ;;
     --print-decisions-skeleton) PRINT_SKEL=1; shift ;;
+    --print-register-skeleton) PRINT_REG=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
 done
 
 case "$STAGE" in
-  state|decisions) ;;
-  *) echo "--stage must be state or decisions" >&2; exit 2 ;;
+  state|decisions|edits) ;;
+  *) echo "--stage must be state, decisions or edits" >&2; exit 2 ;;
 esac
+[ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
 [ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1 only" >&2; exit 2; }
 
 # decision_data: the fixed texts of the five decisions. One record per line, fields separated by a vertical
@@ -216,6 +247,9 @@ AR="$TMP/arc"
 DR="$TMP/dispo"
 DC="$TMP/decisions"
 SP="$TMP/spec"
+NT="$TMP/note"
+RG="$TMP/register"
+T1="$TMP/text1"
 
 readable() {
   if [ -f "$2" ] && [ -r "$2" ] && cp "$2" "$1" 2> /dev/null; then
@@ -230,6 +264,11 @@ readable "$AR" "$APPROVAL"
 readable "$DR" "$DISPO"
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = decisions ]; then readable "$DC" "$DECISIONS"; fi
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = state ]; then readable "$SP" "$SPECFILE"; fi
+if [ "$PRINT_REG" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
+if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
+  readable "$SP" "$SPECFILE"
+  readable "$RG" "$REGISTER"
+fi
 
 FAILS=0
 pass() { echo "PASS $1 $2"; }
@@ -330,6 +369,65 @@ print_skeleton() {
   printf '## Reply details\n\n### Name\n\n- Question: %s\n- Answer: %s\n\n### Date\n\n- Question: %s\n- Answer: %s\n\n' "$NAME_Q" "$FILL" "$DATE_Q" "$FILL"
   printf '## What follows\n\n%s\n\n%s\n' "$FOLLOWS_TEXT" "$CLOSING_LINE"
 }
+
+# ---- the fix register: data and printer ------------------------------------------------------------------
+
+REG_H1='# Fix register: what changed in the specification and why'
+REG_INTRO='This register lists the nine changes made to the specification to fix the eleven findings of the first independent review. A change is a repair when the text had one consistent reading, and my choice when more than one reading was possible; for a choice the other readings are named, so that the owner can pick another one. A choice is a proposal: it becomes the decision of the owner only through the owner approval of the exact new text. The approval packet is printed from this register.'
+REG_HEADER='The header of the specification (the Version line and the Revision line) is unchanged by this round.'
+
+# fg_data: one line per group, "id|title|findings|kind".
+fg_data() {
+  cat << 'DATA'
+FG-01|A pause request on a change that has already hit a hard failure|RV-A-002, RV-X-001|repair
+FG-02|Re-opening a closed change when its new work would have to wait|RV-A-001, RV-X-002|my choice
+FG-03|Starting a change when a check cannot be run|RV-C-001, RV-A-003|repair
+FG-04|Cancelling or replacing a change when a check cannot be run|RV-A-003|my choice
+FG-05|Which rule decides when a ready condition is not met|RV-D-001|repair
+FG-06|Recording a question in the full profile|RV-B-001|repair
+FG-07|What happens when a retry limit is reached|RV-B-005|my choice
+FG-08|Deciding whether a file is text or binary before hashing it|RV-E-001|my choice
+FG-09|The guard check for continuous integration|RV-X-003|my choice
+DATA
+}
+
+# undisp: the findings of the review note without a disposition, one per line as "id TAB severity TAB quote".
+undisp() {
+  awk -F'|' '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    /^## / { on = ($0 == "## Findings"); next }
+    on && /^\| RV-/ {
+      if (trim($6) == "") {
+        q = trim($4); sub(/^.*quote "/, "", q); sub(/"$/, "", q)
+        print trim($2) "\t" trim($3) "\t" q
+      }
+    }
+  ' "$NT"
+}
+
+# print_register_skeleton: the fix register with every field that is filled in later set to pending.
+print_register_skeleton() {
+  local g t f k id sev
+  printf '%s\n\n%s\n\n' "$REG_H1" "$REG_INTRO"
+  printf '## The nine changes\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n'
+  while IFS='|' read -r g t f k; do
+    printf '| %s | %s | %s | %s | pending | - | - |\n' "$g" "$t" "$f" "$k"
+  done < <(fg_data)
+  printf '\n## Change details\n\n'
+  while IFS='|' read -r g t f k; do
+    printf '### %s — %s\n\n- What changed: pending\n- Why: pending\n- My choice: pending\n- Before: pending\n- After: pending\n- Notes: pending\n\n' "$g" "$t"
+  done < <(fg_data)
+  printf '## Normative lines removed or reworded\n\nNone.\n\n## Findings whose quoted sentence an edit touched\n\nNone.\n\n## Findings not touched\n\n'
+  while IFS=$'\t' read -r id sev _; do
+    printf -- '- %s (%s): open information; no edit\n' "$id" "$sev"
+  done < <(undisp)
+  printf '\n## Header\n\n%s\n' "$REG_HEADER"
+}
+
+if [ "$PRINT_REG" -eq 1 ]; then
+  print_register_skeleton
+  exit 0
+fi
 
 if [ "$PRINT_SKEL" -eq 1 ]; then
   print_skeleton
@@ -608,6 +706,388 @@ PATTERNS
   return 0
 }
 
+# ---- stage edits -----------------------------------------------------------------------------------------
+
+# rng FILE START END: the lines from the first line that begins with START up to, not including, the next line
+# that begins with END.
+rng() {
+  awk -v s="$2" -v e="$3" '!on { if (index($0, s) == 1) { on = 1; print }; next } index($0, e) == 1 { exit } { print }' "$1"
+}
+
+# trow FILE START END ACTION PIPES: the first table row in the range whose first cell begins with the action
+# name in backticks and that holds PIPES vertical bars (the transition tables and the tables of results differ
+# in their column counts).
+trow() {
+  rng "$1" "$2" "$3" | awk -v a="| \`$4\` " -v n="$5" 'index($0, a) == 1 { t = $0; if (gsub(/\|/, "|", t) == n) { print; exit } }'
+}
+
+# exblock FILE ID: an acceptance example, from its title line to the line before the next example, heading or rule.
+exblock() {
+  awk -v h="**$2 — " 'on && /^(\*\*AE-|#|---$)/ { exit } index($0, h) == 1 { on = 1 } on' "$1"
+}
+
+# has TEXT FRAGMENT: the fragment is a substring of the text.
+has() {
+  [[ "$1" == *"$2"* ]]
+}
+
+# nchars TEXT: the number of characters (not bytes) of the text.
+nchars() {
+  printf '%s' "$1" | tr -d '\200-\277' | wc -c | tr -d ' '
+}
+
+# heads_of FILE: "line TAB number" for every numbered heading outside code fences.
+heads_of() {
+  awk '/^```/ { f = !f; next } !f && /^#+ [0-9]+(\.[0-9]+)*\.? / { n = $2; sub(/\.$/, "", n); print NR "\t" n }' "$1"
+}
+
+# reg_mask: the register with every field that is filled in later replaced by a marker.
+reg_mask() {
+  awk '
+    /^## / { sec = $0; seen[sec] = 0; print; next }
+    /^### / { print; next }
+    sec == "## The nine changes" && /^\| FG-/ { split($0, c, "|"); printf "|%s|%s|%s|%s|@|@|@|\n", c[2], c[3], c[4], c[5]; next }
+    sec == "## Change details" && /^- (What changed|Why|My choice|Before|After|Notes): / { l = $0; sub(/: .*$/, "", l); print l ": @"; next }
+    sec == "## Normative lines removed or reworded" || sec == "## Findings whose quoted sentence an edit touched" {
+      if ($0 != "" && !seen[sec]++) print "@"
+      next
+    }
+    { print }
+  '
+}
+
+PROB=""
+bad() { if [ -z "$PROB" ]; then PROB=$1; fi; }
+
+# ev GROUP LABEL: the value of a bullet of the entry of a group in the register.
+ev() {
+  awk -F'\t' -v g="$1" -v l="$2" '$1 == g && $2 == l { print substr($0, length($1) + length($2) + 3); exit }' "$TMP/reg.ent"
+}
+
+# F1 helpers: F1BAD collects the problems of FE1.
+F1BAD=""
+f1_note() { F1BAD="$F1BAD${F1BAD:+; }$1"; }
+# f1_gone GROUP NAME FUNCTION FRAGMENT: the fragment is in the place in the round-1 text and not in the new text.
+f1_gone() {
+  local old new
+  old=$("$3" "$T1")
+  new=$("$3" "$SP")
+  if ! has "$old" "$4"; then
+    f1_note "$1: internal: the old fragment [$4] is not in $2 of the round-1 text"
+  elif has "$new" "$4"; then
+    f1_note "$1: $2 still holds the old statement [$4]"
+  fi
+}
+# f1_has GROUP NAME FUNCTION FRAGMENT: the fragment is in the place in the new text.
+f1_has() {
+  local new
+  new=$("$3" "$SP")
+  if [ -z "$new" ]; then
+    f1_note "$1: $2 is not found"
+  elif ! has "$new" "$4"; then
+    f1_note "$1: $2 lacks [$4]"
+  fi
+}
+# f1_same GROUP NAME FUNCTION: the place equals the place in the round-1 text.
+f1_same() {
+  local old new
+  old=$("$3" "$T1")
+  new=$("$3" "$SP")
+  if [ -z "$old" ] || [ "$old" != "$new" ]; then f1_note "$1: $2 differs from the round-1 text"; fi
+}
+# f1_ex GROUP ID TAG WORDS...: the example exists with the tag and its Then line holds every word.
+f1_ex() {
+  local g=$1 id=$2 tag=$3 blk tl w
+  shift 3
+  blk=$(exblock "$SP" "$id")
+  if [ -z "$blk" ]; then f1_note "$g: the example $id does not exist"; return 0; fi
+  if ! printf '%s\n' "$blk" | grep -q -x -F -e "- Covers: $tag"; then f1_note "$g: $id lacks the tag [$tag]"; fi
+  tl=$(printf '%s\n' "$blk" | grep '^Then ' | head -n1)
+  for w in "$@"; do
+    if ! has "$tl" "$w"; then f1_note "$g: the Then line of $id lacks [$w]"; fi
+  done
+}
+
+# places of the checks FE1
+p_wait8() { trow "$1" '### 8.3 ' '### 8.4 ' wait 7; }
+p_waitres8() { trow "$1" '### 8.3 ' '### 8.4 ' wait 4; }
+
+fe1_FG01() {
+  f1_gone FG-01 "the wait row of the transition table of Section 8.3" p_wait8 "or DoF determines failure"
+  f1_has FG-01 "the wait row of the transition table of Section 8.3" p_wait8 "Section 24.7"
+  f1_has FG-01 "the wait row of the transition table of Section 8.3" p_wait8 "failed"
+  f1_same FG-01 "the wait row of the table of results of Section 8.3" p_waitres8
+  f1_ex FG-01 AE-295 'Section 8.3 (`wait`)' success failed
+}
+
+fe1() {
+  local g n=0 fn
+  F1BAD=""
+  while IFS=$'\t' read -r g _ _ _ st _ _; do
+    [ "$st" = drafted ] || continue
+    n=$((n + 1))
+    fn="fe1_${g//-/}"
+    if declare -F "$fn" > /dev/null; then "$fn"; else f1_note "$g: no FE1 checks are defined for this group"; fi
+  done < "$TMP/reg.rows"
+  if [ -n "$F1BAD" ]; then fail FE1 "$F1BAD"; else pass FE1 "for each of the $n drafted groups the old statement is gone, the new facts are present and the examples exist with their tags"; fi
+}
+
+# sent22 FILE: the sentence of Section 22.2 that lists the actions which can answer blocked.
+sent22() {
+  rng "$1" '### 22.2 ' '### 22.3 ' | awk '{ i = index($0, "Only the actions that complete"); j = index($0, " Every other action answers"); if (i > 0 && j > i) { print substr($0, i, j - i); exit } }'
+}
+# lastcells FILE START END: the last cell of every row of the table of results in the range (rows of three columns).
+lastcells() {
+  rng "$1" "$2" "$3" | awk '{ t = $0; if (gsub(/\|/, "|", t) == 4 && $0 !~ /^\|[-|]+\|$/) { n = split($0, c, "|"); print c[n - 1] } }'
+}
+# realrow FILE: the realization row of the result blocked.
+realrow() {
+  awk 'index($0, "| The result `blocked` |") == 1 { print; exit }' "$1"
+}
+
+fe2() {
+  local a b id
+  PROB=""
+  a=$(sent22 "$T1"); b=$(sent22 "$SP")
+  if [ -z "$a" ] || [ "$a" != "$b" ]; then bad "the sentence of Section 22.2 that lists the actions which can answer blocked is not the round-1 sentence"; fi
+  a=$(lastcells "$T1" '### 8.3 ' '### 8.4 '); b=$(lastcells "$SP" '### 8.3 ' '### 8.4 ')
+  if [ -z "$a" ] || [ "$a" != "$b" ]; then bad "a blocked cell (the last cell) of the table of results of Section 8.3 differs from the round-1 text"; fi
+  a=$(lastcells "$T1" '### 23.4 ' '### 23.5 '); b=$(lastcells "$SP" '### 23.4 ' '### 23.5 ')
+  if [ -z "$a" ] || [ "$a" != "$b" ]; then bad "a blocked cell (the last cell) of the table of results of Section 23.4 differs from the round-1 text"; fi
+  a=$(realrow "$T1"); b=$(realrow "$SP")
+  if [ -z "$a" ] || [ "$a" != "$b" ]; then bad "the realization row of the result blocked differs from the round-1 text"; fi
+  for id in AE-259 AE-287; do
+    a=$(exblock "$T1" "$id"); b=$(exblock "$SP" "$id")
+    if [ -z "$a" ] || [ "$a" != "$b" ]; then bad "the example $id differs from the round-1 text"; fi
+  done
+  if [ -n "$PROB" ]; then fail FE2 "$PROB"; else pass FE2 "the sentence of Section 22.2, the blocked cells of both tables of results, the realization row of the result blocked and the examples AE-259 and AE-287 equal the round-1 text"; fi
+}
+
+# fe_diff: the difference round-1 text to new text as two files, $TMP/d.add ("line TAB text" of the new text) and
+# $TMP/d.del ("position TAB text"; the position is the line of the new text at or before the removal).
+fe_diff() {
+  : > "$TMP/d.add"
+  : > "$TMP/d.del"
+  diff -U0 "$T1" "$SP" > "$TMP/spec.diff"
+  [ "$?" -le 1 ] || { echo "cannot compare the specification with the round-1 text" >&2; exit 2; }
+  awk -v add="$TMP/d.add" -v del="$TMP/d.del" '
+    /^@@ / { h = $0; sub(/^@@ -[0-9,]+ \+/, "", h); split(h, p, /[ ,]/); c = p[1] + 0; nl = c; inh = 1; next }
+    !inh { next }
+    /^\+/ { print nl "\t" substr($0, 2) >> add; nl++; next }
+    /^-/ { print c "\t" substr($0, 2) >> del }
+  ' "$TMP/spec.diff"
+}
+
+# listed_sections: the section numbers of the Sections cells of the register, one per line.
+listed_sections() {
+  awk -F'\t' '$6 != "-" { n = split($6, a, ","); for (i = 1; i <= n; i++) { s = a[i]; gsub(/ /, "", s); if (s != "") print s } }' "$TMP/reg.rows"
+}
+
+fe3() {
+  local id sev q ln
+  PROB=""
+  if ! cmp -s <(head -n8 "$T1") <(head -n8 "$SP"); then bad "the first eight lines of the specification (the header) differ from the round-1 text"; fi
+  # the quoted sentences of the findings that were not dispositioned
+  h2sec "$RG" "Findings whose quoted sentence an edit touched" | grep -o -E '^- RV-[A-Z]-[0-9]{3} :: .+' | cut -d' ' -f2 > "$TMP/touched.ids"
+  undisp > "$TMP/undisp.tsv"
+  if [ "$(wc -l < "$TMP/undisp.tsv" | tr -d ' ')" -ne 14 ]; then bad "the review note does not hold 14 findings without a disposition"; fi
+  while IFS=$'\t' read -r id sev q; do
+    if [ -n "$q" ] && ! grep -q -F -e "$q" "$SP" && ! grep -q -x -F -e "$id" "$TMP/touched.ids"; then
+      bad "the quoted sentence of the undispositioned finding $id is no longer in the specification and the register lists no reason"
+    fi
+  done < "$TMP/undisp.tsv"
+  # the changed paths
+  { git diff --name-only --no-renames "$BASE...HEAD"; git diff --name-only --no-renames HEAD; git ls-files --others --exclude-standard; } 2> /dev/null | sort -u > "$TMP/paths.txt"
+  while IFS= read -r ln; do
+    [ -n "$ln" ] || continue
+    case "$ln" in
+      "$SPEC"|.planning/*) ;;
+      *) bad "the path [$ln] changed since the base and is neither the specification nor under .planning/" ;;
+    esac
+  done < "$TMP/paths.txt"
+  # a tab in an added line
+  if awk -F'\t' 'NF > 2 { found = 1 } END { exit found ? 0 : 1 }' "$TMP/d.add"; then
+    bad "an added line of the specification holds a tab"
+  fi
+  # every changed line lies inside a listed section
+  heads_of "$SP" > "$TMP/heads.tsv"
+  listed_sections > "$TMP/listed.txt"
+  cat "$TMP/d.add" "$TMP/d.del" | awk -F'\t' '
+    FILENAME == hf { hl[++nh] = $1; hn[nh] = $2; next }
+    FILENAME == lf { ok[$1] = 1; next }
+    $2 ~ /^[ ]*$/ { next }
+    {
+      n = $1 + 0; s = "0"
+      for (i = nh; i >= 1; i--) if (hl[i] <= n) { s = hn[i]; break }
+      if (!(s in ok)) { print "line " n " lies in section " s; exit }
+    }
+  ' hf="$TMP/heads.tsv" lf="$TMP/listed.txt" "$TMP/heads.tsv" "$TMP/listed.txt" - > "$TMP/fe3.sec"
+  if [ -s "$TMP/fe3.sec" ]; then bad "a changed line is outside the sections listed in the register ($(head -n1 "$TMP/fe3.sec"))"; fi
+  if [ -n "$PROB" ]; then fail FE3 "$PROB"; else pass FE3 "the header and the 14 undispositioned findings are untouched, only the specification and .planning/ changed, no added line holds a tab, and every changed line lies in a listed section"; fi
+}
+
+# csub TEXT N: the first N characters of the text.
+csub() {
+  printf '%s' "$1" | awk -v n="$2" '{ cnt = 0; for (i = 1; i <= length($0); i++) { b = substr($0, i, 1); if (b !~ /[\200-\277]/) { cnt++; if (cnt > n) { print substr($0, 1, i - 1); next } } } print $0 }'
+}
+
+fe4() {
+  local txt key k
+  PROB=""
+  h2sec "$RG" "Normative lines removed or reworded" | grep -E '^- .* :: .+' > "$TMP/fe4.bullets"
+  : > "$TMP/fe4.keys"
+  while IFS=$'\t' read -r _ txt; do
+    if printf '%s\n' "$txt" | grep -q -E '(^|[^A-Za-z])(MUST|SHOULD|MAY)([^A-Za-z]|$)'; then
+      key=$(csub "$txt" 60)
+      printf '%s\n' "$key" >> "$TMP/fe4.keys"
+      if ! K="- $key :: " awk 'index($0, ENVIRON["K"]) == 1 { f = 1 } END { exit f ? 0 : 1 }' "$TMP/fe4.bullets"; then
+        bad "a removed line with MUST, SHOULD or MAY has no register line with a reason: [$key]"
+      fi
+    fi
+  done < "$TMP/d.del"
+  while IFS= read -r k; do
+    [ -n "$k" ] || continue
+    key=${k#- }
+    key=${key%% :: *}
+    if ! grep -q -x -F -e "$key" "$TMP/fe4.keys"; then echo "WARN FE4 a register line matches no removed line: [$key]"; fi
+  done < "$TMP/fe4.bullets"
+  if [ -n "$PROB" ]; then fail FE4 "$PROB"; else pass FE4 "every removed line with MUST, SHOULD or MAY has a register line with a reason"; fi
+}
+
+fe5() {
+  local g kind st secs exs v frag lab lim tok id n=0 top expect last
+  local -a toks
+  PROB=""
+  # the layout and the encoding
+  reg_mask < "$RG" > "$TMP/mask.rg"
+  print_register_skeleton | reg_mask > "$TMP/mask.sk"
+  if ! cmp -s "$TMP/mask.rg" "$TMP/mask.sk"; then
+    bad "the layout differs from the printed skeleton (first difference: $(diff "$TMP/mask.sk" "$TMP/mask.rg" | grep '^[<>]' | head -n1 | cut -c1-80))"
+  fi
+  v=$(enc1 "$RG"); if [ -z "$v" ]; then v=$(enc2 "$RG"); fi
+  if [ -n "$v" ]; then bad "$v"; fi
+  if [ -z "$PROB" ]; then v=$(fd1_scan "$RG"); if [ -n "$v" ]; then bad "self-containment: $v"; fi; fi
+  if [ "$(wc -l < "$TMP/reg.rows" | tr -d ' ')" -ne 9 ]; then bad "the table does not hold nine rows"; fi
+  heads_of "$SP" | cut -f2 > "$TMP/headnums.txt"
+  : > "$TMP/ids.all"
+  while IFS=$'\t' read -r g _ _ kind st secs exs; do
+    case "$st" in
+      drafted) n=$((n + 1)) ;;
+      pending) if [ "$COMPLETE" -eq 1 ]; then bad "$g is not drafted (--complete needs all nine)"; fi; continue ;;
+      *) bad "$g: the Status cell is [$st], expected pending or drafted"; continue ;;
+    esac
+    if [ "$secs" = "-" ] || [ -z "$secs" ]; then bad "$g: the Sections cell is empty"; fi
+    for lab in "What changed" "Why" "My choice" "Before" "After" "Notes"; do
+      v=$(ev "$g" "$lab")
+      if [ -z "$v" ] || [ "$v" = pending ] || has "$v" "$FILL"; then bad "$g: the bullet [$lab] is not filled"; fi
+    done
+    for lab in "What changed:300" "Why:200" "My choice:450"; do
+      v=$(ev "$g" "${lab%:*}"); lim=${lab##*:}
+      if [ "$(nchars "$v")" -gt "$lim" ]; then bad "$g: [${lab%:*}] is longer than $lim characters"; fi
+      case "$v" in
+        *"Section "*|*"AE-"*|*"|"*) bad "$g: [${lab%:*}] holds a section number, an example id or a vertical bar" ;;
+      esac
+    done
+    v=$(ev "$g" "My choice")
+    case "$kind" in
+      repair) case "$v" in "none:"*) ;; *) bad "$g: a repair must give My choice as [none:] and the reason" ;; esac ;;
+      "my choice")
+        case "$v" in "none"*) bad "$g: a choice between readings must not give My choice as none" ;; esac
+        if ! has "$v" "other"; then bad "$g: My choice does not name the other readings"; fi ;;
+    esac
+    for lab in Before After; do
+      v=$(ev "$g" "$lab")
+      if [ "$lab" = Before ] && [ "$v" = "none (new text)" ]; then continue; fi
+      case "$v" in
+        \"*\") ;;
+        *) bad "$g: [$lab] is not one quoted fragment"; continue ;;
+      esac
+      frag=${v#\"}; frag=${frag%\"}
+      if [ -z "$frag" ] || [ "$(nchars "$frag")" -gt 300 ]; then bad "$g: [$lab] is empty or longer than 300 characters"; continue; fi
+      if [ "$lab" = Before ]; then
+        grep -q -F -e "$frag" "$T1" || bad "$g: the Before fragment is not a part of a line of the round-1 text"
+      else
+        grep -q -F -e "$frag" "$SP" || bad "$g: the After fragment is not a part of a line of the new text"
+      fi
+    done
+    IFS=',' read -r -a toks <<< "$secs"
+    for tok in "${toks[@]}"; do
+      tok=${tok// /}
+      grep -q -x -F -e "$tok" "$TMP/headnums.txt" || bad "$g: the Sections cell names [$tok], which is no heading number of the specification"
+    done
+    if [ "$exs" != "-" ]; then
+      IFS=',' read -r -a toks <<< "$exs"
+      for tok in "${toks[@]}"; do
+        id=${tok// /}
+        printf '%s\n' "$id" >> "$TMP/ids.all"
+        v=$(exblock "$SP" "$id")
+        if [ -z "$v" ] || ! printf '%s\n' "$v" | grep -q '^- Covers: '; then bad "$g: the example $id does not exist with a Covers line"; fi
+        if [ "$(grep -c -w -e "$id" "$SP")" -lt 2 ]; then bad "$g: the example $id is not cited"; fi
+      done
+    fi
+  done < "$TMP/reg.rows"
+  # the examples run on from AE-295 without a gap or a repeat, and the highest id of the specification ends the run
+  sort -t- -k2 -n "$TMP/ids.all" > "$TMP/ids.sorted"
+  expect=295
+  last=294
+  while IFS= read -r id; do
+    [ -n "$id" ] || continue
+    if [ "$id" != "AE-$expect" ]; then bad "the example ids of the register do not run on from AE-295 without a gap or a repeat (expected AE-$expect, found $id)"; break; fi
+    last=$expect
+    expect=$((expect + 1))
+  done < "$TMP/ids.sorted"
+  top=$(grep -o '^\*\*AE-[0-9]*' "$SP" | sed 's/\*\*AE-//' | sort -n | tail -n1)
+  if [ "$top" != "$last" ]; then bad "the highest example id of the specification is AE-$top, but the register ends its run at AE-$last"; fi
+  if [ "$COMPLETE" -eq 1 ]; then
+    if [ "$n" -ne 9 ]; then bad "not all nine groups are drafted"; fi
+    cut -f3 "$TMP/reg.rows" | grep -o -E 'RV-[A-Z]-[0-9]{3}' | sort -u > "$TMP/fnd.reg"
+    drec_fix_ids | sort -u > "$TMP/fnd.fix"
+    if ! cmp -s "$TMP/fnd.reg" "$TMP/fnd.fix"; then bad "the Findings cells of the register do not cover exactly the findings with the disposition fix"; fi
+  fi
+  if [ -n "$PROB" ]; then fail FE5 "$PROB"; else pass FE5 "the register is intact and its $n drafted entries are consistent with the text"; fi
+}
+
+fe6() {
+  local args=(--final) out rc last
+  if [ "$SPECFILE" != "$SPEC" ]; then args+=(--file "$SPECFILE"); fi
+  out=$(bash "$CHK2" "${args[@]}" 2>&1)
+  rc=$?
+  last=$(printf '%s\n' "$out" | tail -n1)
+  if [ "$rc" -eq 0 ] && [ "$last" = "RESULT: PASS" ]; then
+    pass FE6 "the Phase 2 check with --final ends RESULT: PASS"
+  else
+    fail FE6 "the Phase 2 check with --final does not pass: $(printf '%s\n' "$out" | grep '^FAIL' | head -n3 | tr '\n' ';' | cut -c1-300)"
+  fi
+}
+
+edits_stage() {
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
+  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-1 text cannot be read from the repository" >&2; exit 2; }
+  awk -v rows="$TMP/reg.rows" -v ent="$TMP/reg.ent" '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    /^## / { sec = $0; cur = ""; next }
+    /^### FG-/ { cur = $2; next }
+    sec == "## The nine changes" && /^\| FG-/ {
+      split($0, c, "|")
+      print trim(c[2]) "\t" trim(c[3]) "\t" trim(c[4]) "\t" trim(c[5]) "\t" trim(c[6]) "\t" trim(c[7]) "\t" trim(c[8]) >> rows
+      next
+    }
+    sec == "## Change details" && cur != "" && /^- (What changed|Why|My choice|Before|After|Notes): / {
+      l = $0; sub(/^- /, "", l); v = l; sub(/^[^:]*: /, "", v); sub(/:.*$/, "", l)
+      print cur "\t" l "\t" v >> ent
+    }
+  ' "$RG"
+  : >> "$TMP/reg.rows"
+  : >> "$TMP/reg.ent"
+  fe_diff
+  fe1
+  fe2
+  fe3
+  fe4
+  fe5
+  fe6
+}
+
 if [ "$REPLAY" -eq 1 ]; then
   replay
   finish
@@ -615,6 +1095,11 @@ fi
 
 if [ "$STAGE" = state ]; then
   state_stage
+  finish
+fi
+
+if [ "$STAGE" = edits ]; then
+  edits_stage
   finish
 fi
 
