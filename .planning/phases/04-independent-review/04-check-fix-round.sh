@@ -531,12 +531,15 @@ decisions_stage() {
 
     # FD8
     val=$(line_val "- Findings:" "$TMP/b.rec")
-    if [ "$val" != "$(dec_findings "$id")" ]; then
+    cnt=0
+    for f in $(printf '%s\n' "$val" | grep -o -E 'RV-[A-Z]-[0-9]{3}'); do
+      cnt=$((cnt + 1))
+      if ! printf '%s\n' "$fixids" | grep -q -x -F "$f"; then bad8="$bad8 $id($f is not a finding with the disposition fix)"; fi
+    done
+    if [ "$cnt" -eq 0 ]; then
+      bad8="$bad8 $id(names no finding)"
+    elif [ "$val" != "$(dec_findings "$id")" ]; then
       bad8="$bad8 $id(findings line differs from the printed one)"
-    else
-      for f in $(printf '%s\n' "$val" | grep -o -E 'RV-[A-Z]-[0-9]{3}'); do
-        if ! printf '%s\n' "$fixids" | grep -q -x -F "$f"; then bad8="$bad8 $id($f is not a fix finding)"; fi
-      done
     fi
   done
   if [ -n "$bad4" ]; then fail FD4 "the Question or Options bullets differ from the printed ones in:$bad4"; else pass FD4 "the Question and Options bullets of all five decisions equal the printed ones"; fi
