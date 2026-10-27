@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 7/9 plans executed
+**Plans**: 9/9 plans executed
 
 Plans:
 **Wave 1**
@@ -229,11 +229,11 @@ Plans:
 
 **Wave 8** *(blocked on Wave 7 completion; has the consent checkpoint)*
 
-- [ ] 04-08-PLAN.md — Round profile of the review check script with the derived brief and pending note (tracer) and the pre-flight, the owner consents to switch four Devin servers off and on and to send one run set, a test run and the review passes run with containment checks, then the verbatim reports and the consent trail in the round-2 note (REVIEW-01)
+- [x] 04-08-PLAN.md — Round profile of the review check script with the derived brief and pending note (tracer) and the pre-flight, the owner consents to switch four Devin servers off and on and to send one run set, a test run and the review passes run with containment checks, then the verbatim reports and the consent trail in the round-2 note (REVIEW-01)
 
 **Wave 9** *(blocked on Wave 8 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-09-PLAN.md — Plain disposition questions of round 2 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
+- [x] 04-09-PLAN.md — Plain disposition questions of round 2 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
@@ -308,7 +308,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 7/9 | In Progress|  |
+| 4. Independent Review | v1.1 | 9/9 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
