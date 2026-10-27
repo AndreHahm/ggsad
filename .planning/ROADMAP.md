@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 9/9 plans executed
+**Plans**: 9/13 plans executed
 
 Plans:
 **Wave 1**
@@ -234,6 +234,22 @@ Plans:
 **Wave 9** *(blocked on Wave 8 completion; has the owner dispositions checkpoint)*
 
 - [x] 04-09-PLAN.md — Plain disposition questions of round 2 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule; REVIEW-02 is satisfied only when no fix is pending (REVIEW-02)
+
+**Wave 10** *(gap closure from the round-2 dispositions, outcome `fix pending`; blocked on Wave 9 completion; has the owner design-choices checkpoint)*
+
+- [ ] 04-10-PLAN.md — Round 3 profile and round-2 replay of the fix round script (tracer), the owner chooses how each of the three BLOCKING findings is fixed, the specification is edited for those three only and the register is written (REVIEW-02)
+
+**Wave 11** *(blocked on Wave 10 completion; has the owner approval checkpoint)*
+
+- [ ] 04-11-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+
+**Wave 12** *(blocked on Wave 11 completion; has the owner decision and consent checkpoint)*
+
+- [ ] 04-12-PLAN.md — Round 3 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI, the verbatim reports and the round-3 note (REVIEW-01)
+
+**Wave 13** *(blocked on Wave 12 completion; has the owner dispositions checkpoint)*
+
+- [ ] 04-13-PLAN.md — Plain disposition questions of round 3 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
