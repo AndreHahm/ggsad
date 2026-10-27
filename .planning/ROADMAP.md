@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 13/13 plans executed
+**Plans**: 13/17 plans executed
 
 Plans:
 **Wave 1**
@@ -250,6 +250,22 @@ Plans:
 **Wave 13** *(blocked on Wave 12 completion; has the owner dispositions checkpoint)*
 
 - [x] 04-13-PLAN.md — Plain disposition questions of round 3 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+
+**Wave 14** *(gap closure from the round-3 dispositions, outcome `fix pending`; blocked on Wave 13 completion; has the owner design-choices checkpoint)*
+
+- [ ] 04-14-PLAN.md — Round 4 profile and round-3 replay of the fix round script (tracer), the owner chooses how two of the three BLOCKING findings are fixed (the third leaves no choice), the specification is edited for those three only and the register is written (REVIEW-02)
+
+**Wave 15** *(blocked on Wave 14 completion; has the owner approval checkpoint)*
+
+- [ ] 04-15-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+
+**Wave 16** *(blocked on Wave 15 completion; has the owner decision and consent checkpoint)*
+
+- [ ] 04-16-PLAN.md — Round 4 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-4 note (REVIEW-01)
+
+**Wave 17** *(blocked on Wave 16 completion; has the owner dispositions checkpoint)*
+
+- [ ] 04-17-PLAN.md — Plain disposition questions of round 4 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
@@ -324,7 +340,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 13/13 | In Progress|  |
+| 4. Independent Review | v1.1 | 13/17 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |

@@ -5,14 +5,14 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-13-PLAN.md
-last_updated: "2026-10-27T19:01:39.373Z"
+stopped_at: Planned fix round 4 (04-14 to 04-17); 04-13 outcome fix pending
+last_updated: "2026-10-27T19:36:11.000Z"
 last_activity: 2026-10-27
-last_activity_desc: Independent review of fix round 3 reported (plan 04-12)
+last_activity_desc: Planned fix round 4 (plans 04-14 to 04-17) after the owner chose Fix for the three BLOCKING findings of round 3
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 27
+  total_plans: 31
   completed_plans: 27
   percent: 50
 ---
@@ -34,8 +34,8 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ## Current Position
 
 Phase: 4 (Independent Review) — EXECUTING
-Plan: 13 of 13 complete (fix round 3: independent review done, owner chose Fix for the 3 BLOCKING findings; outcome fix pending)
-Status: Plans 04-01 to 04-13 complete; PHASE NOT COMPLETE (fix pending); next step /gsd-plan-phase 4 --gaps (fix round 4) after the owner decides how to go on
+Plan: 13 of 17 complete (fix round 3: independent review done, owner chose Fix for the 3 BLOCKING findings; outcome fix pending); plans 04-14 to 04-17 planned (fix round 4)
+Status: Plans 04-01 to 04-13 complete; plans 04-14 to 04-17 planned; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-14: profile 4 of the fix round script, the owner's two design choices, the three edits)
 Last activity: 2026-10-27 — Owner approval of the exact text of fix round 3 (plan 04-11)
 
 Progress: [█████████░] 93%
