@@ -2288,7 +2288,7 @@ The action `guard` is the verify-only action. It is defined for both method prof
 
 The action performs five verifications and reports the result of each:
 
-1. The history is consistent (Section 24.4) and, where the applicable configuration requires approvals at the level A2 (Section 24.3), it has an anchor.
+1. The history is consistent (Section 24.4) and, where the applicable configuration requires approvals at the level A2 (Section 24.3), it has an anchor or an equivalent mechanism (Section 24.4).
 2. The gate definitions equal the approved ones (Section 24.1).
 3. Every approval is current for the content it names and has the level that the configuration or the gate requires (Section 24.3).
 4. The scope, measured against the base revision, holds (Section 24.5).
@@ -2296,9 +2296,9 @@ The action performs five verifications and reports the result of each:
 
 The action `guard` MUST NOT execute any command that the change or the project defines, that is the commands of gates, the evidence commands, and the interpreter that the project names (Sections 24.9 and 24.10), and an implementation MUST NOT execute one on its behalf.
 
-The result is `success` with `changed` false when all five verifications hold. Otherwise the result is `rejected` with `changed` false and at least one issue that names each verification that failed, with these stable issue codes: `history-inconsistent` and `anchor-missing` for the first verification, `gates-changed` (Section 24.1) for the second, `approval-stale` for the third, `scope-violation` for the fourth, and `hard-failure-active` for the fifth. A verification that needs a state document that the change does not have is reported as not enforced, and it makes the result `rejected` (Sections 24.1 and 25.1).
+The result is `success` with `changed` false when all five verifications hold. Otherwise the result is `rejected` with `changed` false and at least one issue that names each verification that failed, with these stable issue codes: `history-inconsistent` and `anchor-missing` for the first verification (`anchor-missing` is reported when the history has neither an anchor nor an equivalent mechanism, Section 24.4), `gates-changed` (Section 24.1) for the second, `approval-stale` for the third, `scope-violation` for the fourth, and `hard-failure-active` for the fifth. A verification that needs a state document that the change does not have is reported as not enforced, and it makes the result `rejected` (Sections 24.1 and 25.1).
 
-Because the action runs nothing, it proves the record and not the outcome: it cannot confirm that the checks of the change pass, and running them stays a separate task. A pipeline that runs `guard` on a change is the verify-only integration of the method, and enforcement is by the caller, which acts on the result. See AE-303, AE-304, AE-305.
+Because the action runs nothing, it proves the record and not the outcome: it cannot confirm that the checks of the change pass, and running them stays a separate task. A pipeline that runs `guard` on a change is the verify-only integration of the method, and enforcement is by the caller, which acts on the result. See AE-303, AE-304, AE-305, AE-306.
 
 **AE-303 — A guard on a sound change succeeds and starts no program**
 
@@ -2323,6 +2323,14 @@ Then the result is `rejected` with `changed` false and the issue code `gates-cha
 Given a `full` change in the build phase with the status `active` whose record is kept inline, without a state document  
 When the `guard` action is requested  
 Then the result is `rejected` with `changed` false, and an issue states that the verifications that need a state document are not enforced
+
+**AE-306 — A guard accepts an equivalent mechanism in place of an anchor**
+
+- Covers: Section 22.4
+
+Given a project whose configuration requires approvals at the level A2, and a change with a consistent history, no anchor, and an independent append-only record outside the working tree that holds the latest position and hash and is written only after each successful append  
+When the `guard` action is requested  
+Then the first verification holds, the issue code `anchor-missing` is not reported, and the result is `success` with `changed` false when the other four verifications hold
 
 ---
 
