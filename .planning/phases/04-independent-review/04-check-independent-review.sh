@@ -109,7 +109,13 @@
 #                     reply details and the closing line; every field that the owner or the executor completes
 #                     holds the fill marker (@@FILL@@), except that a note without a BLOCKING finding gets the
 #                     determined values. This is the only way a record is created; exit 0 (exit 2 if the
-#                     reports of the note cannot be read)
+#                     reports of the note cannot be read). In round 2 or later (round 3 included) the question of
+#                     a finding is, in plain words and built from the cells of the findings table by the one
+#                     function disp_question that the printer and the check D3 both use: "Finding ID (SEVERITY).
+#                     The reviewer says: SUMMARY What should happen to it: fix, accept, defer or reject?", where a
+#                     full stop is added to SUMMARY only if it does not end in ".", "?" or "!" and the reference
+#                     cell is not part of the question. Round 1 keeps its own wording. The check D5 reads the
+#                     reply date of the approval record of the active round
 #   --finding ID      modifier of --print-disposition-skeleton: print only the block of one finding (any
 #                     finding of the note), to be copied under Other findings dispositioned by the owner
 #   --print-brief     round 2 or later (exit 2 in round 1): print the brief of the round, which is the brief of
