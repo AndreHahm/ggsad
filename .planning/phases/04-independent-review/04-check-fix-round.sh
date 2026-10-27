@@ -74,9 +74,9 @@
 #                     that follows the second independent review (plans 04-10 and 04-11); any other value
 #                     exits 2. Profile 3 reads the approval record, the disposition record and the review note
 #                     of the second round, finds the findings with the prefix RR, has three changes FG-10 to
-#                     FG-12 and nine findings without a disposition, and allows the stage edits only (the
-#                     stage defaults to edits; the stages state and decisions, the approval options and the
-#                     printers of the decisions record exit 2)
+#                     FG-12 and nine findings without a disposition, and allows the stages edits,
+#                     approval-pending and approval-recorded (the stage defaults to edits; the stages state
+#                     and decisions and the printer of the decisions record exit 2)
 #   --replay-round-2  run R2-1 to R2-8 instead of a stage (no other check runs): R2-1 the newest commit
 #                     reachable from HEAD at which the specification holds the result blob of the approval
 #                     record of the fix round (read from --approval-record, default: the record path of the fix
@@ -94,7 +94,22 @@
 #                     refs are not changed. It cannot be combined with --replay-round-1 (exit 2)
 #   -h, --help        print this text and exit 0
 #
-# Profile 3 (--round 3), used by plans 04-10 and 04-11:
+# Profile 3 (--round 3), used by plans 04-10 and 04-11. The profile table (round 2 is the default and holds
+# every value this script has always held):
+#   value                 round 2                              round 3
+#   packet, record        the fix round approval packet and    the packet and the record of fix round 3
+#                         record of the repository             (2026-10-27-normative-spec-fix-round-3-*)
+#   register              the nine-change register             the register of round 3 (three changes)
+#   approval record       the record of round 1                the record of the fix round (round 2)
+#   disposition record    the record of round 1                the record of round 2
+#   text approved before  the text of round 1                  the text of round 2
+#   changes in the packet nine, "my choice" or repair          three, "your decision: <label>" with the
+#                                                              options offered, the decision and its reason
+#   H1 lines              "fix round"                          "fix round 3"
+# The questions Q01 to Q04, their headers and options are the same in both profiles. Under --round 3 the stages
+# approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
+# --print-approval-packet and --print-approval-record-skeleton work, with the checks AP1 to AP5 and AR1 to AR5
+# as described below and the lower bound of the date of AR5 taken from the disposition record of round 2.
 #   --print-decision-questions  prints the three decisions OD-1 to OD-3 that the owner is asked: a line with
 #                     the id and the header, a line "Finding: ID (SEVERITY)", a line "The reviewer says: " and
 #                     the Summary cell of the finding in the findings table of the review note of round 2
@@ -200,6 +215,8 @@ FREG2_PATH=".planning/reviews/2026-10-26-normative-spec-fix-round-register.md"
 APK2_PATH=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-packet.md"
 BRIEF2_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R2.md"
 FREG3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-register.md"
+APK3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-packet.md"
+ARC3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-record.md"
 FIXP=".planning/phases/04-independent-review/04-check-fix-round.sh"
 
 STAGE=""
@@ -218,8 +235,8 @@ PRINT_Q=0
 PRINT_SKEL=0
 PRINT_REG=0
 COMPLETE=0
-PACKET="$PACKET_DEFAULT"
-RECORD="$RECORD_DEFAULT"
+PACKET=""
+RECORD=""
 IDENTITY="$IDENTITY_DEFAULT"
 PRINT_DELTA=0
 PRINT_AQ=0
@@ -281,10 +298,13 @@ esac
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
 [ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1 or --replay-round-2 only" >&2; exit 2; }
 if [ "$ROUND" -eq 3 ]; then
-  [ "$STAGE" = edits ] || { echo "--round 3 allows --stage edits only" >&2; exit 2; }
+  case "$STAGE" in
+    edits|approval-pending|approval-recorded) ;;
+    *) echo "--round 3 allows --stage edits, approval-pending or approval-recorded only" >&2; exit 2 ;;
+  esac
   [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
-  if [ "$PRINT_SKEL" -eq 1 ] || [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
-    echo "--round 3 has no decisions record and no approval printers yet" >&2
+  if [ "$PRINT_SKEL" -eq 1 ]; then
+    echo "--round 3 has no decisions record" >&2
     exit 2
   fi
 fi
@@ -303,6 +323,8 @@ if [ "$ROUND" -eq 3 ]; then
   EX_FIRST=306
   REG_TBL_H="## The three changes"
   REG_BULLETS=("What changed" "Why" "Options" "Owner decision" "Owner reason" "Channel" "Before" "After" "Notes")
+  PACKET_DEFAULT="$APK3_PATH"
+  RECORD_DEFAULT="$ARC3_PATH"
 else
   FPFX="RV"
   NCHG=9
@@ -319,6 +341,8 @@ if [ -z "$APPROVAL" ]; then
 fi
 [ -n "$DISPO" ] || DISPO="$DREC_DEFAULT"
 [ -n "$REGISTER" ] || REGISTER="$FREG_DEFAULT"
+[ -n "$PACKET" ] || PACKET="$PACKET_DEFAULT"
+[ -n "$RECORD" ] || RECORD="$RECORD_DEFAULT"
 
 # decision_data: the fixed texts of the five decisions. One record per line, fields separated by a vertical
 # bar: "D|id|header|findings" opens a decision, "Q|question" is its question, "O|label|description" is one
@@ -1651,6 +1675,11 @@ AQ_HEADS=(Approval Changes Name Date)
 AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. That review is limited: it has one pass over the header and Sections 1 to 8, one pass over Sections 9 to 22 and one pass over the whole text read across sections. Sections 23, 24 and 25 have no pass of their own and are read only by the pass over the whole text. Any later edit of the specification voids the approval.'
 AP_FOLLOWS_2='If you request changes, nothing is approved, the text is edited for them, the packet is printed again and you are asked again.'
 AP_FOLLOWS_3='The tick of the requirement for owner approval from the first round is not changed by any plan and rests, for this text, on the record that follows this packet.'
+if [ "$ROUND" -eq 3 ]; then
+  AP_H1='# Owner approval packet, fix round 3: proposed normative method specification'
+  AR_H1='# Owner approval record, fix round 3: proposed normative method specification'
+  AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. Before anything is sent, you decide which parts of the text that review reads, with the figures of what changed where, and you consent to the exact run. Any later edit of the specification voids the approval.'
+fi
 
 # ap_facts: the pins of the working specification, read once into globals.
 ap_facts() {
@@ -1703,7 +1732,7 @@ print_aq() {
 }
 
 # make_delta: the hunks of the change from the round-1 text to the working specification in $TMP/delta.txt.
-# Return 0, 2 when the two texts are equal, 3 when the round-1 text cannot be read.
+# Return 0, 2 when the two texts are equal, 3 when the previously approved text cannot be read.
 make_delta() {
   git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || return 3
   if cmp -s "$T1" "$SP"; then return 2; fi
@@ -1717,14 +1746,14 @@ make_delta() {
 ap_ready() {
   local n st
   n=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
-  if [ "$n" -ne 9 ]; then echo "the register does not hold nine changes" >&2; return 1; fi
+  if [ "$n" -ne "$NCHG" ]; then echo "the register does not hold $NCHG_W changes" >&2; return 1; fi
   st=$(cut -f5 "$TMP/reg.rows" | sort -u | tr '\n' ' ')
-  if [ "$st" != "drafted " ]; then echo "not all nine changes of the register are drafted" >&2; return 1; fi
+  if [ "$st" != "drafted " ]; then echo "not all $NCHG_W changes of the register are drafted" >&2; return 1; fi
   make_delta
   case $? in
     0) ;;
-    2) echo "the working specification equals the text approved in round 1: there is no change to show" >&2; return 1 ;;
-    *) echo "the round-1 text cannot be read from the repository" >&2; return 1 ;;
+    2) echo "the working specification equals the text approved in round $((ROUND - 1)): there is no change to show" >&2; return 1 ;;
+    *) echo "the round-$((ROUND - 1)) text cannot be read from the repository" >&2; return 1 ;;
   esac
   return 0
 }
@@ -1738,18 +1767,30 @@ print_ap() {
   total=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
   printf '%s\n\n%s\n\n' "$AP_H1" "$AP_PENDING"
   printf '## What you are asked\n\n'
-  printf 'On %s the owner approved the text of the specification. The independent reviewer then reported its findings, and the owner asked for eleven of them to be fixed. The text has been changed in nine places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
-  printf '## The nine changes\n\n| # | What changed | Why | Whose reading |\n|---|---|---|---|\n'
+  if [ "$ROUND" -eq 3 ]; then
+    printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it a second time; the owner asked for the three findings that the reviewer rated BLOCKING, its strongest rating, to be fixed, and chose how. The text has been changed in three places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
+  else
+    printf 'On %s the owner approved the text of the specification. The independent reviewer then reported its findings, and the owner asked for eleven of them to be fixed. The text has been changed in nine places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
+  fi
+  printf '%s\n\n| # | What changed | Why | Whose reading |\n|---|---|---|---|\n' "$REG_TBL_H"
   while IFS=$'\t' read -r g _ _ k _ _ _; do
     n=$((n + 1))
-    printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ap_reading "$k")"
+    if [ "$ROUND" -eq 3 ]; then
+      printf '| %s | %s | %s | your decision: %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ev "$g" "Owner decision")"
+    else
+      printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ap_reading "$k")"
+    fi
   done < "$TMP/reg.rows"
   printf '\n## Before and after\n\n'
   n=0
   while IFS=$'\t' read -r g t f k _ _ _; do
     n=$((n + 1))
     printf '### Change %s of %s: %s\n\n' "$n" "$total" "$t"
-    printf -- '- Findings: %s\n- My choice: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "My choice")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
+    if [ "$ROUND" -eq 3 ]; then
+      printf -- '- Findings: %s\n- Options offered: %s\n- Your decision: %s; reason: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "Options")" "$(ev "$g" "Owner decision")" "$(ev "$g" "Owner reason")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
+    else
+      printf -- '- Findings: %s\n- My choice: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "My choice")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
+    fi
   done < "$TMP/reg.rows"
   printf '## The text under approval\n\n| Field | Value |\n|---|---|\n'
   ap_pin_rows
@@ -1757,7 +1798,7 @@ print_ap() {
   hunks=$(grep -c '^@@' "$TMP/delta.txt")
   added=$(grep -c '^+' "$TMP/delta.txt")
   removed=$(grep -c '^-' "$TMP/delta.txt")
-  printf 'The change from the text approved in round 1 has %s hunks, adds %s lines and removes %s lines.\n\n' "$hunks" "$added" "$removed"
+  printf 'The change from the text approved in round %s has %s hunks, adds %s lines and removes %s lines.\n\n' "$((ROUND - 1))" "$hunks" "$added" "$removed"
   maxrun=$(grep -o '`*' "$TMP/delta.txt" | awk '{ if (length($0) > m) m = length($0) } END { print m + 0 }')
   fl=3
   if [ "$maxrun" -ge 3 ]; then fl=$((maxrun + 1)); fi
@@ -1862,7 +1903,7 @@ approval_pending_stage() {
 
   # AP4
   m=""
-  out=$(bash "$SELF" --stage edits --complete --register "$REGISTER" --spec "$SPECFILE" --base "$BASE" 2>&1)
+  out=$(bash "$SELF" --round "$ROUND" --stage edits --complete --register "$REGISTER" --spec "$SPECFILE" --base "$BASE" 2>&1)
   rc=$?
   last=$(printf '%s\n' "$out" | tail -n1)
   if [ "$rc" -ne 0 ] || [ "$last" != "RESULT: PASS" ]; then m="the stage edits with --complete does not pass ($last)"; fi
@@ -1996,7 +2037,7 @@ approval_recorded_stage() {
   elif ! [[ "$drdate" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
     m="the owner disposition date of the disposition record is not a date"
   elif [[ "$q4" < "$drdate" ]]; then
-    m="the date [$q4] is earlier than the owner disposition date of round 1 [$drdate]"
+    m="the date [$q4] is earlier than the owner disposition date of round $((ROUND - 1)) [$drdate]"
   elif [ "$(pin_count "$TMP/rc.pins" "Owner reply")" -ne 1 ] || [ -z "$(trim_ws "$(pin_raw "$TMP/rc.pins" "Owner reply")")" ]; then
     m="the Owner reply row is missing or empty"
   fi
@@ -2007,8 +2048,8 @@ if [ "$PRINT_DELTA" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
   make_delta
   case $? in
     0) cat "$TMP/delta.txt"; exit 0 ;;
-    2) echo "the working specification equals the text approved in round 1" >&2; exit 2 ;;
-    *) echo "the round-1 text cannot be read from the repository" >&2; exit 2 ;;
+    2) echo "the working specification equals the text approved in round $((ROUND - 1))" >&2; exit 2 ;;
+    *) echo "the round-$((ROUND - 1)) text cannot be read from the repository" >&2; exit 2 ;;
   esac
 fi
 if [ "$PRINT_AQ" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
