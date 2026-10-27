@@ -4,20 +4,33 @@
 # the scope, status, encoding and self-containment of the note.
 #
 # Usage: 04-check-independent-review.sh [options]
-#   --round N         the round profile, 1 (default, behaves as it always has) or 2 (any other value exits 2).
+#   --round N         the round profile, 1 (default, behaves as it always has), 2 or 3 (any other value exits 2).
 #                     Round 2 changes only names and the run set: the pass ids carry the prefix RR (the six
 #                     rows of the brief's pass table RR-A, RR-B, RR-C, RR-D, RR-E, RR-X; the test run RR-P; the
 #                     findings RR-<letter>-NNN), the run set is the passes RR-A, RR-B and RR-X (defined once, as
 #                     PASS_IDS with the number word NP_WORD), and the defaults of --note, --approval-record,
 #                     --approval-packet, --brief and --record are those of round 2 (table below). The check Z1
 #                     calls the approval check of the fix round in its stage approval-recorded instead of the
-#                     Phase 3 check
-#                       default of          round 1                              round 2
-#                       --note              the note of round 1                  the note of round 2
-#                       --approval-record   the owner approval record            the approval record of the fix round
-#                       --approval-packet   the owner approval packet            the approval packet of the fix round
-#                       --brief             the brief                            the brief of round 2 (printed)
-#                       --record            the disposition record               the disposition record of round 2
+#                     Phase 3 check. Round 3 changes names and the run set only, in the same way: the prefix RT
+#                     (RT-A, RT-B, RT-C, RT-D, RT-E, RT-X; the test run RT-P; the findings RT-<letter>-NNN), the
+#                     defaults of the table below, and a run set that is the choice of the repository owner (the
+#                     option --passes, else the Passes table of the note, else it is not defined and every option
+#                     or stage that needs it exits 2). The check Z1 calls the approval check of the fix round with
+#                     --round 3. Wherever round 2 is tested, round 2 or later is tested
+#                       default of          round 1                              round 2                              round 3
+#                       --note              the note of round 1                  the note of round 2                  the note of round 3
+#                       --approval-record   the owner approval record            the approval record of the fix round the approval record of fix round 3
+#                       --approval-packet   the owner approval packet            the approval packet of the fix round the approval packet of fix round 3
+#                       --brief             the brief                            the brief of round 2 (printed)       the brief of round 3 (printed)
+#                       --record            the disposition record               the disposition record of round 2    the disposition record of round 3
+#   --passes LIST     round 3 only (exit 2 in the other rounds): the run set, a comma-separated list of ids of the
+#                     brief's pass table of the active prefix, in table order, without a repeat, at least one (for
+#                     example RT-A,RT-D,RT-X); any other value exits 2. When absent the run set is read from the
+#                     Passes table of the note, if the note holds at least one row of the prefix
+#   --print-consent-question MODEL
+#                     round 3 only: print on one line the question put to the repository owner for the run set
+#                     and the model (the number word or one review pass, the pass ids, the run set id and the
+#                     model); the check CT1 compares the recorded question with this output; needs the run set
 #   --stage STAGE     pins (default): the pin and note checks listed below; brief: those and the checks of
 #                     the review brief; reported: those with the reported forms of T1, P0 and N1, and the checks
 #                     CT1, RPS, RP1 to RP9 on each quoted report, F1 and F2; dispositioned: those with the
@@ -69,7 +82,7 @@
 #   --pass ID        the pass of the report: RV-A, RV-B, RV-C, RV-D, RV-E or RV-X (exit 2 for another id);
 #                     RV-P only together with --pilot-dir. In round 2 the ids of the run set RR-A, RR-B and RR-X,
 #                     and RR-P only together with --pilot-dir; every other id, RR-C, RR-D and RR-E included,
-#                     exits 2
+#                     exits 2. In round 3 the ids of the run set and RT-P (with --pilot-dir) only
 #   --pilot-dir DIR   pilot mode of --report-file, valid only with --pass RV-P (and --pass RV-P needs it): the
 #                     report is checked against the synthetic pilot inputs in DIR (the specification text
 #                     DIR/SPEC.md, the base text DIR/BASE.md, the pilot SHA-256 values, the whole of DIR/SPEC.md
@@ -99,22 +112,28 @@
 #                     reports of the note cannot be read)
 #   --finding ID      modifier of --print-disposition-skeleton: print only the block of one finding (any
 #                     finding of the note), to be copied under Other findings dispositioned by the owner
-#   --print-brief     round 2 only (exit 2 in round 1): print the brief of round 2, which is the brief of round 1
-#                     (as held in HEAD) with exactly two substitutions: the pass-id prefix RV- becomes RR- (for a
-#                     pass letter or P) and the SHA-256 of SPEC.md in the table of inputs becomes that of the
-#                     approved text. The pins are read from the owner approval record, so it works before the
-#                     note exists
+#   --print-brief     round 2 or later (exit 2 in round 1): print the brief of the round, which is the brief of
+#                     round 1 (as held in HEAD) with exactly two substitutions: the pass-id prefix RV- becomes
+#                     the prefix of the round (for a pass letter or P) and the SHA-256 of SPEC.md in the table of
+#                     inputs becomes that of the approved text. The pins are read from the owner approval record,
+#                     so it works before the note exists
 #   --print-note-skeleton
-#                     round 2 only: print the pending review note of round 2, derived from the owner approval
+#                     round 2 or later: print the pending review note, derived from the owner approval
 #                     record and the brief (the charter and the severity scale), with the Passes table of the
-#                     run set and the sentence that names the passes not run; this is the only way the note is
-#                     created
+#                     run set and the sentence that names the passes not run (none when all six are run); this
+#                     is the only way the note is created
 #   --print-pass-scope
-#                     round 2 only: for each of the six passes of the brief's table one line with the pass id,
-#                     the line range, the hunks and added lines of the difference between the text of round 1
-#                     and the specification that fall in the range, the word changed or unchanged and the words
-#                     run or not run (membership in the run set); then the line "Run set passes: " and the line
-#                     "Read only by the cross-check pass RR-X: " with the Scope cells of the passes not run
+#                     round 2 or later: for each of the six passes of the brief's table one line with the pass
+#                     id, the line range, the hunks and added lines of the difference between the previously
+#                     approved text and the specification that fall in the range, the word changed or unchanged
+#                     and the words run or not run (membership in the run set); then the line "Run set passes: "
+#                     and the line "Read only by the cross-check pass RR-X: " with the Scope cells of the passes
+#                     not run. Round 3 prints the same lines, and: without a run set the six lines carry no
+#                     run or not run and the last line is "Run set: not chosen yet"; with a run set the line
+#                     "Read only by the cross-check pass RT-X: " is replaced by "Not read by any pass of the run
+#                     set: " when RT-X is not in the run set, and the last line is "Changed places read by no pass
+#                     of the run set: " with the changed places (each as Section N, lines A-B) that lie in no
+#                     range of a pass of the run set, or none
 #   -h, --help        print this text and exit 0
 #
 # Checks of stage pins, all on the review note: E1 no byte order mark and valid UTF-8, E2 LF only, one final
@@ -142,7 +161,10 @@
 # requires the sentence that names the passes not run, once, in the Passes section; and two checks are added to
 # stage brief: BR2 the brief equals the output of --print-brief character for character, RS1 each section pass
 # of the run set (RR-A and RR-B) holds at least one changed line between the text of round 1 and the approved
-# text (otherwise the run set needs the owner's decision again through a revision of the plan).
+# text (otherwise the run set needs the owner's decision again through a revision of the plan). In round 3 the
+# same two checks run for round 2 or later: RS1 is a warning (the owner chose the run set), N2 requires the
+# sentence that names the passes not run once when at least one pass is not run and no such sentence when all six
+# are run, and CT1 requires the recorded Consent question to equal the output of --print-consent-question.
 #
 # Checks of stage reported, in addition to the checks above in their reported forms (T1: the status lines read
 # "- Independent review: reported", "- Owner dispositions: pending", "- Blocking findings: N"; P0: the three
@@ -226,8 +248,8 @@ for cur_arg in "$@"; do
   prev_arg="$cur_arg"
 done
 case "$ROUND" in
-  1|2) ;;
-  *) echo "--round must be 1 or 2" >&2; exit 2 ;;
+  1|2|3) ;;
+  *) echo "--round must be 1, 2 or 3" >&2; exit 2 ;;
 esac
 if [ "$ROUND" -eq 1 ]; then
   PFX="RV"
@@ -240,7 +262,7 @@ if [ "$ROUND" -eq 1 ]; then
   REC_H1="# Review disposition record: proposed normative method specification"
   PASS_IDS=(RV-A RV-B RV-C RV-D RV-E RV-X)
   NP_WORD="six"
-else
+elif [ "$ROUND" -eq 2 ]; then
   PFX="RR"
   NOTE_DEFAULT=".planning/reviews/2026-10-26-normative-spec-independent-review-round-2.md"
   ARC_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-record.md"
@@ -251,6 +273,19 @@ else
   REC_H1="# Review disposition record, round 2: proposed normative method specification"
   PASS_IDS=(RR-A RR-B RR-X)
   NP_WORD="three"
+else
+  # Round 3: the run set is the owner's choice and is not typed here. It comes from --passes or from the Passes
+  # table of the note (set after the options are read); until then PASS_IDS is empty.
+  PFX="RT"
+  NOTE_DEFAULT=".planning/reviews/2026-10-27-normative-spec-independent-review-round-3.md"
+  ARC_DEFAULT=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-record.md"
+  APK_DEFAULT=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-packet.md"
+  BRIEF_DEFAULT=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R3.md"
+  RECORD_DEFAULT=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-3.md"
+  NOTE_H1="# Independent review, round 3: proposed normative method specification"
+  REC_H1="# Review disposition record, round 3: proposed normative method specification"
+  PASS_IDS=()
+  NP_WORD=""
 fi
 TABLE_IDS=("$PFX-A" "$PFX-B" "$PFX-C" "$PFX-D" "$PFX-E" "$PFX-X")
 TEST_ID="$PFX-P"
@@ -314,6 +349,8 @@ SKEL_FINDING=""
 PRINT_BRIEF=0
 PRINT_NOTE_SKEL=0
 PRINT_SCOPE=0
+PASSES_ARG=""
+PRINT_CQ=""
 
 usage() {
   awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$0"
@@ -355,6 +392,8 @@ while [ "$#" -gt 0 ]; do
     --print-brief) PRINT_BRIEF=1; shift ;;
     --print-note-skeleton) PRINT_NOTE_SKEL=1; shift ;;
     --print-pass-scope) PRINT_SCOPE=1; shift ;;
+    --passes) need_value "$@"; PASSES_ARG="$2"; shift 2 ;;
+    --print-consent-question) need_value "$@"; PRINT_CQ="$2"; shift 2 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "unknown option: $1" >&2; usage >&2; exit 2 ;;
   esac
@@ -372,9 +411,70 @@ if [ "$ROUND" -eq 1 ] && { [ "$PRINT_BRIEF" -eq 1 ] || [ "$PRINT_NOTE_SKEL" -eq 
   echo "--print-brief, --print-note-skeleton and --print-pass-scope are used with --round 2 only" >&2
   exit 2
 fi
-# The printers of round 2 read the pins from the owner approval record, so that they work before the note exists.
+if [ "$ROUND" -lt 3 ] && { [ -n "$PASSES_ARG" ] || [ -n "$PRINT_CQ" ]; }; then
+  echo "--passes and --print-consent-question are used with --round 3 only" >&2
+  exit 2
+fi
+
+# The run set of round 3 (the owner's choice, never a default of the script). set_run_set SOURCE ID...: accept the
+# ids as the run set when each is a row of the brief's pass table, in table order, without a repeat, at least one;
+# set PASS_IDS and the number word NP_WORD from the count. Any other list exits 2.
+set_run_set() {
+  local src=$1 id k found last=-1
+  local -a words=(zero one two three four five six)
+  shift
+  if [ "$#" -eq 0 ]; then echo "$src holds no pass id" >&2; exit 2; fi
+  for id in "$@"; do
+    found=-1
+    for k in "${!TABLE_IDS[@]}"; do
+      if [ "${TABLE_IDS[$k]}" = "$id" ]; then found=$k; fi
+    done
+    if [ "$found" -lt 0 ]; then echo "$src: [$id] is not a pass of the brief's table (${TABLE_IDS[*]})" >&2; exit 2; fi
+    if [ "$found" -le "$last" ]; then echo "$src: the ids must be in table order without a repeat ([$id] is out of order or repeated)" >&2; exit 2; fi
+    last=$found
+  done
+  PASS_IDS=("$@")
+  NP_WORD=${words[$#]}
+}
+
+# need_run_set: exit 2 when the run set is not defined (round 3 before --passes is given and before the note exists).
+need_run_set() {
+  if [ "${#PASS_IDS[@]}" -eq 0 ]; then
+    echo "the run set is not defined (give --passes or create the note)" >&2
+    exit 2
+  fi
+}
+
+if [ "$ROUND" -ge 3 ]; then
+  if [ -n "$PASSES_ARG" ]; then
+    [[ "$PASSES_ARG" =~ ^[^,]+(,[^,]+)*$ ]] || { echo "--passes must be a comma-separated list of pass ids" >&2; exit 2; }
+    IFS=',' read -r -a passes_arg_ids <<< "$PASSES_ARG"
+    set_run_set "--passes" "${passes_arg_ids[@]}"
+  elif [ -f "$NOTE" ] && [ -r "$NOTE" ]; then
+    # The run set is the first cells of the rows of the Passes table of the note.
+    mapfile -t note_pass_ids < <(awk -F'|' -v pfx="$PFX" '
+      /^```/ { fence = !fence }
+      !fence && /^## / { on = ($0 == "## Passes"); next }
+      on && !fence && $0 ~ ("^\\| " pfx "-") { id = $2; gsub(/^[ \t]+|[ \t]+$/, "", id); print id }
+    ' "$NOTE")
+    if [ "${#note_pass_ids[@]}" -gt 0 ]; then set_run_set "the Passes table of the note" "${note_pass_ids[@]}"; fi
+  fi
+  if [ -n "$PRINT_RUNSET" ] || [ -n "$PRINT_CQ" ] || [ -n "$PRINT_SECTIONS" ] || [ "$PRINT_NOTE_SKEL" -eq 1 ] \
+    || [ "$PRINT_TABLE" -eq 1 ] || [ "$PRINT_COUNTS" -eq 1 ] || [ "$PRINT_SKEL" -eq 1 ] || [ "$STAGE" != pins ]; then
+    need_run_set
+  fi
+  if [ -n "$REPORT_PASS" ] && [ "$REPORT_PASS" != "$TEST_ID" ]; then need_run_set; fi
+fi
+
+# The printers of rounds 2 and 3 read the pins from the owner approval record, so that they work before the note
+# exists. In round 3 so do the printers and verifiers of the pre-flight while the note does not exist yet.
 PIN_SRC_ARC=0
 if [ "$PRINT_BRIEF" -eq 1 ] || [ "$PRINT_NOTE_SKEL" -eq 1 ] || [ "$PRINT_SCOPE" -eq 1 ]; then PIN_SRC_ARC=1; fi
+if [ "$ROUND" -ge 3 ] && [ ! -f "$NOTE" ] \
+  && { [ -n "$PRINT_SNAP" ] || [ "$PRINT_HASHES" -eq 1 ] || [ -n "$PRINT_PILOT" ] || [ -n "$PRINT_RUNSET" ] || [ -n "$PRINT_CQ" ] \
+    || [ -n "$VERIFY_DIR" ] || [ -n "$VERIFY_OUT" ] || [ -n "$REPORT_FILE" ]; }; then
+  PIN_SRC_ARC=1
+fi
 if [ -n "$VERIFY_OUT" ]; then
   if [ -n "$REPORT_PASS" ] && [ "$REPORT_PASS" != "$TEST_ID" ] && ! in_run_set "$REPORT_PASS"; then
     echo "--pass must be $(join_or "${PASS_IDS[@]}" "$TEST_ID")" >&2
@@ -646,6 +746,18 @@ print_run_set() {
   printf 'Run set: %s\n' "${h:0:12}"
 }
 
+# print_consent_question MODEL: round 3. The question put to the repository owner for the run set and the model, on
+# one line, built from the run set and never typed: the count (one review pass, or the number word and review
+# passes), the pass ids, the run set id and the model. Returns 1 when the run set id cannot be built.
+print_consent_question() {
+  local rid count_phrase
+  rid=$(print_run_set "$1" | tail -n1)
+  rid=${rid#Run set: }
+  [[ "$rid" =~ ^[0-9a-f]{12}$ ]] || return 1
+  if [ "${#PASS_IDS[@]}" -eq 1 ]; then count_phrase="one review pass"; else count_phrase="$NP_WORD review passes"; fi
+  printf 'May I send the test run and the %s %s (run set %s, model %s) to Devin now? Sending cannot be undone, and no run is repeated without asking you again.\n' "$count_phrase" "$(join_and "${PASS_IDS[@]}")" "$rid" "$1"
+}
+
 # verify_snapshot DIR: SN1 and SN2 on an inputs directory (the pilot files with --pilot), printed as check lines.
 INPUT_NAMES=(SPEC.md BASE.md DECISIONS.md REQUIREMENTS.md BRIEF.md)
 verify_snapshot() {
@@ -710,6 +822,11 @@ if [ -n "$PRINT_RUNSET" ]; then
   print_run_set "$PRINT_RUNSET" > "$TMP/runset.out"
   if [ "$(wc -l < "$TMP/runset.out" | tr -d ' ')" -ne 13 ]; then echo "cannot build the run set" >&2; exit 2; fi
   cat "$TMP/runset.out"
+  exit 0
+fi
+if [ -n "$PRINT_CQ" ]; then
+  print_consent_question "$PRINT_CQ" > "$TMP/cq.out" || { echo "cannot build the consent question" >&2; exit 2; }
+  cat "$TMP/cq.out"
   exit 0
 fi
 if [ "$PRINT_HASHES" -eq 1 ]; then
@@ -871,15 +988,15 @@ pass_line() {
   esac
 }
 
-# print_brief: the brief of round 2, printed from the brief of round 1 (the blob in HEAD) with exactly two
-# substitutions: every pass id of the form RV- followed by a pass letter or P becomes RR- with the same letter, and
-# the SHA-256 of SPEC.md in the table of inputs becomes the SHA-256 of the approved text (as input_hashes
-# prints it). Nothing else changes. Returns 1 when it cannot be built.
+# print_brief: the brief of round 2 or later, printed from the brief of round 1 (the blob in HEAD) with exactly two
+# substitutions: every pass id of the form RV- followed by a pass letter or P becomes the prefix of the round (RR-
+# or RT-) with the same letter, and the SHA-256 of SPEC.md in the table of inputs becomes the SHA-256 of the
+# approved text (as input_hashes prints it). Nothing else changes. Returns 1 when it cannot be built.
 print_brief() {
   local new
   new=$(input_hashes | awk '$1 == "SPEC.md" { print $2 }')
   [[ "$new" =~ ^[0-9a-f]{64}$ ]] || return 1
-  git cat-file blob "HEAD:$BRIEF_R1" 2> /dev/null | sed -e 's/RV-\([A-EXP]\)/RR-\1/g' -e "/^| SPEC\\.md |/s/[0-9a-f]\\{64\\}/$new/"
+  git cat-file blob "HEAD:$BRIEF_R1" 2> /dev/null | sed -e "s/RV-\\([A-EXP]\\)/$PFX-\\1/g" -e "/^| SPEC\\.md |/s/[0-9a-f]\\{64\\}/$new/"
   [ "${PIPESTATUS[0]}" -eq 0 ]
 }
 
@@ -908,7 +1025,11 @@ scope_sentence() {
   local -a nr_ids=()
   mapfile -t nr_ids < <(not_run_ids)
   [ "${#nr_ids[@]}" -gt 0 ] || return 1
-  printf "The passes %s of the brief's table were not run. Their scopes (%s) were read only by the cross-check pass %s-X.\n" "$(join_and "${nr_ids[@]}")" "$(not_run_scopes)" "$PFX"
+  if [ "$ROUND" -ge 3 ] && ! in_run_set "$PFX-X"; then
+    printf "The passes %s of the brief's table were not run. Their scopes (%s) were not read by any pass of this round.\n" "$(join_and "${nr_ids[@]}")" "$(not_run_scopes)"
+  else
+    printf "The passes %s of the brief's table were not run. Their scopes (%s) were read only by the cross-check pass %s-X.\n" "$(join_and "${nr_ids[@]}")" "$(not_run_scopes)" "$PFX"
+  fi
 }
 
 # compute_scope: for each pass of the pass table of the brief one line "id TAB from TAB to TAB hunks TAB added
@@ -951,7 +1072,35 @@ compute_scope() {
   return 0
 }
 
-# print_note_skeleton: the pending note of round 2, derived and never typed (round 2 only). The pins are the
+# unread_changed_places: round 3. The changed places of the approved text (the hunks of the difference between the
+# previously approved text and the specification, cut at the boundaries of the section passes) that lie in no range
+# of a pass of the run set, each as "Section N, lines A-B" (lines before the first numbered section: "Header, lines
+# A-B") and joined by "; ", or the word none. The cross-check pass reads the whole text, so with it in the run set
+# every place is read. Needs compute_scope (the files scope.tsv and scope.hunks, and heads.tsv).
+unread_changed_places() {
+  local out
+  if in_run_set "$PFX-X"; then printf 'none'; return 0; fi
+  out=$(awk -F'\t' -v x="$PFX-X" '
+    FILENAME == ARGV[1] { hid[++nh] = $1; hln[nh] = $2; next }
+    FILENAME == ARGV[2] { if ($1 != x && $7 == "not run") { na++; ra[na] = $2; rb[na] = $3 }; next }
+    {
+      s = $1; d = $2
+      if (d > 0) { lo = s; hi = s + d - 1 } else { lo = (s < 1 ? 1 : s); hi = lo }
+      for (i = 1; i <= na; i++) {
+        p = (lo > ra[i] ? lo : ra[i]); q = (hi < rb[i] ? hi : rb[i])
+        if (p <= q) {
+          sec = "Header"
+          for (j = 1; j <= nh; j++) if (hln[j] + 0 <= p) sec = "Section " hid[j]
+          printf "%s%s, lines %d-%d", (n++ ? "; " : ""), sec, p, q
+        }
+      }
+    }
+  ' "$TMP/heads.tsv" "$TMP/scope.tsv" "$TMP/scope.hunks")
+  if [ -z "$out" ]; then out="none"; fi
+  printf '%s' "$out"
+}
+
+# print_note_skeleton: the pending note of round 2 or later, derived and never typed. The pins are the
 # first seven rows of the owner approval record; the charter and the severity scale are those of the brief
 # (the brief file when it exists, otherwise the brief printed by print_brief).
 print_note_skeleton() {
@@ -983,8 +1132,9 @@ print_note_skeleton() {
   printf '\n## Passes\n\n| Pass | Scope |\n|---|---|\n'
   for l in "${PASS_IDS[@]}"; do awk -F'\t' -v i="$l" '$1 == i { printf "| %s | %s |\n", $1, $2 }' "$TMP/passes.tsv"; done
   printf '\n'
-  scope_sentence
-  printf '\n## Reports\n\nNo report has been captured yet.\n\n## Findings\n\nNo findings table has been derived yet.\n\n'
+  # The sentence that names the passes not run (nothing, and no second blank line, when all six passes are run).
+  if scope_sentence > "$TMP/skel.scope"; then cat "$TMP/skel.scope"; printf '\n'; fi
+  printf '## Reports\n\nNo report has been captured yet.\n\n## Findings\n\nNo findings table has been derived yet.\n\n'
   printf '## Requestor notes\n\n'
   printf -- '- The Requestor checked the format of each report and whether each reference resolves in the pinned text; it did not assess whether any finding is correct.\n'
   printf -- "- Independence rests on the reviewer's different product, vendor and model, on separate sessions that share no context with the Requestor, and on the reviewer's own statement of identity in each report; the repository cannot show more.\n"
@@ -1474,7 +1624,7 @@ REC_NA_FOLLOWS='The independent review returned no blocking finding, so there is
 # disp_question ID: the question put to the owner for the finding ID, built character for character from the
 # cells of the derived findings table (the only implementation; the printer and D3 both use it).
 disp_question() {
-  if [ "$ROUND" = "2" ]; then
+  if [ "$ROUND" -ge 2 ]; then
     awk -F'\t' -v i="$1" '$1 == i { s = $4; if (s !~ /[.?!]$/) s = s "."; print "Finding " $1 " (" $2 "). The reviewer says: " s " What should happen to it: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
   else
     awk -F'\t' -v i="$1" '$1 == i { print "Finding " $1 " (" $2 "). Reference: " $3 ". Summary: " $4 ". What is your disposition: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
@@ -1549,11 +1699,30 @@ if [ "$PRINT_NOTE_SKEL" -eq 1 ]; then
 fi
 if [ "$PRINT_SCOPE" -eq 1 ]; then
   compute_scope || { echo "cannot compute the scope: $SCOPE_MSG" >&2; exit 2; }
+  if [ "$ROUND" -ge 3 ] && [ "${#PASS_IDS[@]}" -eq 0 ]; then
+    # Round 3 before the owner has chosen: the facts of the six passes only, with no run or not run.
+    while IFS=$'\t' read -r id a b h ad ch st; do
+      printf '%s lines %s-%s: hunks %s, added lines %s, %s\n' "$id" "$a" "$b" "$h" "$ad" "$ch"
+    done < "$TMP/scope.tsv"
+    printf 'Run set: not chosen yet\n'
+    exit 0
+  fi
   while IFS=$'\t' read -r id a b h ad ch st; do
     printf '%s lines %s-%s: hunks %s, added lines %s, %s, %s\n' "$id" "$a" "$b" "$h" "$ad" "$ch" "$st"
   done < "$TMP/scope.tsv"
   printf 'Run set passes: %s\n' "${PASS_IDS[*]}"
-  printf 'Read only by the cross-check pass %s-X: %s\n' "$PFX" "$(not_run_scopes)"
+  if [ "$ROUND" -le 2 ]; then
+    printf 'Read only by the cross-check pass %s-X: %s\n' "$PFX" "$(not_run_scopes)"
+    exit 0
+  fi
+  nr_scopes=$(not_run_scopes)
+  if [ -z "$nr_scopes" ]; then nr_scopes="none"; fi
+  if in_run_set "$PFX-X"; then
+    printf 'Read only by the cross-check pass %s-X: %s\n' "$PFX" "$nr_scopes"
+  else
+    printf 'Not read by any pass of the run set: %s\n' "$nr_scopes"
+  fi
+  printf 'Changed places read by no pass of the run set: %s\n' "$(unread_changed_places)"
   exit 0
 fi
 
@@ -1633,10 +1802,13 @@ fi
 if [ -n "$a2" ]; then fail A2 "$a2"; else pass A2 "the first seven pin rows equal the owner approval record; the record path and blob are right"; fi
 
 # Z1: the Phase 3 check in its recorded stage passes (round 2: the approval check of the fix round in its
-# stage approval-recorded).
+# stage approval-recorded; round 3: the same check with --round 3).
 if [ "$ROUND" -eq 1 ]; then
   z1_out=$(bash "$CHK3" --stage recorded --packet "$PACKET" --record "$APPROVAL" --spec "$SPECFILE" --base "$BASE" 2>&1)
   z1_what="the Phase 3 check in stage recorded"
+elif [ "$ROUND" -ge 3 ]; then
+  z1_out=$(bash "$FIXCHK" --round "$ROUND" --stage approval-recorded --packet "$PACKET" --record "$APPROVAL" --spec "$SPECFILE" --base "$BASE" 2>&1)
+  z1_what="the fix round $ROUND approval check in stage approval-recorded"
 else
   z1_out=$(bash "$FIXCHK" --stage approval-recorded --packet "$PACKET" --record "$APPROVAL" --spec "$SPECFILE" --base "$BASE" 2>&1)
   z1_what="the fix round approval check in stage approval-recorded"
@@ -1823,8 +1995,8 @@ if [ "$STAGE" = brief ] || [ "$RLIKE" -eq 1 ]; then
   fi
   if [ -n "$v1" ]; then fail V1 "$v1"; else pass V1 "the pass table partitions the text: ${v1_ranges%; }"; fi
 
-  if [ "$ROUND" -eq 2 ]; then
-    # BR2: the brief of round 2 is the brief of round 1 with exactly two substitutions, printed by --print-brief.
+  if [ "$ROUND" -ge 2 ]; then
+    # BR2: the brief of round 2 or later is the brief of round 1 with exactly two substitutions, printed by --print-brief.
     if print_brief > "$TMP/br2.out" 2> /dev/null && cmp -s "$TMP/br2.out" "$BR"; then
       pass BR2 "the brief equals the output of --print-brief character for character (the brief of round 1 with the pass ids and the SHA-256 of the approved text substituted)"
     else
@@ -1832,7 +2004,8 @@ if [ "$STAGE" = brief ] || [ "$RLIKE" -eq 1 ]; then
     fi
 
     # RS1: each section pass of the run set (every pass of the run set other than the cross-check pass) holds at
-    # least one changed line between the text of round 1 and the approved text.
+    # least one changed line between the previously approved text and the approved text. In round 3 the owner chose
+    # the run set, so a section pass without a changed line is a warning and not a failure.
     rs1=""
     rs1_list=""
     if [ -n "$v1" ]; then
@@ -1844,13 +2017,23 @@ if [ "$STAGE" = brief ] || [ "$RLIKE" -eq 1 ]; then
         [ "$id" != "$PFX-X" ] || continue
         in_run_set "$id" || continue
         if [ "$ch" != changed ]; then
+          if [ "$ROUND" -ge 3 ]; then
+            warn RS1 "the pass $id of the run set holds no changed line (lines $a-$b)"
+            continue
+          fi
           rs1="the pass $id of the run set holds no changed line (lines $a-$b): the owner decides the run set again through a revision of the plan"
           break
         fi
         rs1_list+="$id hunks $h, added lines $ad; "
       done < "$TMP/scope.tsv"
     fi
-    if [ -n "$rs1" ]; then fail RS1 "$rs1"; else pass RS1 "each section pass of the run set holds changed lines: ${rs1_list%; }"; fi
+    if [ -n "$rs1" ]; then
+      fail RS1 "$rs1"
+    elif [ "$ROUND" -ge 3 ]; then
+      pass RS1 "the changed lines of the passes are computed (section passes of the run set with changed lines: ${rs1_list%; })"
+    else
+      pass RS1 "each section pass of the run set holds changed lines: ${rs1_list%; }"
+    fi
   fi
 
   # B2: no trace of the Requestor's conclusions (the pattern list lives here).
@@ -1962,11 +2145,15 @@ HEADINGS
       n2="the $NP_WORD pass rows (Pass and Scope) of the note are not the brief's"
     fi
   fi
-  if [ -z "$n2" ] && [ "$ROUND" -eq 2 ]; then
+  if [ -z "$n2" ] && [ "$ROUND" -ge 2 ]; then
     # The passes of the brief's table that are not run are named by one fixed sentence, printed from the brief.
-    want_scope=$(scope_sentence)
-    if [ "$(h2_lines "Passes" "$NT" | grep -c -x -F -e "$want_scope")" -ne 1 ]; then
-      n2="the Passes section of the note does not hold, exactly once, the sentence that names the passes not run and the sections read only by the cross-check pass"
+    # When all six passes are run there is no such sentence and the Passes section holds only the table.
+    if want_scope=$(scope_sentence); then
+      if [ "$(h2_lines "Passes" "$NT" | grep -c -x -F -e "$want_scope")" -ne 1 ]; then
+        n2="the Passes section of the note does not hold, exactly once, the sentence that names the passes not run and the sections read only by the cross-check pass or by no pass"
+      fi
+    elif h2_lines "Passes" "$NT" | grep -v '^[[:space:]]*$' | grep -q -v '^|'; then
+      n2="all six passes are run, so the Passes section of the note must hold only the table and no sentence that names passes not run"
     fi
   fi
   if [ -z "$n2" ]; then
@@ -2060,6 +2247,8 @@ if [ "$RLIKE" -eq 1 ]; then
       ct1="the Consent question does not contain the model name [$model]"
     elif [ "$ROUND" -eq 2 ] && [[ "$cq" != *"the $NP_WORD review passes"* ]]; then
       ct1="the Consent question does not contain the words [the $NP_WORD review passes], so the question and the run set do not agree"
+    elif [ "$ROUND" -ge 3 ] && [ "$cq" != "$(print_consent_question "$model")" ]; then
+      ct1="the Consent question is not the question that --print-consent-question prints for the run set and the model"
     elif [ "$(pin_tok "$TMP/note.pins" "Consent answer")" != Consent ]; then
       ct1="the Consent answer is not exactly Consent"
     elif [ "$(grep -E '^\| (Run set|Consent question|Consent answer) \|' "$NT" | awk -F'|' 'NF != 4' | wc -l | tr -d ' ')" -ne 0 ]; then
