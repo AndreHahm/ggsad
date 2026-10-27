@@ -69,7 +69,48 @@
 #                     print the approval record in its unfilled form for the packet (the only way the record
 #                     is created); every field the owner completes holds the fill marker; exit 2 if the packet
 #                     status line is not the pending form
+#   --round N         the round profile: 2 (default) holds every value that this script has always held (the
+#                     fix round that follows the first independent review); 3 is the profile of the fix round
+#                     that follows the second independent review (plans 04-10 and 04-11); any other value
+#                     exits 2. Profile 3 reads the approval record, the disposition record and the review note
+#                     of the second round, finds the findings with the prefix RR, has three changes FG-10 to
+#                     FG-12 and nine findings without a disposition, and allows the stage edits only (the
+#                     stage defaults to edits; the stages state and decisions, the approval options and the
+#                     printers of the decisions record exit 2)
+#   --replay-round-2  run R2-1 to R2-8 instead of a stage (no other check runs): R2-1 the newest commit
+#                     reachable from HEAD at which the specification holds the result blob of the approval
+#                     record of the fix round (read from --approval-record, default: the record path of the fix
+#                     round) is found and holds that record, the disposition record, the review note, the fix
+#                     register, the approval packet and the review brief of round 2; the commit is never
+#                     printed. In a throwaway local clone outside the repository, checked out detached at that
+#                     commit with origin/main aligned as in the replay of round 1, and with the scripts as they
+#                     are at that commit: R2-2 the drafting check with --final, R2-3 this script in stage edits
+#                     with --complete, R2-4 this script in stage approval-pending, R2-5 this script in stage
+#                     approval-recorded, R2-6 the review check with --round 2 prints the review brief of
+#                     round 2 character for character, R2-7 the review check with --round 2 in stage
+#                     dispositioned each end RESULT: PASS (R2-6: equal). With --with-current-scripts the
+#                     working-tree versions of the three scripts are copied over their paths in the clone and
+#                     the six runs are repeated as R2-8. The clone is removed on exit; the repository and its
+#                     refs are not changed. It cannot be combined with --replay-round-1 (exit 2)
 #   -h, --help        print this text and exit 0
+#
+# Profile 3 (--round 3), used by plans 04-10 and 04-11:
+#   --print-decision-questions  prints the three decisions OD-1 to OD-3 that the owner is asked: a line with
+#                     the id and the header, a line "Finding: ID (SEVERITY)", a line "The reviewer says: " and
+#                     the Summary cell of the finding in the findings table of the review note of round 2
+#                     verbatim, a line "Question: " and the question, one line "- label: description" per
+#                     option (no option is recommended) and a blank line between decisions; exit 0
+#   --print-register-skeleton  prints the skeleton of the fix register of round 3 (the only way it is created):
+#                     the three changes FG-10 to FG-12 with the status pending and the nine findings that the
+#                     owner did not disposition; exit 0
+#   Stage edits in profile 3 runs FE3 to FE7 (FE1 and FE2 belong to round 2): FE3 minimality as in round 2 with
+#   nine findings without a disposition (the quoted sentence of a finding whose reference names the file BASE
+#   is exempt); FE4 as in round 2; FE5 the register with three entries of nine bullets (What changed, Why,
+#   Options, Owner decision, Owner reason, Channel, Before, After, Notes), example ids that run on from AE-306
+#   and, with --complete, the Findings cells equal to exactly the findings with the disposition fix; FE6 as in
+#   round 2; FE7 for each drafted entry the Options bullet equals the printed labels of its decision joined by
+#   " | ", the Owner decision is exactly one of them, the Owner reason is non-empty and the Channel is the
+#   fixed sentence.
 #
 # Stage state: ST1 the approval record holds exactly one outcome line "- Owner approval: approved" and the pin
 # rows Result blob (40 lowercase hexadecimal digits), Reviewed SHA-256 (64) and Line count (an integer), the
@@ -150,15 +191,28 @@ PACKET_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-p
 RECORD_DEFAULT=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-record.md"
 IDENTITY_DEFAULT=".planning/reviews/2026-10-24-normative-spec-diff-identity.md"
 FILL="@@FILL@@"
+# The files of round 2 (the fix round that follows the first independent review), read by the profile 3 and by
+# the replay of round 2.
+ARC2_PATH=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-record.md"
+DREC2_PATH=".planning/reviews/2026-10-26-normative-spec-review-disposition-record-round-2.md"
+NOTE2_PATH=".planning/reviews/2026-10-26-normative-spec-independent-review-round-2.md"
+FREG2_PATH=".planning/reviews/2026-10-26-normative-spec-fix-round-register.md"
+APK2_PATH=".planning/reviews/2026-10-26-normative-spec-fix-round-approval-packet.md"
+BRIEF2_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R2.md"
+FREG3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-register.md"
+FIXP=".planning/phases/04-independent-review/04-check-fix-round.sh"
 
-STAGE="state"
-APPROVAL="$ARC_DEFAULT"
-DISPO="$DREC_DEFAULT"
+STAGE=""
+APPROVAL=""
+DISPO=""
 DECISIONS="$FDEC_DEFAULT"
-REGISTER="$FREG_DEFAULT"
+REGISTER=""
 SPECFILE="$SPEC"
 BASE="origin/main"
+ROUND=2
 REPLAY=0
+RP1=0
+RP2=0
 CURRENT=0
 PRINT_Q=0
 PRINT_SKEL=0
@@ -200,7 +254,9 @@ while [ "$#" -gt 0 ]; do
     --print-approval-packet) PRINT_APK=1; shift ;;
     --print-approval-record-skeleton) PRINT_ARS=1; shift ;;
     --base) need_value "$@"; BASE="$2"; shift 2 ;;
-    --replay-round-1) REPLAY=1; shift ;;
+    --replay-round-1) REPLAY=1; RP1=1; shift ;;
+    --replay-round-2) REPLAY=1; RP2=1; shift ;;
+    --round) need_value "$@"; ROUND="$2"; shift 2 ;;
     --with-current-scripts) CURRENT=1; shift ;;
     --print-decision-questions) PRINT_Q=1; shift ;;
     --print-decisions-skeleton) PRINT_SKEL=1; shift ;;
@@ -210,12 +266,59 @@ while [ "$#" -gt 0 ]; do
   esac
 done
 
+case "$ROUND" in
+  2|3) ;;
+  *) echo "--round must be 2 or 3" >&2; exit 2 ;;
+esac
+[ "$RP1" -eq 0 ] || [ "$RP2" -eq 0 ] || { echo "--replay-round-1 and --replay-round-2 cannot be used together" >&2; exit 2; }
+if [ -z "$STAGE" ]; then
+  if [ "$ROUND" -eq 3 ]; then STAGE="edits"; else STAGE="state"; fi
+fi
 case "$STAGE" in
   state|decisions|edits|approval-pending|approval-recorded) ;;
   *) echo "--stage must be state, decisions, edits, approval-pending or approval-recorded" >&2; exit 2 ;;
 esac
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
-[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1 only" >&2; exit 2; }
+[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1 or --replay-round-2 only" >&2; exit 2; }
+if [ "$ROUND" -eq 3 ]; then
+  [ "$STAGE" = edits ] || { echo "--round 3 allows --stage edits only" >&2; exit 2; }
+  [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
+  if [ "$PRINT_SKEL" -eq 1 ] || [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
+    echo "--round 3 has no decisions record and no approval printers yet" >&2
+    exit 2
+  fi
+fi
+
+# The round profile: the one place that sets every value that differs between round 2 (the default, the values this
+# script has always held) and round 3.
+if [ "$ROUND" -eq 3 ]; then
+  ARC_DEFAULT="$ARC2_PATH"
+  DREC_DEFAULT="$DREC2_PATH"
+  NOTE_DEFAULT="$NOTE2_PATH"
+  FREG_DEFAULT="$FREG3_PATH"
+  FPFX="RR"
+  NCHG=3
+  NCHG_W="three"
+  NUNDISP=9
+  EX_FIRST=306
+  REG_TBL_H="## The three changes"
+  REG_BULLETS=("What changed" "Why" "Options" "Owner decision" "Owner reason" "Channel" "Before" "After" "Notes")
+else
+  FPFX="RV"
+  NCHG=9
+  NCHG_W="nine"
+  NUNDISP=14
+  EX_FIRST=295
+  REG_TBL_H="## The nine changes"
+  REG_BULLETS=("What changed" "Why" "My choice" "Before" "After" "Notes")
+fi
+REG_BULLETS_RE=$(printf '%s|' "${REG_BULLETS[@]}")
+REG_BULLETS_RE=${REG_BULLETS_RE%|}
+if [ -z "$APPROVAL" ]; then
+  if [ "$RP2" -eq 1 ]; then APPROVAL="$ARC2_PATH"; else APPROVAL="$ARC_DEFAULT"; fi
+fi
+[ -n "$DISPO" ] || DISPO="$DREC_DEFAULT"
+[ -n "$REGISTER" ] || REGISTER="$FREG_DEFAULT"
 
 # decision_data: the fixed texts of the five decisions. One record per line, fields separated by a vertical
 # bar: "D|id|header|findings" opens a decision, "Q|question" is its question, "O|label|description" is one
@@ -290,7 +393,7 @@ dec_labels() {
   done < <(decision_data)
 }
 
-if [ "$PRINT_Q" -eq 1 ]; then
+if [ "$PRINT_Q" -eq 1 ] && [ "$ROUND" -eq 2 ]; then
   print_questions
   exit 0
 fi
@@ -321,8 +424,8 @@ readable "$AR" "$APPROVAL"
 readable "$DR" "$DISPO"
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = decisions ]; then readable "$DC" "$DECISIONS"; fi
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = state ]; then readable "$SP" "$SPECFILE"; fi
-if [ "$PRINT_REG" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
-if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
+if [ "$PRINT_REG" -eq 1 ] || [ "$PRINT_Q" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
+if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_Q" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
   readable "$SP" "$SPECFILE"
   readable "$RG" "$REGISTER"
 fi
@@ -409,7 +512,7 @@ D_LINES=$(pin_tok "$TMP/dr.pins" "Line count")
 
 # drec_fix_ids: the finding ids with the disposition fix in the disposition record, one per line.
 drec_fix_ids() {
-  awk '/^### / { id = ($2 ~ /^RV-/) ? $2 : "" } /^- Disposition: fix$/ && id != "" { print id; id = "" }' "$DR"
+  awk -v p="$FPFX-" '/^### / { id = (index($2, p) == 1) ? $2 : "" } /^- Disposition: fix$/ && id != "" { print id; id = "" }' "$DR"
 }
 
 # print_skeleton: the decisions record with the fill marker in every field the owner completes.
@@ -448,9 +551,20 @@ print_skeleton() {
 REG_H1='# Fix register: what changed in the specification and why'
 REG_INTRO='This register lists the nine changes made to the specification to fix the eleven findings of the first independent review. A change is a repair when the text had one consistent reading, and my choice when more than one reading was possible; for a choice the other readings are named, so that the owner can pick another one. A choice is a proposal: it becomes the decision of the owner only through the owner approval of the exact new text. The approval packet is printed from this register.'
 REG_HEADER='The header of the specification (the Version line and the Revision line) is unchanged by this round.'
+REG3_H1='# Fix register, round 3: what changed in the specification and why'
+REG3_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the second independent review that the owner dispositioned fix. Each change implements the way the owner chose, which is recorded in the entry together with the options that were offered. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
+CHANNEL_TEXT='Given by the repository owner through the interactive question tool and relayed by the orchestrating session.'
 
 # fg_data: one line per group, "id|title|findings|kind".
 fg_data() {
+  if [ "$ROUND" -eq 3 ]; then
+    cat << 'DATA3'
+FG-10|How the guard check treats an equivalent to the history anchor|RR-B-001|owner decision
+FG-11|How the scope check treats ignore settings|RR-X-001|owner decision
+FG-12|When the fail action is allowed in the full profile|RR-X-002|owner decision
+DATA3
+    return 0
+  fi
   cat << 'DATA'
 FG-01|A pause request on a change that has already hit a hard failure|RV-A-002, RV-X-001|repair
 FG-02|Re-opening a closed change when its new work would have to wait|RV-A-001, RV-X-002|my choice
@@ -466,10 +580,10 @@ DATA
 
 # undisp: the findings of the review note without a disposition, one per line as "id TAB severity TAB quote".
 undisp() {
-  awk -F'|' '
+  awk -F'|' -v p="$FPFX-" '
     function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
     /^## / { on = ($0 == "## Findings"); next }
-    on && /^\| RV-/ {
+    on && index($0, "| " p) == 1 {
       if (trim($6) == "") {
         q = trim($4); sub(/^.*quote "/, "", q); sub(/"$/, "", q)
         print trim($2) "\t" trim($3) "\t" q
@@ -478,17 +592,99 @@ undisp() {
   ' "$NT"
 }
 
+# base_ids: the ids of the findings of the review note whose reference names the file BASE (the base text is not
+# edited by any plan, so the quoted sentence of such a finding is not looked up in the specification).
+base_ids() {
+  awk -F'|' -v p="$FPFX-" '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    /^## / { on = ($0 == "## Findings"); next }
+    on && index($0, "| " p) == 1 && index($4, " file BASE;") > 0 { print trim($2) }
+  ' "$NT"
+}
+
+# od_data: the fixed texts of the three decisions of round 3. One record per line, fields separated by a vertical
+# bar: "D|id|header|finding" opens a decision, "Q|question" is its question, "O|label|description" is one option.
+# No option is recommended.
+od_data() {
+  cat << 'DATA'
+D|OD-1|Guard anchor|RR-B-001
+Q|What should `guard` do for a change whose history uses an equivalent mechanism instead of an anchor?
+O|Accept an equivalent|`guard` passes the history check when the history has an anchor or an equivalent mechanism, in the words of the history rules.
+O|Anchor only, said openly|`guard` checks for an anchor only and the text says so; a change that uses an equivalent mechanism is reported as missing its anchor.
+D|OD-2|Ignore settings|RR-X-001
+Q|How should the scope check treat the settings that tell version control to ignore files?
+O|Repository files only|only ignore files inside the repository count; they are ordinary files, so changing one is a changed path that needs an allowed path, and ignore settings kept elsewhere are not applied.
+O|Detect any change|the ignore settings from every place version control reads are recorded when the change starts, and any later difference is a scope violation.
+O|Measure every file|every file counts, ignored or not; a project that wants a build folder left out lists it in the allowed paths.
+O|Say it openly|the check stays as it is and the text says plainly that ignore settings, wherever kept, are trusted, so work they hide is not measured.
+D|OD-3|Fail action|RR-X-002
+Q|When should the `fail` action be allowed in the full profile?
+O|Soft failures only|`fail` is allowed only while a soft failure waits for a human, as the section on hard and soft failure says; with only a hard failure active it is refused.
+O|Any active failure|`fail` is allowed whenever a failure condition is active, hard or soft; it ends the change as failed and answers success, and the section on hard and soft failure is reworded to say so.
+DATA
+}
+
+# od_summary ID: the Summary cell of the finding in the findings table of the review note, verbatim.
+od_summary() {
+  awk -F'|' -v id="$1" '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    /^## / { on = ($0 == "## Findings"); next }
+    on && trim($2) == id { print trim($5); exit }
+  ' "$NT"
+}
+
+# od_sev ID: the severity of the finding in the findings table of the review note.
+od_sev() {
+  awk -F'|' -v id="$1" '
+    function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
+    /^## / { on = ($0 == "## Findings"); next }
+    on && trim($2) == id { print trim($3); exit }
+  ' "$NT"
+}
+
+# print_od_questions: the three decisions as the owner is asked them.
+print_od_questions() {
+  local tag a b c first=1 sum sev
+  while IFS='|' read -r tag a b c; do
+    case "$tag" in
+      D)
+        if [ "$first" -eq 0 ]; then printf '\n'; fi
+        first=0
+        sum=$(od_summary "$c")
+        sev=$(od_sev "$c")
+        if [ -z "$sum" ] || [ -z "$sev" ]; then echo "cannot read the finding $c from the review note" >&2; exit 2; fi
+        printf '%s %s\nFinding: %s (%s)\nThe reviewer says: %s\n' "$a" "$b" "$c" "$sev" "$sum" ;;
+      Q) printf 'Question: %s\n' "$a" ;;
+      O) printf -- '- %s: %s\n' "$a" "$b" ;;
+    esac
+  done < <(od_data)
+}
+
+# od_labels ID: the option labels of one decision, one per line.
+od_labels() {
+  local tag a b c cur=""
+  while IFS='|' read -r tag a b c; do
+    case "$tag" in
+      D) cur=$a ;;
+      O) if [ "$cur" = "$1" ]; then printf '%s\n' "$a"; fi ;;
+    esac
+  done < <(od_data)
+}
+
 # print_register_skeleton: the fix register with every field that is filled in later set to pending.
 print_register_skeleton() {
-  local g t f k id sev
-  printf '%s\n\n%s\n\n' "$REG_H1" "$REG_INTRO"
-  printf '## The nine changes\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n'
+  local g t f k id sev b h1="$REG_H1" intro="$REG_INTRO"
+  if [ "$ROUND" -eq 3 ]; then h1="$REG3_H1"; intro="$REG3_INTRO"; fi
+  printf '%s\n\n%s\n\n' "$h1" "$intro"
+  printf '%s\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n' "$REG_TBL_H"
   while IFS='|' read -r g t f k; do
     printf '| %s | %s | %s | %s | pending | - | - |\n' "$g" "$t" "$f" "$k"
   done < <(fg_data)
   printf '\n## Change details\n\n'
   while IFS='|' read -r g t f k; do
-    printf '### %s — %s\n\n- What changed: pending\n- Why: pending\n- My choice: pending\n- Before: pending\n- After: pending\n- Notes: pending\n\n' "$g" "$t"
+    printf '### %s — %s\n\n' "$g" "$t"
+    for b in "${REG_BULLETS[@]}"; do printf -- '- %s: pending\n' "$b"; done
+    printf '\n'
   done < <(fg_data)
   printf '## Normative lines removed or reworded\n\nNone.\n\n## Findings whose quoted sentence an edit touched\n\nNone.\n\n## Findings not touched\n\n'
   while IFS=$'\t' read -r id sev _; do
@@ -496,6 +692,11 @@ print_register_skeleton() {
   done < <(undisp)
   printf '\n## Header\n\n%s\n' "$REG_HEADER"
 }
+
+if [ "$PRINT_Q" -eq 1 ]; then
+  print_od_questions
+  exit 0
+fi
 
 if [ "$PRINT_REG" -eq 1 ]; then
   print_register_skeleton
@@ -612,6 +813,71 @@ replay() {
       fail FR5 "the current versions of the three scripts at the round-1 commit: drafting check $r2, owner approval check $r3, review check $r4"
     fi
   fi
+}
+
+# replay2: R2-1 to R2-8, the checks of the fix round of round 2 at the commit that holds the text of round 2.
+replay2() {
+  local c om cm t f st
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then
+    fail R2-1 "the result blob of the approval record is not 40 lowercase hexadecimal digits"
+    return 0
+  fi
+  c=$(find_round1_commit "$A_BLOB")
+  if [ -z "$c" ]; then
+    fail R2-1 "no commit reachable from HEAD holds the specification with the round-2 blob"
+    return 0
+  fi
+  for f in "$ARC2_PATH" "$DREC2_PATH" "$NOTE2_PATH" "$FREG2_PATH" "$APK2_PATH" "$BRIEF2_PATH"; do
+    if ! git cat-file -e "$c:$f" 2> /dev/null; then
+      fail R2-1 "the commit that holds the round-2 text does not hold all six round-2 files: the round-2 evidence is not in the history"
+      return 0
+    fi
+  done
+  pass R2-1 "found the newest commit reachable from HEAD that holds the round-2 text and the six round-2 files"
+  CL="$TMP/clone"
+  if ! git clone --local --no-checkout --quiet -- "$ROOT" "$CL" > /dev/null 2>&1; then
+    fail R2-1 "the throwaway clone could not be made"
+    return 0
+  fi
+  if ! git -C "$CL" checkout --quiet --detach "$c" > /dev/null 2>&1; then
+    fail R2-1 "the commit could not be checked out in the throwaway clone"
+    return 0
+  fi
+  om=$(git rev-parse --verify --quiet "$BASE^{commit}")
+  cm=$(git -C "$CL" rev-parse --verify --quiet "origin/main^{commit}" 2> /dev/null) || cm=""
+  if [ "$cm" != "$om" ]; then
+    git -C "$CL" update-ref refs/remotes/origin/main "$om" > /dev/null 2>&1
+  fi
+  if run_in_clone "$CHK2" --final; then pass R2-2 "the drafting check with --final at the round-2 commit: $LAST"; else fail R2-2 "the drafting check with --final at the round-2 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --stage edits --complete; then pass R2-3 "the fix round check in stage edits with --complete at the round-2 commit: $LAST"; else fail R2-3 "the fix round check in stage edits with --complete at the round-2 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --stage approval-pending; then pass R2-4 "the fix round check in stage approval-pending at the round-2 commit: $LAST"; else fail R2-4 "the fix round check in stage approval-pending at the round-2 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --stage approval-recorded; then pass R2-5 "the fix round check in stage approval-recorded at the round-2 commit: $LAST"; else fail R2-5 "the fix round check in stage approval-recorded at the round-2 commit: $LAST"; fi
+  if replay2_brief; then pass R2-6 "the review check with --round 2 prints the review brief of round 2 character for character at the round-2 commit"; else fail R2-6 "the review check with --round 2 does not print the review brief of round 2 at the round-2 commit"; fi
+  if run_in_clone "$CHK" --round 2 --stage dispositioned; then pass R2-7 "the review check with --round 2 in stage dispositioned at the round-2 commit: $LAST"; else fail R2-7 "the review check with --round 2 in stage dispositioned at the round-2 commit: $LAST"; fi
+  if [ "$CURRENT" -eq 1 ]; then
+    for t in "$CHK2" "$CHK" "$FIXP"; do
+      if ! cp "$ROOT/$t" "$CL/$t" 2> /dev/null; then fail R2-8 "the current version of a script could not be copied into the clone"; return 0; fi
+    done
+    st=""
+    run_in_clone "$CHK2" --final || st="$st drafting check ($LAST);"
+    run_in_clone "$FIXP" --stage edits --complete || st="$st edits ($LAST);"
+    run_in_clone "$FIXP" --stage approval-pending || st="$st approval-pending ($LAST);"
+    run_in_clone "$FIXP" --stage approval-recorded || st="$st approval-recorded ($LAST);"
+    replay2_brief || st="$st review brief;"
+    run_in_clone "$CHK" --round 2 --stage dispositioned || st="$st dispositioned ($LAST);"
+    if [ -z "$st" ]; then
+      pass R2-8 "the current versions of the three scripts also pass the six runs at the round-2 commit"
+    else
+      fail R2-8 "the current versions of the three scripts at the round-2 commit fail:$st"
+    fi
+  fi
+}
+
+# replay2_brief: in the clone, the review check with --round 2 prints the review brief of round 2 character for
+# character (the stage brief of the review check is meaningful before the reports are captured only).
+replay2_brief() {
+  (cd "$CL" && bash "$CHK" --round 2 --print-brief) > "$TMP/brief.out" 2> /dev/null || return 1
+  cmp -s "$TMP/brief.out" "$CL/$BRIEF2_PATH"
 }
 
 # ---- stage decisions -------------------------------------------------------------------------------------
@@ -818,11 +1084,11 @@ heads_of() {
 
 # reg_mask: the register with every field that is filled in later replaced by a marker.
 reg_mask() {
-  awk '
+  awk -v th="$REG_TBL_H" -v bl="^- ($REG_BULLETS_RE): " '
     /^## / { sec = $0; seen[sec] = 0; print; next }
     /^### / { print; next }
-    sec == "## The nine changes" && /^\| FG-/ { split($0, c, "|"); printf "|%s|%s|%s|%s|@|@|@|\n", c[2], c[3], c[4], c[5]; next }
-    sec == "## Change details" && /^- (What changed|Why|My choice|Before|After|Notes): / { l = $0; sub(/: .*$/, "", l); print l ": @"; next }
+    sec == th && /^\| FG-/ { split($0, c, "|"); printf "|%s|%s|%s|%s|@|@|@|\n", c[2], c[3], c[4], c[5]; next }
+    sec == "## Change details" && $0 ~ bl { l = $0; sub(/: .*$/, "", l); print l ": @"; next }
     sec == "## Change details" && /^  - / { next }
     sec == "## Normative lines removed or reworded" || sec == "## Findings whose quoted sentence an edit touched" {
       if ($0 != "" && !seen[sec]++) print "@"
@@ -1107,13 +1373,14 @@ listed_sections() {
 fe3() {
   local id sev q ln
   PROB=""
-  if ! cmp -s <(head -n8 "$T1") <(head -n8 "$SP"); then bad "the first eight lines of the specification (the header) differ from the round-1 text"; fi
+  if ! cmp -s <(head -n8 "$T1") <(head -n8 "$SP"); then bad "the first eight lines of the specification (the header) differ from the round-$((ROUND - 1)) text"; fi
   # the quoted sentences of the findings that were not dispositioned
-  h2sec "$RG" "Findings whose quoted sentence an edit touched" | grep -o -E '^- RV-[A-Z]-[0-9]{3} :: .+' | cut -d' ' -f2 > "$TMP/touched.ids"
+  h2sec "$RG" "Findings whose quoted sentence an edit touched" | grep -o -E "^- $FPFX-[A-Z]-[0-9]{3} :: .+" | cut -d' ' -f2 > "$TMP/touched.ids"
   undisp > "$TMP/undisp.tsv"
-  if [ "$(wc -l < "$TMP/undisp.tsv" | tr -d ' ')" -ne 14 ]; then bad "the review note does not hold 14 findings without a disposition"; fi
+  if [ "$(wc -l < "$TMP/undisp.tsv" | tr -d ' ')" -ne "$NUNDISP" ]; then bad "the review note does not hold $NUNDISP findings without a disposition"; fi
+  if [ "$ROUND" -eq 3 ]; then base_ids > "$TMP/base.ids"; else : > "$TMP/base.ids"; fi
   while IFS=$'\t' read -r id sev q; do
-    if [ -n "$q" ] && ! grep -q -F -e "$q" "$SP" && ! grep -q -x -F -e "$id" "$TMP/touched.ids"; then
+    if [ -n "$q" ] && ! grep -q -F -e "$q" "$SP" && ! grep -q -x -F -e "$id" "$TMP/touched.ids" && ! grep -q -x -F -e "$id" "$TMP/base.ids"; then
       bad "the quoted sentence of the undispositioned finding $id is no longer in the specification and the register lists no reason"
     fi
   done < "$TMP/undisp.tsv"
@@ -1144,7 +1411,7 @@ fe3() {
     }
   ' hf="$TMP/heads.tsv" lf="$TMP/listed.txt" "$TMP/heads.tsv" "$TMP/listed.txt" - > "$TMP/fe3.sec"
   if [ -s "$TMP/fe3.sec" ]; then bad "a changed line is outside the sections listed in the register ($(head -n1 "$TMP/fe3.sec"))"; fi
-  if [ -n "$PROB" ]; then fail FE3 "$PROB"; else pass FE3 "the header and the 14 undispositioned findings are untouched, only the specification and .planning/ changed, no added line holds a tab, and every changed line lies in a listed section"; fi
+  if [ -n "$PROB" ]; then fail FE3 "$PROB"; else pass FE3 "the header and the $NUNDISP undispositioned findings are untouched, only the specification and .planning/ changed, no added line holds a tab, and every changed line lies in a listed section"; fi
 }
 
 # csub TEXT N: the first N characters of the text.
@@ -1188,38 +1455,49 @@ fe5() {
   v=$(enc1 "$RG"); if [ -z "$v" ]; then v=$(enc2 "$RG"); fi
   if [ -n "$v" ]; then bad "$v"; fi
   if [ -z "$PROB" ]; then v=$(fd1_scan "$RG"); if [ -n "$v" ]; then bad "self-containment: $v"; fi; fi
-  if [ "$(wc -l < "$TMP/reg.rows" | tr -d ' ')" -ne 9 ]; then bad "the table does not hold nine rows"; fi
+  if [ "$(wc -l < "$TMP/reg.rows" | tr -d ' ')" -ne "$NCHG" ]; then bad "the table does not hold $NCHG_W rows"; fi
   heads_of "$SP" | cut -f2 > "$TMP/headnums.txt"
   : > "$TMP/ids.all"
   while IFS=$'\t' read -r g _ _ kind st secs exs; do
     case "$st" in
       drafted) n=$((n + 1)) ;;
-      pending) if [ "$COMPLETE" -eq 1 ]; then bad "$g is not drafted (--complete needs all nine)"; fi; continue ;;
+      pending) if [ "$COMPLETE" -eq 1 ]; then bad "$g is not drafted (--complete needs all $NCHG_W)"; fi; continue ;;
       *) bad "$g: the Status cell is [$st], expected pending or drafted"; continue ;;
     esac
     if [ "$secs" = "-" ] || [ -z "$secs" ]; then bad "$g: the Sections cell is empty"; fi
-    for lab in "What changed" "Why" "My choice" "Before" "After" "Notes"; do
+    for lab in "${REG_BULLETS[@]}"; do
       v=$(ev "$g" "$lab")
       if [ -z "$v" ] || [ "$v" = pending ] || has "$v" "$FILL"; then bad "$g: the bullet [$lab] is not filled"; fi
     done
-    for lab in "What changed:300" "Why:200" "My choice:450"; do
-      v=$(ev "$g" "${lab%:*}"); lim=${lab##*:}
-      if [ "$(nchars "$v")" -gt "$lim" ]; then bad "$g: [${lab%:*}] is longer than $lim characters"; fi
-      case "$v" in
-        *"Section "*|*"AE-"*|*"|"*) bad "$g: [${lab%:*}] holds a section number, an example id or a vertical bar" ;;
-      esac
-    done
-    v=$(ev "$g" "My choice")
-    case "$kind" in
-      repair) case "$v" in "none:"*) ;; *) bad "$g: a repair must give My choice as [none:] and the reason" ;; esac ;;
-      "my choice")
-        case "$v" in "none"*) bad "$g: a choice between readings must not give My choice as none" ;; esac
-        if ! has "$v" "other"; then bad "$g: My choice does not name the other readings"; fi ;;
-    esac
-    if [ "$g" = FG-09 ]; then
-      for tok in '(1)' '(2)' '(3)' '(4)'; do
-        if ! has "$v" "$tok"; then bad "FG-09: My choice lacks the marker $tok of the numbered list of my own readings"; fi
+    if [ "$ROUND" -eq 2 ]; then
+      for lab in "What changed:300" "Why:200" "My choice:450"; do
+        v=$(ev "$g" "${lab%:*}"); lim=${lab##*:}
+        if [ "$(nchars "$v")" -gt "$lim" ]; then bad "$g: [${lab%:*}] is longer than $lim characters"; fi
+        case "$v" in
+          *"Section "*|*"AE-"*|*"|"*) bad "$g: [${lab%:*}] holds a section number, an example id or a vertical bar" ;;
+        esac
       done
+      v=$(ev "$g" "My choice")
+      case "$kind" in
+        repair) case "$v" in "none:"*) ;; *) bad "$g: a repair must give My choice as [none:] and the reason" ;; esac ;;
+        "my choice")
+          case "$v" in "none"*) bad "$g: a choice between readings must not give My choice as none" ;; esac
+          if ! has "$v" "other"; then bad "$g: My choice does not name the other readings"; fi ;;
+      esac
+      if [ "$g" = FG-09 ]; then
+        for tok in '(1)' '(2)' '(3)' '(4)'; do
+          if ! has "$v" "$tok"; then bad "FG-09: My choice lacks the marker $tok of the numbered list of my own readings"; fi
+        done
+      fi
+    else
+      for lab in "What changed:300" "Why:200"; do
+        v=$(ev "$g" "${lab%:*}"); lim=${lab##*:}
+        if [ "$(nchars "$v")" -gt "$lim" ]; then bad "$g: [${lab%:*}] is longer than $lim characters"; fi
+        case "$v" in
+          *"Section "*|*"AE-"*|*"|"*) bad "$g: [${lab%:*}] holds a section number, an example id or a vertical bar" ;;
+        esac
+      done
+      if [ "$kind" != "owner decision" ]; then bad "$g: the Kind cell is [$kind], expected owner decision"; fi
     fi
     for lab in Before After; do
       v=$(ev "$g" "$lab")
@@ -1231,7 +1509,7 @@ fe5() {
       frag=${v#\"}; frag=${frag%\"}
       if [ -z "$frag" ] || [ "$(nchars "$frag")" -gt 300 ]; then bad "$g: [$lab] is empty or longer than 300 characters"; continue; fi
       if [ "$lab" = Before ]; then
-        grep -q -F -e "$frag" "$T1" || bad "$g: the Before fragment is not a part of a line of the round-1 text"
+        grep -q -F -e "$frag" "$T1" || bad "$g: the Before fragment is not a part of a line of the round-$((ROUND - 1)) text"
       else
         grep -q -F -e "$frag" "$SP" || bad "$g: the After fragment is not a part of a line of the new text"
       fi
@@ -1252,21 +1530,22 @@ fe5() {
       done
     fi
   done < "$TMP/reg.rows"
-  # the examples run on from AE-295 without a gap or a repeat, and the highest id of the specification ends the run
+  # the examples run on from the first new id without a gap or a repeat, and the highest id of the specification
+  # ends the run
   sort -t- -k2 -n "$TMP/ids.all" > "$TMP/ids.sorted"
-  expect=295
-  last=294
+  expect=$EX_FIRST
+  last=$((EX_FIRST - 1))
   while IFS= read -r id; do
     [ -n "$id" ] || continue
-    if [ "$id" != "AE-$expect" ]; then bad "the example ids of the register do not run on from AE-295 without a gap or a repeat (expected AE-$expect, found $id)"; break; fi
+    if [ "$id" != "AE-$expect" ]; then bad "the example ids of the register do not run on from AE-$EX_FIRST without a gap or a repeat (expected AE-$expect, found $id)"; break; fi
     last=$expect
     expect=$((expect + 1))
   done < "$TMP/ids.sorted"
   top=$(grep -o '^\*\*AE-[0-9]*' "$SP" | sed 's/\*\*AE-//' | sort -n | tail -n1)
   if [ "$top" != "$last" ]; then bad "the highest example id of the specification is AE-$top, but the register ends its run at AE-$last"; fi
   if [ "$COMPLETE" -eq 1 ]; then
-    if [ "$n" -ne 9 ]; then bad "not all nine groups are drafted"; fi
-    cut -f3 "$TMP/reg.rows" | grep -o -E 'RV-[A-Z]-[0-9]{3}' | sort -u > "$TMP/fnd.reg"
+    if [ "$n" -ne "$NCHG" ]; then bad "not all $NCHG_W groups are drafted"; fi
+    cut -f3 "$TMP/reg.rows" | grep -o -E "$FPFX-[A-Z]-[0-9]{3}" | sort -u > "$TMP/fnd.reg"
     drec_fix_ids | sort -u > "$TMP/fnd.fix"
     if ! cmp -s "$TMP/fnd.reg" "$TMP/fnd.fix"; then bad "the Findings cells of the register do not cover exactly the findings with the disposition fix"; fi
   fi
@@ -1291,33 +1570,68 @@ fe6() {
 reg_load() {
   : > "$TMP/reg.rows"
   : > "$TMP/reg.ent"
-  awk -v rows="$TMP/reg.rows" -v ent="$TMP/reg.ent" '
+  awk -v rows="$TMP/reg.rows" -v ent="$TMP/reg.ent" -v th="$REG_TBL_H" -v bl="^- ($REG_BULLETS_RE): " '
     function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
     /^## / { sec = $0; cur = ""; next }
     /^### FG-/ { cur = $2; next }
-    sec == "## The nine changes" && /^\| FG-/ {
+    sec == th && /^\| FG-/ {
       split($0, c, "|")
       print trim(c[2]) "\t" trim(c[3]) "\t" trim(c[4]) "\t" trim(c[5]) "\t" trim(c[6]) "\t" trim(c[7]) "\t" trim(c[8]) >> rows
       next
     }
-    sec == "## Change details" && cur != "" && /^- (What changed|Why|My choice|Before|After|Notes): / {
+    sec == "## Change details" && cur != "" && $0 ~ bl {
       l = $0; sub(/^- /, "", l); v = l; sub(/^[^:]*: /, "", v); sub(/:.*$/, "", l)
       print cur "\t" l "\t" v >> ent
     }
   ' "$RG"
 }
 
+# fe7: profile 3 only. For each drafted entry the Options bullet equals the labels that --print-decision-questions
+# prints for its decision, joined by " | ", the Owner decision equals exactly one of them, the Owner reason is
+# non-empty and the Channel is the fixed sentence.
+fe7() {
+  local g st od lab want v n=0 ok
+  PROB=""
+  while IFS=$'\t' read -r g _ _ _ st _ _; do
+    [ "$st" = drafted ] || continue
+    n=$((n + 1))
+    case "$g" in
+      FG-10) od=OD-1 ;;
+      FG-11) od=OD-2 ;;
+      FG-12) od=OD-3 ;;
+      *) bad "$g: no decision belongs to this change"; continue ;;
+    esac
+    want=$(od_labels "$od" | awk 'NR > 1 { printf " | " } { printf "%s", $0 }')
+    v=$(ev "$g" "Options")
+    if [ "$v" != "$want" ]; then bad "$g: the Options bullet is not the labels that were offered for $od [$want]"; fi
+    v=$(ev "$g" "Owner decision")
+    ok=0
+    while IFS= read -r lab; do
+      if [ "$v" = "$lab" ]; then ok=1; fi
+    done < <(od_labels "$od")
+    if [ "$ok" -eq 0 ]; then bad "$g: the Owner decision [$v] is not one of the labels that were offered for $od"; fi
+    v=$(ev "$g" "Owner reason")
+    if [ -z "$(trim_ws "$v")" ] || [ "$v" = pending ] || has "$v" "$FILL"; then bad "$g: the Owner reason is empty"; fi
+    v=$(ev "$g" "Channel")
+    if [ "$v" != "$CHANNEL_TEXT" ]; then bad "$g: the Channel bullet is not the fixed sentence"; fi
+  done < "$TMP/reg.rows"
+  if [ -n "$PROB" ]; then fail FE7 "$PROB"; else pass FE7 "for each of the $n drafted entries the Options are the labels that were offered, the Owner decision is one of them, the Owner reason is given and the Channel is the fixed sentence"; fi
+}
+
 edits_stage() {
   if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
-  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-1 text cannot be read from the repository" >&2; exit 2; }
+  git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-$((ROUND - 1)) text cannot be read from the repository" >&2; exit 2; }
   reg_load
   fe_diff
-  fe1
-  fe2
+  if [ "$ROUND" -eq 2 ]; then
+    fe1
+    fe2
+  fi
   fe3
   fe4
   fe5
   fe6
+  if [ "$ROUND" -eq 3 ]; then fe7; fi
 }
 
 # ---- the owner approval of the exact new text --------------------------------------------------------------
@@ -1716,7 +2030,7 @@ if [ "$PRINT_ARS" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
 fi
 
 if [ "$REPLAY" -eq 1 ]; then
-  replay
+  if [ "$RP2" -eq 1 ]; then replay2; else replay; fi
   finish
 fi
 
