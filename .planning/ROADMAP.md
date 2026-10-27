@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 12/13 plans executed
+**Plans**: 13/13 plans executed
 
 Plans:
 **Wave 1**
@@ -249,7 +249,7 @@ Plans:
 
 **Wave 13** *(blocked on Wave 12 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-13-PLAN.md — Plain disposition questions of round 3 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+- [x] 04-13-PLAN.md — Plain disposition questions of round 3 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
@@ -324,7 +324,7 @@ recorded in the collapsed block above; this table tracks the v1.1 phases only.
 | 1. Decision Record | v1.1 | 3/3 | Complete    | 2026-10-24 |
 | 2. Normative Drafting | v1.1 | 8/8 | Complete    | 2026-10-25 |
 | 3. Owner Approval | v1.1 | 3/3 | Complete    | 2026-10-25 |
-| 4. Independent Review | v1.1 | 12/13 | In Progress|  |
+| 4. Independent Review | v1.1 | 13/13 | In Progress|  |
 | 5. State and Gate Engine | v1.1 | 0/TBD | Not started | - |
 | 6. Trust and Integrity | v1.1 | 0/TBD | Not started | - |
 | 7. Workflow Surface | v1.1 | 0/TBD | Not started | - |
