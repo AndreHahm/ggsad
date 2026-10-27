@@ -890,7 +890,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `complete` | A non-closed phase with status `draft`, `active`, or `done` | The phase and status are a legal source, and the evaluation is requested: from `draft`, of the current phase's DoR; from `active`, of the current phase's DoD; from `done`, of the next phase's DoR. | From `draft`: DoF → DoW → current-phase DoR. From `active`: DoF → DoW → current-phase DoD → next-phase DoR. From `done`: DoF → DoW → next-phase DoR; current-phase DoR and DoD are already established. | From `draft`, the same phase with status `ready`. From `active`, satisfied current-phase DoD first produces the current phase with status `done`; satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. From `done`, satisfied next-phase DoR advances to the next phase with status `ready`, while unsatisfied next-phase DoR preserves the current phase with status `done`. Completion of the final phase produces `closed`/`done`. | Reject without any partial mutation of persisted state when the phase and status are not a legal source. When DoW, current-phase DoR, or current-phase DoD does not allow the transition, record the evaluation in the history and answer `blocked` (Section 22.2); an active fail condition of the severity `hard` closes the change as failed, and a soft fail condition or a gate that cannot be evaluated puts the change in a wait (Sections 24.7 and 24.2). Unsatisfied next-phase DoR is not a rejection after current-phase DoD succeeds or during re-evaluation from `done`; it preserves the current phase with status `done`. |
 | `wait` | Any non-closed phase/status | A DoW condition is active. | DoF → DoW; current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | Same phase with status `waiting`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. When DoF finds a fail condition of the severity `hard` active, close the change as failed in the same state mutation and answer `success` (Section 24.7). |
 | `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. When the resume-phase DoR is not satisfied or a DoW condition is still active, record the evaluation in the history, remain `waiting`, and answer `blocked` (Section 22.2). Fail when DoF determines failure (Section 24.7). |
-| `fail` | Any non-closed phase/status | A DoF condition is active. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
+| `fail` | Any non-closed phase/status | A soft failure awaits disposition: the status is `waiting` with a wait state of the category `WAIT_DECISION` for a DoF condition of the severity `soft` that is active (Section 24.7). | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `reopen` (`full` only) | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied or a DoW condition of the new corrective scope is active; fail when the new corrective scope's DoF determines failure. |
@@ -903,7 +903,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `complete` | The phase and status are not a legal source. | DoW, current-phase DoR, or current-phase DoD does not allow the transition, including a wait that a soft fail condition or a gate that cannot be evaluated causes. |
 | `wait` | The change is closed, or no DoW condition is active. | Never. |
 | `resume` | The status is not `waiting`, the resume condition is not satisfied, or the resume phase is closed. | The resume-phase DoR is not satisfied, or a DoW condition is still active, so that the change remains `waiting`. |
-| `fail` | The change is closed, or no DoF condition is active. | Never. |
+| `fail` | The change is closed, or no soft failure awaits disposition, so that an active DoF condition of the severity `hard` alone does not allow the action. | Never. |
 | `cancel` | The change is closed, or no authorized cancellation decision exists. | Never. |
 | `supersede` | The change is closed, or no later change is authorized to replace this change. | Never. |
 | `reopen` | The change is not in the `closed` phase, the corrective follow-up work is not authorized with a reason and a new goal-bound scope, the resume-phase DoR is not satisfied, or a Definition of Wait condition of the new corrective scope is active. | Never. |
@@ -946,7 +946,7 @@ Given a `full` change whose phase has the status `ready` and a Definition of Wai
 When the `start` action is requested  
 Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
-See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297, AE-298.
+See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297, AE-298, AE-308.
 
 **AE-239 — Start a ready phase**
 
@@ -996,13 +996,21 @@ Given a `full` change with the status `waiting` in the build phase whose resume 
 When the `resume` action is requested for each change  
 Then the first change returns to the build phase with the status `active`, and the request for the second change is rejected with `changed` false, so that it remains `waiting`
 
-**AE-243 — Fail only while a Definition of Fail condition is active**
+**AE-243 — Fail only while a soft failure awaits disposition**
 
 - Covers: Section 8.3 (`fail`)
 
-Given a `full` change in the verify phase with an active Definition of Fail condition, and a second `full` change in the verify phase with no such condition  
+Given a `full` change in the verify phase with the status `waiting` because of an active Definition of Fail condition of the severity `soft`, and a second `full` change in the verify phase with no soft failure that awaits disposition  
 When the `fail` action is requested for each change  
 Then the first change is in the `closed` phase with the status `failed`, and the request for the second change is rejected with `changed` false
+
+**AE-308 — Fail is refused when only a hard failure is active**
+
+- Covers: Section 8.3 (`fail`)
+
+Given a `full` change in the verify phase with the status `active` and an active Definition of Fail condition of the severity `hard`, and no soft failure that awaits disposition  
+When the `fail` action is requested  
+Then the result is `rejected` with `changed` false, and the change keeps its phase and its status
 
 **AE-244 — Cancel is not prevented by a wait, and a failure has priority**
 
@@ -3987,14 +3995,14 @@ Then the result is `rejected` with the issue code `gates-changed`, and the basel
 
 Every fail condition has a severity, which is `hard` or `soft`, written in exact lowercase. A fail condition without a severity, or with any other value, is invalid and MUST be rejected when the gate definitions are approved. In `core`, the severity is the field `severity` of a fail gate (Section 23.3). In `full`, every fail rule states its severity (Section 12.2). A retry limit (Section 24.2) is a fail condition of the severity `soft`, and a retry limit that declares the severity `hard` is invalid and MUST be rejected. See AE-97, AE-108, AE-110.
 
-A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). The action `start` is the exception: it never closes a change. When a fail gate of the severity `hard` is active, `start` is rejected with `changed` false and the issue code `start-blocked` (Section 24.2), and the change keeps its state. The failure is decided by `cancel`, by `supersede`, or by the first action that completes or resumes the change. See AE-98, AE-279.
+A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). The action `start` is an exception: it never closes a change. When a fail gate of the severity `hard` is active, `start` is rejected with `changed` false and the issue code `start-blocked` (Section 24.2), and the change keeps its state. The action `fail` is a second exception: it is valid only while a soft failure awaits disposition, so that with only a fail condition of the severity `hard` active it is rejected with `changed` false (Sections 8.3 and 23.4), and the change keeps its state. The failure is decided by `cancel`, by `supersede`, or by the first action that completes or resumes the change. See AE-98, AE-279.
 
 A soft failure pauses the change for a human. When an action that evaluates gates finds a fail condition of the severity `soft` active and no hard failure, the action MUST NOT close the change. The change waits: in `core`, in the state `waiting` with a wait record of kind `fail-gate` (Section 23.5); in `full`, with the status `waiting` and a wait state of the category `WAIT_DECISION` (Section 11.1), whose resume condition is that a human has recorded an override. The wait ends by a human disposition (Section 24.3), which is one of two:
 
 - the human closes the change as failed with the `fail` action and a reason (Sections 8.3 and 23.4);
 - the human records an override of the soft failure.
 
-The `fail` action is valid only while a soft failure awaits disposition. See AE-99, AE-100, AE-101.
+The `fail` action is valid only while a soft failure awaits disposition. See AE-99, AE-100, AE-101, AE-308.
 
 When a retry limit is reached, the change waits as it does for a soft failure, and the human closes the change as failed or records an override. Nothing ends the change automatically.
 
