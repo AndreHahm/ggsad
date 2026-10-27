@@ -1,7 +1,7 @@
 # Independent review, round 2: proposed normative method specification
 
 - Independent review: reported
-- Owner dispositions: pending
+- Owner dispositions: recorded in the review disposition record
 - Blocking findings: 3
 
 ## The text reviewed
@@ -220,11 +220,11 @@ Each report is quoted whole, line by line: a quote mark and a space are added at
 | RR-A-001 | MAJOR | file SPEC; section 4.3; lines 303-303; quote "It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case." | The reserved-name check rejects only exact reserved names, not the reserved base-name-plus-extension forms that the same file systems also reserve. |  |
 | RR-A-002 | MAJOR | file SPEC; section 4.3; lines 307-307; quote "enforced mechanically only for a change that has a state document" | The history-based protections of Sections 24.1 to 24.5, 24.7 and 24.8 are mechanically enforced only when a state document exists, which is optional for a `full` change. |  |
 | RR-A-003 | MINOR | file SPEC; section 8.3; lines 887-887; quote "Rejection Behavior" | The transition table column named Rejection Behavior also describes blocked results, waits and closures, so its heading does not match its content. |  |
-| RR-B-001 | BLOCKING | file SPEC; section 22.4; lines 2291-2291; quote "it has an anchor" | The guard action requires a history anchor where Section 24.4 and SPEC-05 permit an anchor or an equivalent mechanism, so a conforming change fails the guard. |  |
+| RR-B-001 | BLOCKING | file SPEC; section 22.4; lines 2291-2291; quote "it has an anchor" | The guard action requires a history anchor where Section 24.4 and SPEC-05 permit an anchor or an equivalent mechanism, so a conforming change fails the guard. | fix |
 | RR-B-002 | MAJOR | file SPEC; section 22.1; lines 2197-2197; quote "as the read-only actions `check`, `review`, and `guard` (Section 22.4) do" | The contract mandates reporting on a change via `check`, `review`, and `guard`, but `check` and `review` are defined only for the `core` profile, leaving `full` without them. |  |
 | RR-B-003 | MAJOR | file SPEC; section 11.2; lines 1442-1442; quote "it holds a phase identifier of Section 7" | A resume phase is not part of the mandatory wait content, yet `resume` requires a recorded or explicitly required resume phase, so a wait recorded without one may be unresumable. |  |
-| RR-X-001 | BLOCKING | file SPEC; section 24.5; lines 3776-3776; quote "A file that version control is told to ignore is invisible to the measurement." | The scope check is bypassable: ignore rules can be changed in places the measurement never sees, hiding arbitrary out-of-scope work. |  |
-| RR-X-002 | BLOCKING | file SPEC; section 8.3; lines 893-893; quote "A DoF condition is active." | In `full`, the `fail` row of Section 8.3 makes `fail` legal whenever any DoF condition is active, while Section 24.7 makes it valid only for a soft failure awaiting disposition. |  |
+| RR-X-001 | BLOCKING | file SPEC; section 24.5; lines 3776-3776; quote "A file that version control is told to ignore is invisible to the measurement." | The scope check is bypassable: ignore rules can be changed in places the measurement never sees, hiding arbitrary out-of-scope work. | fix |
+| RR-X-002 | BLOCKING | file SPEC; section 8.3; lines 893-893; quote "A DoF condition is active." | In `full`, the `fail` row of Section 8.3 makes `fail` legal whenever any DoF condition is active, while Section 24.7 makes it valid only for a soft failure awaiting disposition. | fix |
 | RR-X-003 | MAJOR | file SPEC; section 11.2; lines 1421-1421; quote "outstanding information or decision" | Section 11.2 requires every wait state to name the outstanding information or decision, but the `core` wait record of Section 23.5 has no such item and AE-50 validates a record without it. |  |
 | RR-X-004 | MINOR | file SPEC; section 24.3; lines 3494-3494; quote "The signers file is kept outside the repository of the project, so that a participant who can change the repository cannot add a key for itself." | The placement of the A2 signers file outside the repository is stated declaratively, not as a normative requirement. |  |
 | RR-X-005 | MINOR | file SPEC; section 23.4; lines 2537-2537; quote "and `replaced_by` names a different change that exists" | The `core` `supersede` action accepts `replaced_by` naming any existing different change, including one that is already `closed`. |  |
