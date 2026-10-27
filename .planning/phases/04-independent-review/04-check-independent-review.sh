@@ -1474,7 +1474,11 @@ REC_NA_FOLLOWS='The independent review returned no blocking finding, so there is
 # disp_question ID: the question put to the owner for the finding ID, built character for character from the
 # cells of the derived findings table (the only implementation; the printer and D3 both use it).
 disp_question() {
-  awk -F'\t' -v i="$1" '$1 == i { print "Finding " $1 " (" $2 "). Reference: " $3 ". Summary: " $4 ". What is your disposition: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
+  if [ "$ROUND" = "2" ]; then
+    awk -F'\t' -v i="$1" '$1 == i { s = $4; if (s !~ /[.?!]$/) s = s "."; print "Finding " $1 " (" $2 "). The reviewer says: " s " What should happen to it: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
+  else
+    awk -F'\t' -v i="$1" '$1 == i { print "Finding " $1 " (" $2 "). Reference: " $3 ". Summary: " $4 ". What is your disposition: fix, accept, defer or reject?"; exit }' "$TMP/pt.tsv"
+  fi
 }
 
 # print_finding_block ID: one H3 block of the record for the finding ID.
