@@ -1,7 +1,7 @@
 # Independent review, round 3: proposed normative method specification
 
 - Independent review: reported
-- Owner dispositions: pending
+- Owner dispositions: recorded in the review disposition record
 - Blocking findings: 3
 
 ## The text reviewed
@@ -365,18 +365,18 @@ Each report is quoted whole, line by line: a quote mark and a space are added at
 
 | Finding | Severity | Reference | Summary | Disposition |
 |---|---|---|---|---|
-| RT-A-001 | BLOCKING | file SPEC; section 8.4; lines 1065-1065; quote "The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`." | Edited gate definitions block every operation except cancellation per SPEC-01, but the text also exempts `supersede`. |  |
+| RT-A-001 | BLOCKING | file SPEC; section 8.4; lines 1065-1065; quote "The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`." | Edited gate definitions block every operation except cancellation per SPEC-01, but the text also exempts `supersede`. | fix |
 | RT-A-002 | MAJOR | file SPEC; section 4.3; lines 303-303; quote "It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case." | Reserved-name check compares the whole identifier; names like `nul.txt` pass it yet remain reserved on Windows. |  |
 | RT-A-003 | MINOR | file SPEC; section 5.3; lines 392-392; quote "Layer 5 is the gates and the scope of the change definition (Section 23.1)." | Layer 5 is defined as "local strengthening in the change specification" but for `core` it is silently relocated to the change definition. |  |
 | RT-A-004 | INFO | file BASE; section 8.3; lines 514-514; quote "wait when the new corrective scope's DoW determines a pause" | BASE let `reopen` pause on an active DoW of the new scope; SPEC rejects instead of waiting. |  |
-| RT-B-001 | BLOCKING | file BASE; section 12.1; lines 785-785; quote "exceeding hard budget, cost, or retry limits" | BASE made exceeding a retry limit a condition under which the flow MUST terminate; SPEC makes every retry limit soft, allowing a recorded override and further attempts. |  |
+| RT-B-001 | BLOCKING | file BASE; section 12.1; lines 785-785; quote "exceeding hard budget, cost, or retry limits" | BASE made exceeding a retry limit a condition under which the flow MUST terminate; SPEC makes every retry limit soft, allowing a recorded override and further attempts. | fix |
 | RT-B-002 | MINOR | file SPEC; section 12; lines 1485-1485; quote "A retry limit is a soft fail condition, so that reaching it pauses the flow for a human disposition" | The normative statement that a retry limit is a soft fail condition is made twice, once before and once inside Section 12.1. |  |
 | RT-B-003 | MINOR | file SPEC; section 12.1; lines 1505-1505; quote "The interpreter that runs the commands of gates is explicit and opt-in (Section 24.10)." | A sentence about the gate-command interpreter sits inside the typical-fail-categories section although it is not a fail category. |  |
 | RT-B-004 | MINOR | file SPEC; section 20; lines 2152-2152; quote "a soft failure that awaits a human disposition is a fail gate of the severity `soft` (Section 23.6)" | The completion criteria equate a soft failure awaiting disposition with any fail gate of severity soft, omitting that the gate must have decided. |  |
 | RT-C-001 | MAJOR | file SPEC; section 23.3; lines 2480-2480; quote "`retry_limit`: a mapping with the members `gate` and `limit`, for a fail gate only." | A wait gate whose condition holds `retry_limit` is forbidden by implication but is not covered by the MUST-reject enumeration, leaving the outcome undetermined. |  |
 | RT-C-002 | MAJOR | file SPEC; section 23.3; lines 2480-2480; quote "The member `gate` is the identifier of a done gate of the kind `check`, and the member `limit` is the limit of Section 24.2." | No rule states that a `retry_limit` whose member `gate` names a nonexistent gate or a gate that is not a `check` done gate MUST be rejected. |  |
 | RT-C-003 | MINOR | file SPEC; section 23.3; lines 2491-2491; quote "- Covers: Section 12.2" | Example AE-271, located in Section 23.3 and about `core` fail gates, declares "Covers: Section 12.2" rather than Section 23.3. |  |
-| RT-D-001 | BLOCKING | file SPEC; section 24.2; lines 3354-3354; quote "The actions `wait`, `fail`, and `reopen` are rejected with `changed` false, nothing is written" | The full-only rule rejecting wait, fail, and reopen with issue code gate-not-evaluable has no acceptance example, contrary to SPEC-14 and O-8. |  |
+| RT-D-001 | BLOCKING | file SPEC; section 24.2; lines 3354-3354; quote "The actions `wait`, `fail`, and `reopen` are rejected with `changed` false, nothing is written" | The full-only rule rejecting wait, fail, and reopen with issue code gate-not-evaluable has no acceptance example, contrary to SPEC-14 and O-8. | fix |
 | RT-D-002 | MINOR | file SPEC; section 24.4; lines 3660-3660; quote "For the first entry, `prev` is the prefix `sha256:` followed by 64 digits 0" | The phrase 64 digits 0 is awkward and can be misread; the intended 64 zero digits should be spelled out unambiguously. |  |
 | RT-D-003 | INFO | file SPEC; section 24.4; lines 3684-3684; quote "It MUST be performed by a human at the level that Section 24.3 requires for `adopt`" | Where a project requires approvals at A2 but sets no minimum for adopt, an A0 self-declared human identity can adopt a history, which weakens the anchor guarantee. |  |
 | RT-E-001 | MINOR | file SPEC; section 25.3; lines 4690-4690; quote "A file that already has the target version, or a higher one, is not migrated, and the operation answers `rejected`" | The rejection of a no-op migration is given no stable issue code, while every sibling refusal in 25.3 names one. |  |
