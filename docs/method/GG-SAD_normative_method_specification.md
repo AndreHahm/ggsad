@@ -3059,7 +3059,7 @@ Then the category is `WAIT_DECISION`
 
 ### 23.6 Evaluation Order
 
-The gates of a `core` change MUST be evaluated in this order, and the evaluation MUST stop as soon as a gate decides the requested action:
+The gates of a `core` change MUST be evaluated in this order, and the evaluation MUST stop once the results of a group decide the requested action (Section 24.2):
 
 1. A fail gate with the severity `hard` that is active decides: the change becomes `closed` with the outcome `failed`.
 2. A gate whose condition could not be evaluated decides: the change becomes `waiting` with a wait record of kind `external` (Section 24.2). A condition that could not be evaluated is never a failure.
