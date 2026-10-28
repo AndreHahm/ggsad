@@ -1662,6 +1662,16 @@ A Pair Review cycle MUST:
 7. verify resolved blocking findings when required,
 8. preserve the final review result as evidence.
 
+See AE-316.
+
+**AE-316 — A Pair Review cycle returns a blocking finding to the Requestor and records the disposition**
+
+- Covers: Section 14.3
+
+Given a change with a required Pair Review whose Requestor is the participant `agent-a` and whose Reviewer is the distinct participant `reviewer-b`, the review scope `spec.md` with the criterion that every requirement is verifiable, the reviewed work product fixed as the exact revision `r12`, a rule of the project that resolved blocking findings are verified, and one finding of the severity `blocking` that the Reviewer records with the status `open`  
+When the review cycle runs  
+Then the finding is returned to the Requestor, the disposition of the Requestor and the changes made are recorded, the Reviewer verifies that the blocking finding is resolved, and the final review result is preserved as evidence
+
 ### 14.4 Findings
 
 A finding SHOULD include:
@@ -1680,7 +1690,15 @@ Recommended severities are `informational`, `minor`, `major`, `blocking`, and `c
 
 Recommended statuses are `open`, `accepted`, `rejected`, `resolved`, `verified`, and `withdrawn`.
 
-Unresolved blocking findings MUST block the applicable completion or transition gate unless they are formally dispositioned by an authorized decision owner.
+Unresolved blocking findings MUST block the applicable completion or transition gate unless they are formally dispositioned by an authorized decision owner. See AE-317.
+
+**AE-317 — An unresolved blocking finding blocks the gate until it is formally dispositioned**
+
+- Covers: Section 14.4
+
+Given two changes with a Pair Review whose finding `F-1` has the severity `blocking`, where `F-1` has the status `open` in the first change, and `F-1` has the status `accepted` in the second change with a disposition rationale that an authorized decision owner recorded  
+When the completion of each change is requested  
+Then the unresolved blocking finding blocks the completion of the first change, and the finding of the second change does not block it, because an authorized decision owner formally dispositioned it
 
 ### 14.5 Review Artifacts
 
@@ -1688,7 +1706,15 @@ Pair Review evidence MAY be recorded inline in `evidence.md`. A separate `review
 
 Review findings are not requirements and do not override higher-ranking artifacts. A finding that requires a requirement or architecture change MUST trigger the appropriate specification or ADR workflow.
 
-Regardless of whether it is stored inline in `evidence.md` or separately in `review.md`, a portable Pair Review evidence record MUST capture exactly these eight fields: participant; role (`Requestor` or `Reviewer`); reviewed revision (the exact artifact revision reviewed); action (the review action taken); timestamp; result; findings (a reference to or summary of the findings); and disposition. This evidence-record field set is distinct from, and complements, the per-finding fields in Section 14.4.
+Regardless of whether it is stored inline in `evidence.md` or separately in `review.md`, a portable Pair Review evidence record MUST capture exactly these eight fields: participant; role (`Requestor` or `Reviewer`); reviewed revision (the exact artifact revision reviewed); action (the review action taken); timestamp; result; findings (a reference to or summary of the findings); and disposition. This evidence-record field set is distinct from, and complements, the per-finding fields in Section 14.4. See AE-318.
+
+**AE-318 — A review finding does not override a requirement, and the evidence record holds eight fields**
+
+- Covers: Section 14.5
+
+Given a Pair Review recorded inline in `evidence.md`, in which the finding of the Reviewer says that requirement R3 of the approved specification is to change  
+When the Requestor handles the finding  
+Then requirement R3 is not changed by the finding, the specification workflow is triggered to change it, and the evidence record of the review holds exactly the eight fields participant, role, reviewed revision, action, timestamp, result, findings, and disposition
 
 ## 15. Evidence Model
 
