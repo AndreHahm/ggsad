@@ -253,7 +253,7 @@ Plans:
 
 **Wave 14** *(gap closure from the round-3 dispositions, outcome `fix pending`; blocked on Wave 13 completion; has the owner design-choices checkpoint)*
 
-- [ ] 04-14-PLAN.md — Round 4 profile and round-3 replay of the fix round script (tracer), the owner chooses how two of the three BLOCKING findings are fixed (the third leaves no choice), the specification is edited for those three only and the register is written (REVIEW-02)
+- [x] 04-14-PLAN.md — Round 4 profile and round-3 replay of the fix round script (tracer), the owner chooses how two of the three BLOCKING findings are fixed (the third leaves no choice), the specification is edited for those three only and the register is written (REVIEW-02)
 
 **Wave 15** *(blocked on Wave 14 completion; has the owner approval checkpoint)*
 

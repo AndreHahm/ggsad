@@ -5,15 +5,15 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Planned fix round 4 (04-14 to 04-17); 04-13 outcome fix pending
-last_updated: "2026-10-27T19:36:11.000Z"
-last_activity: 2026-10-27
-last_activity_desc: Planned fix round 4 (plans 04-14 to 04-17) after the owner chose Fix for the three BLOCKING findings of round 3
+stopped_at: Completed 04-14-PLAN.md (round 4 edits drafted, awaiting approval in 04-15)
+last_updated: "2026-10-28T09:00:00.000Z"
+last_activity: 2026-10-28
+last_activity_desc: Completed plan 04-14 - owner chose Cancel only (OD-4) and Soft, said openly (OD-5); three edits and register committed
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 31
-  completed_plans: 27
+  completed_plans: 28
   percent: 38
 ---
 
@@ -34,9 +34,9 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ## Current Position
 
 Phase: 4 (Independent Review) — EXECUTING
-Plan: 13 of 17 complete (fix round 3: independent review done, owner chose Fix for the 3 BLOCKING findings; outcome fix pending); plans 04-14 to 04-17 planned (fix round 4)
-Status: Plans 04-01 to 04-13 complete; plans 04-14 to 04-17 planned; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-14: profile 4 of the fix round script, the owner's two design choices, the three edits)
-Last activity: 2026-10-27 — Planned fix round 4 (plans 04-14 to 04-17); plan check passed
+Plan: 14 of 17 complete (fix round 4: profile 4, owner choices OD-4 Cancel only and OD-5 Soft, said openly, three edits drafted; text blob fca228479a34e228785f4c0b100da3c6745ada0a, not yet approved); plans 04-15 to 04-17 planned
+Status: Plans 04-01 to 04-14 complete; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-15: identity of the new text, approval packet, owner approval with name and date)
+Last activity: 2026-10-28 — Completed 04-14 (round 4 edits and register)
 
 Progress: [█████████░] 93%
 
