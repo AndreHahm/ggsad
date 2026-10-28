@@ -431,9 +431,10 @@ if [ -z "$STAGE" ]; then
   if [ "$ROUND" -ge 3 ]; then STAGE="edits"; else STAGE="state"; fi
 fi
 case "$STAGE" in
-  state|decisions|edits|approval-pending|approval-recorded) ;;
-  *) echo "--stage must be state, decisions, edits, approval-pending or approval-recorded" >&2; exit 2 ;;
+  state|decisions|edits|approval-pending|approval-recorded|dispositions) ;;
+  *) echo "--stage must be state, decisions, edits, approval-pending, approval-recorded or dispositions" >&2; exit 2 ;;
 esac
+[ "$STAGE" != dispositions ] || [ "$ROUND" -eq 5 ] || { echo "--stage dispositions is used with --round 5 only" >&2; exit 2; }
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
 [ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2, --replay-round-3 or --replay-round-4 only" >&2; exit 2; }
 [ "$PRINT_ADS" -eq 0 ] || [ "$ROUND" -eq 5 ] || { echo "--print-addendum-skeleton is used with --round 5 only" >&2; exit 2; }
@@ -452,8 +453,8 @@ if [ "$ROUND" -eq 4 ]; then
 fi
 if [ "$ROUND" -eq 5 ]; then
   case "$STAGE" in
-    edits) ;;
-    *) echo "--round 5 allows --stage edits only" >&2; exit 2 ;;
+    edits|dispositions) ;;
+    *) echo "--round 5 allows --stage edits or dispositions only" >&2; exit 2 ;;
   esac
   if [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
     echo "the approval printers are not available in --round 5" >&2
@@ -634,7 +635,7 @@ readable "$AR" "$APPROVAL"
 readable "$DR" "$DISPO"
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = decisions ]; then readable "$DC" "$DECISIONS"; fi
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = state ]; then readable "$SP" "$SPECFILE"; fi
-if [ "$PRINT_REG" -eq 1 ] || [ "$PRINT_Q" -eq 1 ] || [ "$PRINT_ADS" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
+if [ "$PRINT_REG" -eq 1 ] || [ "$PRINT_Q" -eq 1 ] || [ "$PRINT_ADS" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && { [ "$STAGE" = edits ] || [ "$STAGE" = dispositions ]; }; }; then readable "$NT" "$NOTE_DEFAULT"; fi
 if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_Q" -eq 0 ] && [ "$PRINT_ADS" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
   readable "$SP" "$SPECFILE"
   readable "$RG" "$REGISTER"
@@ -2720,6 +2721,11 @@ fi
 
 if [ "$STAGE" = edits ]; then
   edits_stage
+  finish
+fi
+
+if [ "$STAGE" = dispositions ]; then
+  da_checks
   finish
 fi
 
