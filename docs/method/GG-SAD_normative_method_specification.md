@@ -2565,7 +2565,7 @@ There is no ready gate. Readiness to start is a precondition of the `start` acti
 A fail gate and a wait gate have no kind. Each has a `condition`, a mapping that holds exactly one of the members `command`, `retry_limit`, and `predicate`:
 
 - `command`: the argument list of a check command (Section 24.2). The condition also holds the member `exit_map`, and it MAY hold the member `time_limit`. The gate is active when the command ends with an exit status that the exit map maps to `satisfied`.
-- `retry_limit`: a mapping with the members `gate` and `limit`, for a fail gate only. The member `gate` is the identifier of a done gate of the kind `check`, and the member `limit` is the limit of Section 24.2. The gate is active when the retry limit is reached.
+- `retry_limit`: a mapping with the members `gate` and `limit`, for a fail gate only. The member `gate` is the identifier of a done gate of the kind `check`, and the member `limit` is the limit of Section 24.2. The gate is active when the retry limit is reached. The identifier named by `gate` MUST be the identifier of a done gate of the kind `check` of the same change, and a definition whose retry limit names none is rejected. See AE-320.
 - `predicate`: the name of a built-in predicate. A fail gate MAY name `scope-violation`, and a wait gate MAY name `unanswered-question` or `stale-spec-approval`. Section 23.7 defines them.
 
 A condition that holds none of these members, that holds two or more of them, that holds another member, or that names a predicate which is not listed for the kind of the gate MUST be rejected. The rules about the kind of a gate apply to done gates only. See AE-273.
@@ -2597,6 +2597,14 @@ Then the first definition is rejected, because a done gate of the kind `review` 
 Given a change definition with the hard fail gate `no-secrets` whose condition is a `command` with an exit map, the soft fail gate `flaky` whose condition is a `retry_limit` for the `check` done gate `tests-pass`, and the wait gate `late-answers` whose condition is the `predicate` `unanswered-question`, a second definition whose fail gate has no condition, and a third definition whose fail gate has a condition with both a `command` and a `predicate`
 When the `new` action receives each of them
 Then the first definition is accepted, and the second and the third are rejected, because a condition has exactly one form, and no change is created for them
+
+**AE-320 — A retry limit names a check done gate of the same change**
+
+- Covers: Section 23.3
+
+Given a change definition with the `check` done gate `tests-pass` and the soft fail gate `flaky` whose condition is a `retry_limit` for `tests-pass`, a second definition with the same done gate and a soft fail gate whose `retry_limit` names `tests-pas`, an identifier that no gate of the change carries, and a third definition whose `retry_limit` names the `sign-off` done gate `legal-ok`  
+When the `new` action receives each of them  
+Then the first definition is accepted, and the second and the third are rejected, because the identifier named by `gate` is not that of a done gate of the kind `check` of the same change, and no change is created for them
 
 **AE-16 — Reject a duplicate gate identifier**
 
