@@ -71,12 +71,18 @@
 #                     status line is not the pending form
 #   --round N         the round profile: 2 (default) holds every value that this script has always held (the
 #                     fix round that follows the first independent review); 3 is the profile of the fix round
-#                     that follows the second independent review (plans 04-10 and 04-11); any other value
-#                     exits 2. Profile 3 reads the approval record, the disposition record and the review note
-#                     of the second round, finds the findings with the prefix RR, has three changes FG-10 to
-#                     FG-12 and nine findings without a disposition, and allows the stages edits,
-#                     approval-pending and approval-recorded (the stage defaults to edits; the stages state
-#                     and decisions and the printer of the decisions record exit 2)
+#                     that follows the second independent review (plans 04-10 and 04-11); 4 is the profile of
+#                     the fix round that follows the third independent review (plans 04-14 and 04-15); any
+#                     other value exits 2. Profile 3 reads the approval record, the disposition record and the
+#                     review note of the second round, finds the findings with the prefix RR, has three
+#                     changes FG-10 to FG-12 and nine findings without a disposition, and allows the stages
+#                     edits, approval-pending and approval-recorded (the stage defaults to edits; the stages
+#                     state and decisions and the printer of the decisions record exit 2). Profile 4 reads the
+#                     approval record, the disposition record and the review note of the third round, finds
+#                     the findings with the prefix RT, has three changes FG-13 to FG-15 and twenty findings
+#                     without a disposition, and allows the stage edits only (the stage defaults to edits; the
+#                     stages state and decisions, the stages approval-pending and approval-recorded, which a
+#                     later plan adds, and the printer of the decisions record exit 2)
 #   --replay-round-2  run R2-1 to R2-8 instead of a stage (no other check runs): R2-1 the newest commit
 #                     reachable from HEAD at which the specification holds the result blob of the approval
 #                     record of the fix round (read from --approval-record, default: the record path of the fix
@@ -94,18 +100,31 @@
 #                     refs are not changed. It cannot be combined with --replay-round-1 (exit 2)
 #   -h, --help        print this text and exit 0
 #
-# Profile 3 (--round 3), used by plans 04-10 and 04-11. The profile table (round 2 is the default and holds
-# every value this script has always held):
-#   value                 round 2                              round 3
-#   packet, record        the fix round approval packet and    the packet and the record of fix round 3
-#                         record of the repository             (2026-10-27-normative-spec-fix-round-3-*)
-#   register              the nine-change register             the register of round 3 (three changes)
-#   approval record       the record of round 1                the record of the fix round (round 2)
-#   disposition record    the record of round 1                the record of round 2
-#   text approved before  the text of round 1                  the text of round 2
-#   changes in the packet nine, "my choice" or repair          three, "your decision: <label>" with the
-#                                                              options offered, the decision and its reason
-#   H1 lines              "fix round"                          "fix round 3"
+# Profiles 3 and 4 (--round 3 and --round 4), used by plans 04-10 and 04-11 and by plans 04-14 and 04-15. The
+# profile table (round 2 is the default and holds every value this script has always held):
+#   value                 round 2                       round 3                       round 4
+#   packet, record        the fix round approval        the packet and the record     the packet and the record
+#                         packet and record of the      of fix round 3 (2026-10-27-   of fix round 4 (2026-10-27-
+#                         repository                    ...-fix-round-3-*)            ...-fix-round-4-*)
+#   register              the nine-change register      the register of round 3       the register of round 4
+#                                                       (three changes)               (three changes)
+#   approval record       the record of round 1         the record of the fix round   the record of fix round 3
+#                                                       (round 2)
+#   disposition record    the record of round 1         the record of round 2         the record of round 3
+#   review note           the note of round 1           the note of round 2           the note of round 3
+#   finding ids           RV                            RR                            RT
+#   changes               FG-01 to FG-09                FG-10 to FG-12                FG-13 to FG-15
+#   undispositioned       14                            9                             20
+#   first new example     AE-295                        AE-306                        AE-309
+#   text approved before  the text of round 1           the text of round 2           the text of round 3
+#   changes in the packet nine, "my choice" or repair   three, "your decision:        three (the packet printer of
+#                                                       <label>" with the options     round 4 belongs to plan
+#                                                       offered, the decision and     04-15)
+#                                                       its reason
+#   kinds of change       repair, my choice             owner decision                owner decision, repair
+#   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"
+#   stages                all five                      edits, approval-pending,      edits
+#                                                       approval-recorded
 # The questions Q01 to Q04, their headers and options are the same in both profiles. Under --round 3 the stages
 # approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
 # --print-approval-packet and --print-approval-record-skeleton work, with the checks AP1 to AP5 and AR1 to AR5
@@ -126,6 +145,17 @@
 #   round 2; FE7 for each drafted entry the Options bullet equals the printed labels of its decision joined by
 #   " | ", the Owner decision is exactly one of them, the Owner reason is non-empty and the Channel is the
 #   fixed sentence.
+#   Profile 4 (--round 4), used by plans 04-14 and 04-15, differs from profile 3 in values and in one kind of
+#   change, nothing more. --print-decision-questions prints the two decisions OD-4 (finding RT-A-001) and OD-5
+#   (finding RT-B-001) in the form of profile 3, and --print-register-skeleton prints the skeleton of the fix
+#   register of round 4 with the changes FG-13 to FG-15 and the twenty findings that the owner did not
+#   disposition. The kind of a change is given by the data function of the script: FG-13 and FG-14 are an owner
+#   decision, FG-15 is a repair (its finding leaves no design choice). FE3 expects twenty findings without a
+#   disposition; FE5 compares the Kind cell of each entry with the kind that the data function gives for it and
+#   runs the example ids on from AE-309; FE7 maps FG-13 to OD-4 and FG-14 to OD-5 and applies the rules of
+#   profile 3, and for the kind repair requires that each of the bullets Options, Owner decision, Owner reason
+#   and Channel is the fixed no-choice sentence "none: no design choice was open, because the finding names the
+#   fix itself.". Profile 3 behaves exactly as before.
 #
 # Stage state: ST1 the approval record holds exactly one outcome line "- Owner approval: approved" and the pin
 # rows Result blob (40 lowercase hexadecimal digits), Reviewed SHA-256 (64) and Line count (an integer), the
@@ -217,6 +247,13 @@ BRIEF2_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R2.md"
 FREG3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-register.md"
 APK3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-packet.md"
 ARC3_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-3-approval-record.md"
+# The files of round 3 (the fix round that follows the second independent review), read by profile 4.
+NOTE3_PATH=".planning/reviews/2026-10-27-normative-spec-independent-review-round-3.md"
+DREC3_PATH=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-3.md"
+# The files of round 4 (the fix round that follows the third independent review).
+FREG4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-register.md"
+APK4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-packet.md"
+ARC4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-record.md"
 FIXP=".planning/phases/04-independent-review/04-check-fix-round.sh"
 
 STAGE=""
@@ -284,12 +321,12 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$ROUND" in
-  2|3) ;;
-  *) echo "--round must be 2 or 3" >&2; exit 2 ;;
+  2|3|4) ;;
+  *) echo "--round must be 2, 3 or 4" >&2; exit 2 ;;
 esac
 [ "$RP1" -eq 0 ] || [ "$RP2" -eq 0 ] || { echo "--replay-round-1 and --replay-round-2 cannot be used together" >&2; exit 2; }
 if [ -z "$STAGE" ]; then
-  if [ "$ROUND" -eq 3 ]; then STAGE="edits"; else STAGE="state"; fi
+  if [ "$ROUND" -ge 3 ]; then STAGE="edits"; else STAGE="state"; fi
 fi
 case "$STAGE" in
   state|decisions|edits|approval-pending|approval-recorded) ;;
@@ -302,29 +339,49 @@ if [ "$ROUND" -eq 3 ]; then
     edits|approval-pending|approval-recorded) ;;
     *) echo "--round 3 allows --stage edits, approval-pending or approval-recorded only" >&2; exit 2 ;;
   esac
+fi
+if [ "$ROUND" -eq 4 ]; then
+  case "$STAGE" in
+    edits) ;;
+    *) echo "--round 4 allows --stage edits only" >&2; exit 2 ;;
+  esac
+fi
+if [ "$ROUND" -ge 3 ]; then
   [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
   if [ "$PRINT_SKEL" -eq 1 ]; then
-    echo "--round 3 has no decisions record" >&2
+    echo "--round $ROUND has no decisions record" >&2
     exit 2
   fi
 fi
 
 # The round profile: the one place that sets every value that differs between round 2 (the default, the values this
-# script has always held) and round 3.
-if [ "$ROUND" -eq 3 ]; then
-  ARC_DEFAULT="$ARC2_PATH"
-  DREC_DEFAULT="$DREC2_PATH"
-  NOTE_DEFAULT="$NOTE2_PATH"
-  FREG_DEFAULT="$FREG3_PATH"
-  FPFX="RR"
+# script has always held), round 3 and round 4.
+if [ "$ROUND" -ge 3 ]; then
   NCHG=3
   NCHG_W="three"
-  NUNDISP=9
-  EX_FIRST=306
   REG_TBL_H="## The three changes"
   REG_BULLETS=("What changed" "Why" "Options" "Owner decision" "Owner reason" "Channel" "Before" "After" "Notes")
-  PACKET_DEFAULT="$APK3_PATH"
-  RECORD_DEFAULT="$ARC3_PATH"
+  if [ "$ROUND" -eq 3 ]; then
+    ARC_DEFAULT="$ARC2_PATH"
+    DREC_DEFAULT="$DREC2_PATH"
+    NOTE_DEFAULT="$NOTE2_PATH"
+    FREG_DEFAULT="$FREG3_PATH"
+    FPFX="RR"
+    NUNDISP=9
+    EX_FIRST=306
+    PACKET_DEFAULT="$APK3_PATH"
+    RECORD_DEFAULT="$ARC3_PATH"
+  else
+    ARC_DEFAULT="$ARC3_PATH"
+    DREC_DEFAULT="$DREC3_PATH"
+    NOTE_DEFAULT="$NOTE3_PATH"
+    FREG_DEFAULT="$FREG4_PATH"
+    FPFX="RT"
+    NUNDISP=20
+    EX_FIRST=309
+    PACKET_DEFAULT="$APK4_PATH"
+    RECORD_DEFAULT="$ARC4_PATH"
+  fi
 else
   FPFX="RV"
   NCHG=9
@@ -577,10 +634,21 @@ REG_INTRO='This register lists the nine changes made to the specification to fix
 REG_HEADER='The header of the specification (the Version line and the Revision line) is unchanged by this round.'
 REG3_H1='# Fix register, round 3: what changed in the specification and why'
 REG3_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the second independent review that the owner dispositioned fix. Each change implements the way the owner chose, which is recorded in the entry together with the options that were offered. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
+REG4_H1='# Fix register, round 4: what changed in the specification and why'
+REG4_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the third independent review that the owner dispositioned fix. For two of them the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For the third the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
 CHANNEL_TEXT='Given by the repository owner through the interactive question tool and relayed by the orchestrating session.'
+NOCHOICE_TEXT='none: no design choice was open, because the finding names the fix itself.'
 
 # fg_data: one line per group, "id|title|findings|kind".
 fg_data() {
+  if [ "$ROUND" -eq 4 ]; then
+    cat << 'DATA4'
+FG-13|How the gate comparison treats the supersede action|RT-A-001|owner decision
+FG-14|What happens when a retry limit is reached|RT-B-001|owner decision
+FG-15|An example for a wait, a fail or a reopen that cannot be evaluated|RT-D-001|repair
+DATA4
+    return 0
+  fi
   if [ "$ROUND" -eq 3 ]; then
     cat << 'DATA3'
 FG-10|How the guard check treats an equivalent to the history anchor|RR-B-001|owner decision
@@ -600,6 +668,11 @@ FG-07|What happens when a retry limit is reached|RV-B-005|my choice
 FG-08|Deciding whether a file is text or binary before hashing it|RV-E-001|my choice
 FG-09|The guard check for continuous integration|RV-X-003|my choice
 DATA
+}
+
+# fg_kind ID: the kind of the group as the data function gives it.
+fg_kind() {
+  fg_data | awk -F'|' -v g="$1" '$1 == g { print $4; exit }'
 }
 
 # undisp: the findings of the review note without a disposition, one per line as "id TAB severity TAB quote".
@@ -630,6 +703,20 @@ base_ids() {
 # bar: "D|id|header|finding" opens a decision, "Q|question" is its question, "O|label|description" is one option.
 # No option is recommended.
 od_data() {
+  if [ "$ROUND" -eq 4 ]; then
+    cat << 'DATA4'
+D|OD-4|Supersede|RT-A-001
+Q|After the gate definitions of a change were edited, may the `supersede` action still go ahead?
+O|Cancel only|Only `cancel` still goes ahead, and `supersede` is refused until a human approves the edited checks again.
+O|Supersede too, said openly|`supersede` still goes ahead beside `cancel`, and the text says so plainly and says why.
+D|OD-5|Retry limit|RT-B-001
+Q|Should reaching a retry limit end the change by itself, or pause it for a human?
+O|Soft, said openly|A retry limit stays a pause for a human, and the text says plainly that the earlier text ended the flow there.
+O|Hard or soft|A retry limit can be set to end the change by itself or to pause it for a human, like any other failure condition.
+O|Hard only|Reaching a retry limit always ends the change by itself, as in the earlier text, and a retry limit cannot be set to pause.
+DATA4
+    return 0
+  fi
   cat << 'DATA'
 D|OD-1|Guard anchor|RR-B-001
 Q|What should `guard` do for a change whose history uses an equivalent mechanism instead of an anchor?
@@ -699,6 +786,7 @@ od_labels() {
 print_register_skeleton() {
   local g t f k id sev b h1="$REG_H1" intro="$REG_INTRO"
   if [ "$ROUND" -eq 3 ]; then h1="$REG3_H1"; intro="$REG3_INTRO"; fi
+  if [ "$ROUND" -eq 4 ]; then h1="$REG4_H1"; intro="$REG4_INTRO"; fi
   printf '%s\n\n%s\n\n' "$h1" "$intro"
   printf '%s\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n' "$REG_TBL_H"
   while IFS='|' read -r g t f k; do
@@ -1402,7 +1490,7 @@ fe3() {
   h2sec "$RG" "Findings whose quoted sentence an edit touched" | grep -o -E "^- $FPFX-[A-Z]-[0-9]{3} :: .+" | cut -d' ' -f2 > "$TMP/touched.ids"
   undisp > "$TMP/undisp.tsv"
   if [ "$(wc -l < "$TMP/undisp.tsv" | tr -d ' ')" -ne "$NUNDISP" ]; then bad "the review note does not hold $NUNDISP findings without a disposition"; fi
-  if [ "$ROUND" -eq 3 ]; then base_ids > "$TMP/base.ids"; else : > "$TMP/base.ids"; fi
+  if [ "$ROUND" -ge 3 ]; then base_ids > "$TMP/base.ids"; else : > "$TMP/base.ids"; fi
   while IFS=$'\t' read -r id sev q; do
     if [ -n "$q" ] && ! grep -q -F -e "$q" "$SP" && ! grep -q -x -F -e "$id" "$TMP/touched.ids" && ! grep -q -x -F -e "$id" "$TMP/base.ids"; then
       bad "the quoted sentence of the undispositioned finding $id is no longer in the specification and the register lists no reason"
@@ -1467,7 +1555,7 @@ fe4() {
 }
 
 fe5() {
-  local g kind st secs exs v frag lab lim tok id n=0 top expect last
+  local g kind st secs exs v frag lab lim tok id n=0 top expect last want
   local -a toks
   PROB=""
   # the layout and the encoding
@@ -1521,7 +1609,8 @@ fe5() {
           *"Section "*|*"AE-"*|*"|"*) bad "$g: [${lab%:*}] holds a section number, an example id or a vertical bar" ;;
         esac
       done
-      if [ "$kind" != "owner decision" ]; then bad "$g: the Kind cell is [$kind], expected owner decision"; fi
+      want=$(fg_kind "$g")
+      if [ "$kind" != "$want" ]; then bad "$g: the Kind cell is [$kind], expected ${want:-a change of this round}"; fi
     fi
     for lab in Before After; do
       v=$(ev "$g" "$lab")
@@ -1610,19 +1699,30 @@ reg_load() {
   ' "$RG"
 }
 
-# fe7: profile 3 only. For each drafted entry the Options bullet equals the labels that --print-decision-questions
-# prints for its decision, joined by " | ", the Owner decision equals exactly one of them, the Owner reason is
-# non-empty and the Channel is the fixed sentence.
+# fe7: profiles 3 and 4. For each drafted entry the Options bullet equals the labels that
+# --print-decision-questions prints for its decision, joined by " | ", the Owner decision equals exactly one of
+# them, the Owner reason is non-empty and the Channel is the fixed sentence. For an entry of the kind repair
+# (profile 4) each of the four bullets Options, Owner decision, Owner reason and Channel equals the fixed
+# no-choice sentence.
 fe7() {
   local g st od lab want v n=0 ok
   PROB=""
   while IFS=$'\t' read -r g _ _ _ st _ _; do
     [ "$st" = drafted ] || continue
     n=$((n + 1))
+    if [ "$(fg_kind "$g")" = repair ]; then
+      for lab in "Options" "Owner decision" "Owner reason" "Channel"; do
+        v=$(ev "$g" "$lab")
+        if [ "$v" != "$NOCHOICE_TEXT" ]; then bad "$g: the bullet [$lab] is not the fixed sentence for a change with no design choice"; fi
+      done
+      continue
+    fi
     case "$g" in
       FG-10) od=OD-1 ;;
       FG-11) od=OD-2 ;;
       FG-12) od=OD-3 ;;
+      FG-13) od=OD-4 ;;
+      FG-14) od=OD-5 ;;
       *) bad "$g: no decision belongs to this change"; continue ;;
     esac
     want=$(od_labels "$od" | awk 'NR > 1 { printf " | " } { printf "%s", $0 }')
@@ -1655,7 +1755,7 @@ edits_stage() {
   fe4
   fe5
   fe6
-  if [ "$ROUND" -eq 3 ]; then fe7; fi
+  if [ "$ROUND" -ge 3 ]; then fe7; fi
 }
 
 # ---- the owner approval of the exact new text --------------------------------------------------------------
@@ -1675,9 +1775,9 @@ AQ_HEADS=(Approval Changes Name Date)
 AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. That review is limited: it has one pass over the header and Sections 1 to 8, one pass over Sections 9 to 22 and one pass over the whole text read across sections. Sections 23, 24 and 25 have no pass of their own and are read only by the pass over the whole text. Any later edit of the specification voids the approval.'
 AP_FOLLOWS_2='If you request changes, nothing is approved, the text is edited for them, the packet is printed again and you are asked again.'
 AP_FOLLOWS_3='The tick of the requirement for owner approval from the first round is not changed by any plan and rests, for this text, on the record that follows this packet.'
-if [ "$ROUND" -eq 3 ]; then
-  AP_H1='# Owner approval packet, fix round 3: proposed normative method specification'
-  AR_H1='# Owner approval record, fix round 3: proposed normative method specification'
+if [ "$ROUND" -ge 3 ]; then
+  AP_H1="# Owner approval packet, fix round $ROUND: proposed normative method specification"
+  AR_H1="# Owner approval record, fix round $ROUND: proposed normative method specification"
   AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. Before anything is sent, you decide which parts of the text that review reads, with the figures of what changed where, and you consent to the exact run. Any later edit of the specification voids the approval.'
 fi
 
@@ -1767,7 +1867,7 @@ print_ap() {
   total=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
   printf '%s\n\n%s\n\n' "$AP_H1" "$AP_PENDING"
   printf '## What you are asked\n\n'
-  if [ "$ROUND" -eq 3 ]; then
+  if [ "$ROUND" -ge 3 ]; then
     printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it a second time; the owner asked for the three findings that the reviewer rated BLOCKING, its strongest rating, to be fixed, and chose how. The text has been changed in three places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
   else
     printf 'On %s the owner approved the text of the specification. The independent reviewer then reported its findings, and the owner asked for eleven of them to be fixed. The text has been changed in nine places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
@@ -1775,7 +1875,7 @@ print_ap() {
   printf '%s\n\n| # | What changed | Why | Whose reading |\n|---|---|---|---|\n' "$REG_TBL_H"
   while IFS=$'\t' read -r g _ _ k _ _ _; do
     n=$((n + 1))
-    if [ "$ROUND" -eq 3 ]; then
+    if [ "$ROUND" -ge 3 ]; then
       printf '| %s | %s | %s | your decision: %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ev "$g" "Owner decision")"
     else
       printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ap_reading "$k")"
@@ -1786,7 +1886,7 @@ print_ap() {
   while IFS=$'\t' read -r g t f k _ _ _; do
     n=$((n + 1))
     printf '### Change %s of %s: %s\n\n' "$n" "$total" "$t"
-    if [ "$ROUND" -eq 3 ]; then
+    if [ "$ROUND" -ge 3 ]; then
       printf -- '- Findings: %s\n- Options offered: %s\n- Your decision: %s; reason: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "Options")" "$(ev "$g" "Owner decision")" "$(ev "$g" "Owner reason")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
     else
       printf -- '- Findings: %s\n- My choice: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "My choice")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
