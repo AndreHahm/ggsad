@@ -215,8 +215,10 @@
 # the finding ids numbered from 001, one of the four severity words, a one-line SUMMARY of at most 200
 # characters, no vertical bar in a REFERENCE or SUMMARY line, RP6 each REFERENCE has the form "file F; section
 # S; lines A-B; quote Q" and resolves in the specification or the base text (the section is a numbered heading
-# or header, the lines lie inside the file, a quote is a substring of a line of the file; a quote outside the
-# stated lines is a warning), RP7 CHECKS PERFORMED and LIMITS hold text and the VERDICT agrees with the
+# or header, the lines lie inside the file, a quote is a substring of a line of the file, where only the case
+# of the first character of the quote may differ from the line because a reviewer may write the first letter
+# of a quoted sentence in lower case, and every other character is exact and case-sensitive; a quote outside
+# the stated lines is a warning), RP7 CHECKS PERFORMED and LIMITS hold text and the VERDICT agrees with the
 # severities, RP8 self-containment of the report (x1_scan with the input hashes and the input files of the
 # mode), RP9 a warning "WARN RP9 <phrase> in LIMITS of <pass>" for each claim in LIMITS that the input was
 # truncated, cut off, read partially or not completed.
@@ -1272,6 +1274,14 @@ rp_vals() { awk -F'\t' -v t="$1" '$1 == t { print $2 }' "$RP_FIELDS"; }
 # The phrases of RP9, kept as one list (case-insensitive search of the LIMITS text).
 RP_PHRASES=("truncat" "cut off" "cutoff" "ran out of context" "ran out of tokens" "context window" "context limit" "token limit" "output limit" "did not read the whole" "did not read the entire" "did not read the full" "could not read all" "could not read the whole" "could not read the entire" "unable to read all" "unable to read the whole" "unable to load" "only read the first" "partially read" "not fully read" "could not complete" "unable to complete" "did not complete" "incomplete")
 
+# quote_in TEXT: read lines on standard input and succeed when TEXT is a substring of one of them. The case of
+# the first character of TEXT may differ from the character in the line; every other character is exact and
+# case-sensitive. A reviewer may write the first letter of a quoted sentence in lower case.
+quote_in() {
+  local first=${1:0:1} rest=${1:1}
+  grep -q -F -e "${first,,}$rest" -e "${first^^}$rest"
+}
+
 # head_known HEADINGS SECTION: succeed when SECTION is header or a number in the heading list HEADINGS.
 head_known() {
   [ "$2" = header ] && return 0
@@ -1438,8 +1448,8 @@ report_checks() {
     if [ "$q" != none ]; then
       if [ "${#q}" -lt 3 ] || [ "${q:0:1}" != '"' ] || [ "${q: -1}" != '"' ]; then m="reference $i has a quote that is neither none nor text in double quotes"; break; fi
       text=${q:1:${#q}-2}
-      if ! grep -q -F -e "$text" "$ffile"; then m="reference $i quotes text that is no part of any line of $fname"; break; fi
-      if ! sed -n "${a},${b}p" "$ffile" | grep -q -F -e "$text"; then
+      if ! quote_in "$text" < "$ffile"; then m="reference $i quotes text that is no part of any line of $fname"; break; fi
+      if ! sed -n "${a},${b}p" "$ffile" | quote_in "$text"; then
         warn RP6 "$id: the quote of reference $i occurs in $fname but not between the lines $a-$b"
       fi
     fi
