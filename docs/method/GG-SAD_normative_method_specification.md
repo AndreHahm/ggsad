@@ -946,7 +946,7 @@ Given a `full` change whose phase has the status `ready` and a Definition of Wai
 When the `start` action is requested  
 Then the result is `rejected` with `changed` false and the issue code `start-blocked`, and the status remains `ready`
 
-See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297, AE-298, AE-308.
+See AE-239, AE-240, AE-241, AE-242, AE-243, AE-244, AE-245, AE-246, AE-295, AE-296, AE-297, AE-298, AE-308, AE-310.
 
 **AE-239 — Start a ready phase**
 
@@ -1027,6 +1027,14 @@ Then the first change is in the `closed` phase with the status `cancelled`, and 
 Given a `full` change in the build phase with the status `active`, an authorized cancellation decision, and a Definition of Fail condition that cannot be evaluated because its program is missing  
 When the `cancel` action is requested  
 Then the change is in the `closed` phase with the status `cancelled`, and the result `not_evaluable` of the condition is recorded with its cause
+
+**AE-310 — A full change rejects wait, fail, and reopen when a gate cannot be evaluated**
+
+- Covers: Section 8.3 (full: `wait`, `fail`, and `reopen`)
+
+Given three `full` changes with no active Definition of Fail condition of the severity `hard` and, in each, a Definition of Fail condition that applies to the action and cannot be evaluated because its program is missing: a change in the plan phase with the status `active` and an active Definition of Wait condition, a change in the verify phase with the status `waiting` because of an active Definition of Fail condition of the severity `soft`, and a change in the `closed` phase with the status `done` whose resume phase recorded at closure is the build phase, with a reason and a new goal-bound scope authorized, a satisfied resume-phase Definition of Ready, and no active Definition of Wait condition of the new corrective scope  
+When the `wait` action is requested for the first change, the `fail` action for the second, and the `reopen` action for the third  
+Then each result is `rejected` with `changed` false and the issue code `gate-not-evaluable`, nothing is written to the history, no wait state is created, and each change keeps its phase and its status
 
 **AE-245 — Supersede needs a later change**
 
@@ -3361,7 +3369,7 @@ In `full`, the Definitions of Ready (Section 8.5) take part in the evaluation, a
 
 A known hard failure therefore outranks a gate that cannot be evaluated. This order refines Section 8.5 and Section 23.6. The `start` action requires that none of the rules 1 to 4 would decide: when one would, `start` is rejected and no wait is created, and a hard failure included, because `start` never closes a change (Section 24.7). When the action is `resume`, the wait record created by rule 2 replaces the earlier record, whose resume condition was met. An action that only reports on a change reports the result and creates no wait. See AE-69, AE-71, AE-72, AE-74.
 
-Rule 2 does not make the other actions that evaluate gates and never answer `blocked` wait, because a wait is a recorded change that they cannot answer (Section 22.2). In `full`, these actions are `wait`, `fail`, `cancel`, `supersede`, and `reopen`; in `core`, they are `cancel` and `supersede`, which look for an active hard failure. When no hard failure is active and a gate that applies to one of them cannot be evaluated, `cancel` and `supersede` take effect, because an authorized cancellation is not held up by a check that cannot run and a gate that cannot be evaluated is never a failure, and the result `not_evaluable` of the gate and its cause are recorded in the entry of the action. The actions `wait`, `fail`, and `reopen` are rejected with `changed` false, nothing is written, no wait is created, and the stable issue code is `gate-not-evaluable`. See AE-298, AE-299.
+Rule 2 does not make the other actions that evaluate gates and never answer `blocked` wait, because a wait is a recorded change that they cannot answer (Section 22.2). In `full`, these actions are `wait`, `fail`, `cancel`, `supersede`, and `reopen`; in `core`, they are `cancel` and `supersede`, which look for an active hard failure. When no hard failure is active and a gate that applies to one of them cannot be evaluated, `cancel` and `supersede` take effect, because an authorized cancellation is not held up by a check that cannot run and a gate that cannot be evaluated is never a failure, and the result `not_evaluable` of the gate and its cause are recorded in the entry of the action. The actions `wait`, `fail`, and `reopen` are rejected with `changed` false, nothing is written, no wait is created, and the stable issue code is `gate-not-evaluable`. See AE-298, AE-299, AE-310.
 
 The gates are evaluated by group. The order of the groups is the order of Section 23.6 in `core`, that is the fail gates, the wait gates, and the done gates, and the order of Section 8.5 in `full`, that is the Definition of Fail, the Definition of Wait, the Definition of Ready of the current phase, the Definition of Done, and the Definition of Ready of the next phase. A group is evaluated whole: every gate of the group that applies to the action is evaluated, even when an earlier gate of the same group already decides. After a group, the evaluation stops if the results of the groups evaluated so far decide the action under the rules 1 to 5, so that a gate of a later group is not evaluated: its command is not run, and no result is recorded for it. The rules rank the results of the gates that were evaluated, so that a gate which is not evaluated cannot outrank a gate which is. In `core`, a wait gate that is active therefore decides before a done gate that cannot be evaluated, the change does not become `waiting` for that done gate, and the `close` action answers `blocked`. A wait gate that cannot be evaluated is `not_evaluable`, and it creates a wait record of kind `external` before any done gate is evaluated. See AE-280.
 
