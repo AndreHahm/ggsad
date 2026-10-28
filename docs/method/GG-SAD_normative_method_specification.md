@@ -1831,11 +1831,19 @@ The conditions listed under Flow Gates, together with the scope, are the gate de
 
 The Change ID follows the syntax of the identifier of a change in Section 4.3.
 
-The list under the heading Allowed Paths of the Scope is the allowed path list of the change. It holds path patterns that can be checked by machine, and Section 24.5 states how they are written and measured. The Included and Excluded lists describe the scope in words and are not measured.
+The list under the heading Allowed Paths of the Scope is the allowed path list of the change. It holds path patterns that can be checked by machine, and Section 24.5 states how they are written and measured. The Included and Excluded lists describe the scope in words and are not measured. See AE-311.
 
 The list under the heading Evidence Commands of a requirement holds the evidence commands that are bound to it as Section 24.9 states. Each list item states the argument list, the exit map, and optionally the time limit of one command. The requirement identifiers and these lists are fixed with the gate definitions (Section 24.1), and a requirement without a list item has no evidence command.
 
 The section Open Questions of the change specification is a view of the questions that are recorded as state (Section 24.8).
+
+**AE-311 — Full: a change specification states its gate conditions, its allowed paths, and its evidence commands under fixed headings**
+
+- Covers: Section 16.1
+
+Given a `full` change specification whose Additional Done Conditions list holds the one item `run-tests --suite unit`, whose Additional Ready Conditions, Additional Wait Conditions, and Additional Fail Conditions lists hold only the marker `<optional>`, whose Allowed Paths list holds `lib/**` and whose Excluded list holds the item `the build scripts`, and whose requirement R1 holds the item `run-tests --suite unit` with the exit map `0` to `satisfied` under the heading Evidence Commands  
+When the gate definitions of the change are read from the specification  
+Then the Done conditions are the one condition `run-tests --suite unit`, the other three lists are empty because the marker `<optional>` is not a condition, the allowed path list is `lib/**`, the Excluded list is not measured, and the evidence commands of R1 are the one item under its heading
 
 ### 16.2 `plan.md`
 
@@ -1943,9 +1951,17 @@ The section Open Questions of the change specification is a view of the question
 <status>
 ```
 
-A gate that could not be evaluated is not recorded as Yes or No in the Final Gate Evaluation. It is listed by name with its cause (Section 24.2).
+A gate that could not be evaluated is not recorded as Yes or No in the Final Gate Evaluation. It is listed by name with its cause (Section 24.2). See AE-312.
 
-The Evidence column of the requirement coverage table points at the evidence commands that stand under the heading Evidence Commands of the requirement in the change specification (Sections 16.1 and 24.9) and records what they produced. Other records MAY be added to it.
+The Evidence column of the requirement coverage table points at the evidence commands that stand under the heading Evidence Commands of the requirement in the change specification (Sections 16.1 and 24.9) and records what they produced. Other records MAY be added to it. See AE-312.
+
+**AE-312 — Full: the evidence lists a gate that could not be evaluated, and the coverage table names the evidence commands**
+
+- Covers: Section 16.4
+
+Given a `full` change in the verify phase whose Definition of Done holds the condition `run-tests --suite unit`, which could not be evaluated because its program is missing, and whose requirement R1 has the evidence command `check-docs --strict` under its heading Evidence Commands, which ran  
+When the evidence of the change is written  
+Then the line Gates that could not be evaluated of the Final Gate Evaluation names `run-tests --suite unit` with the cause that its program is missing, the condition is not recorded as Yes or No, and the Evidence cell of R1 in the requirement coverage table points at the evidence command `check-docs --strict` and records what it produced
 
 ### 16.5 `project-brief.md`
 
