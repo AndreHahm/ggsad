@@ -336,6 +336,7 @@ APK4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-pack
 ARC4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-record.md"
 NOTE4_PATH=".planning/reviews/2026-10-27-normative-spec-independent-review-round-4.md"
 DREC4_PATH=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-4.md"
+BRIEF4_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R4.md"
 # The files of round 5 (the fix round that follows the fourth independent review): the disposition addendum of
 # round 4 and the register, the packet and the record of fix round 5.
 DADD4_PATH=".planning/reviews/2026-10-28-normative-spec-review-disposition-addendum-round-4.md"
@@ -1342,6 +1343,71 @@ replay3() {
 replay3_brief() {
   (cd "$CL" && bash "$CHK" --round 3 --print-brief) > "$TMP/brief.out" 2> /dev/null || return 1
   cmp -s "$TMP/brief.out" "$CL/$BRIEF3_PATH"
+}
+
+# replay4: R4-1 to R4-8, the checks of the fix round of round 4 at the commit that holds the text of round 4.
+replay4() {
+  local c om cm t f st
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then
+    fail R4-1 "the result blob of the approval record is not 40 lowercase hexadecimal digits"
+    return 0
+  fi
+  c=$(find_round1_commit "$A_BLOB")
+  if [ -z "$c" ]; then
+    fail R4-1 "no commit reachable from HEAD holds the specification with the round-4 blob"
+    return 0
+  fi
+  for f in "$ARC4_PATH" "$DREC4_PATH" "$NOTE4_PATH" "$FREG4_PATH" "$APK4_PATH" "$BRIEF4_PATH"; do
+    if ! git cat-file -e "$c:$f" 2> /dev/null; then
+      fail R4-1 "the commit that holds the round-4 text does not hold all six round-4 files: the round-4 evidence is not in the history"
+      return 0
+    fi
+  done
+  pass R4-1 "found the newest commit reachable from HEAD that holds the round-4 text and the six round-4 files"
+  CL="$TMP/clone"
+  if ! git clone --local --no-checkout --quiet -- "$ROOT" "$CL" > /dev/null 2>&1; then
+    fail R4-1 "the throwaway clone could not be made"
+    return 0
+  fi
+  if ! git -C "$CL" checkout --quiet --detach "$c" > /dev/null 2>&1; then
+    fail R4-1 "the commit could not be checked out in the throwaway clone"
+    return 0
+  fi
+  om=$(git rev-parse --verify --quiet "$BASE^{commit}")
+  cm=$(git -C "$CL" rev-parse --verify --quiet "origin/main^{commit}" 2> /dev/null) || cm=""
+  if [ "$cm" != "$om" ]; then
+    git -C "$CL" update-ref refs/remotes/origin/main "$om" > /dev/null 2>&1
+  fi
+  if run_in_clone "$CHK2" --final; then pass R4-2 "the drafting check with --final at the round-4 commit: $LAST"; else fail R4-2 "the drafting check with --final at the round-4 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 4 --stage edits --complete; then pass R4-3 "the fix round check with --round 4 in stage edits with --complete at the round-4 commit: $LAST"; else fail R4-3 "the fix round check with --round 4 in stage edits with --complete at the round-4 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 4 --stage approval-pending; then pass R4-4 "the fix round check with --round 4 in stage approval-pending at the round-4 commit: $LAST"; else fail R4-4 "the fix round check with --round 4 in stage approval-pending at the round-4 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 4 --stage approval-recorded; then pass R4-5 "the fix round check with --round 4 in stage approval-recorded at the round-4 commit: $LAST"; else fail R4-5 "the fix round check with --round 4 in stage approval-recorded at the round-4 commit: $LAST"; fi
+  if replay4_brief; then pass R4-6 "the review check with --round 4 prints the review brief of round 4 character for character at the round-4 commit"; else fail R4-6 "the review check with --round 4 does not print the review brief of round 4 at the round-4 commit"; fi
+  if run_in_clone "$CHK" --round 4 --stage dispositioned; then pass R4-7 "the review check with --round 4 in stage dispositioned at the round-4 commit: $LAST"; else fail R4-7 "the review check with --round 4 in stage dispositioned at the round-4 commit: $LAST"; fi
+  if [ "$CURRENT" -eq 1 ]; then
+    for t in "$CHK2" "$CHK" "$FIXP"; do
+      if ! cp "$ROOT/$t" "$CL/$t" 2> /dev/null; then fail R4-8 "the current version of a script could not be copied into the clone"; return 0; fi
+    done
+    st=""
+    run_in_clone "$CHK2" --final || st="$st drafting check ($LAST);"
+    run_in_clone "$FIXP" --round 4 --stage edits --complete || st="$st edits ($LAST);"
+    run_in_clone "$FIXP" --round 4 --stage approval-pending || st="$st approval-pending ($LAST);"
+    run_in_clone "$FIXP" --round 4 --stage approval-recorded || st="$st approval-recorded ($LAST);"
+    replay4_brief || st="$st review brief;"
+    run_in_clone "$CHK" --round 4 --stage dispositioned || st="$st dispositioned ($LAST);"
+    if [ -z "$st" ]; then
+      pass R4-8 "the current versions of the three scripts also pass the six runs at the round-4 commit"
+    else
+      fail R4-8 "the current versions of the three scripts at the round-4 commit fail:$st"
+    fi
+  fi
+}
+
+# replay4_brief: in the clone, the review check with --round 4 prints the review brief of round 4 character for
+# character.
+replay4_brief() {
+  (cd "$CL" && bash "$CHK" --round 4 --print-brief) > "$TMP/brief.out" 2> /dev/null || return 1
+  cmp -s "$TMP/brief.out" "$CL/$BRIEF4_PATH"
 }
 
 # replay2_brief: in the clone, the review check with --round 2 prints the review brief of round 2 character for
@@ -2700,7 +2766,7 @@ if [ "$PRINT_ARS" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
 fi
 
 if [ "$REPLAY" -eq 1 ]; then
-  if [ "$RP3" -eq 1 ]; then replay3; elif [ "$RP2" -eq 1 ]; then replay2; else replay; fi
+  if [ "$RP4" -eq 1 ]; then replay4; elif [ "$RP3" -eq 1 ]; then replay3; elif [ "$RP2" -eq 1 ]; then replay2; else replay; fi
   finish
 fi
 
