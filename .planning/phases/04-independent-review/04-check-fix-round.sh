@@ -81,9 +81,9 @@
 #                     state and decisions and the printer of the decisions record exit 2). Profile 4 reads the
 #                     approval record, the disposition record and the review note of the third round, finds
 #                     the findings with the prefix RT, has three changes FG-13 to FG-15 and twenty findings
-#                     without a disposition, and allows the stage edits only (the stage defaults to edits; the
-#                     stages state and decisions, the stages approval-pending and approval-recorded, which a
-#                     later plan adds, and the printer of the decisions record exit 2)
+#                     without a disposition, and allows the stages edits, approval-pending and approval-recorded
+#                     (the stage defaults to edits; the stages state and decisions and the printer of the
+#                     decisions record exit 2)
 #   --replay-round-2  run R2-1 to R2-8 instead of a stage (no other check runs): R2-1 the newest commit
 #                     reachable from HEAD at which the specification holds the result blob of the approval
 #                     record of the fix round (read from --approval-record, default: the record path of the fix
@@ -134,18 +134,26 @@
 #   undispositioned       14                            9                             20
 #   first new example     AE-295                        AE-306                        AE-309
 #   text approved before  the text of round 1           the text of round 2           the text of round 3
-#   changes in the packet nine, "my choice" or repair   three, "your decision:        three (the packet printer of
-#                                                       <label>" with the options     round 4 belongs to plan
-#                                                       offered, the decision and     04-15)
-#                                                       its reason
+#   changes in the packet nine, "my choice" or repair   three, "your decision:        three, "your decision:
+#                                                       <label>" with the options     <label>" with the options
+#                                                       offered, the decision and     offered, the decision and
+#                                                       its reason                    its reason; for the kind
+#                                                                                     repair "no decision asked:
+#                                                                                     the finding names the fix"
 #   kinds of change       repair, my choice             owner decision                owner decision, repair
 #   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"
-#   stages                all five                      edits, approval-pending,      edits
-#                                                       approval-recorded
-# The questions Q01 to Q04, their headers and options are the same in both profiles. Under --round 3 the stages
-# approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
+#   stages                all five                      edits, approval-pending,      edits, approval-pending,
+#                                                       approval-recorded             approval-recorded
+# The questions Q01 to Q04, their headers and options are the same in all profiles. Under --round 3 and --round 4
+# the stages approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
 # --print-approval-packet and --print-approval-record-skeleton work, with the checks AP1 to AP5 and AR1 to AR5
-# as described below and the lower bound of the date of AR5 taken from the disposition record of round 2.
+# as described below. Under --round 3 the lower bound of the date of AR5 is taken from the disposition record of
+# round 2 and the previously approved pins are those of the text of round 2; under --round 4 they are taken from the
+# disposition record of round 3 and the approval record of round 3. In the packet of profile 4 the paragraph "What
+# you are asked" says that the reviewer looked at the text a third time and that for the third change the finding
+# itself names the fix; a change of the kind repair is shown with the cell "no decision asked: the finding names
+# the fix" and the bullet "Your decision: none asked; the finding leaves no design choice", without the bullet
+# "Options offered".
 #   --print-decision-questions  prints the three decisions OD-1 to OD-3 that the owner is asked: a line with
 #                     the id and the header, a line "Finding: ID (SEVERITY)", a line "The reviewer says: " and
 #                     the Summary cell of the finding in the findings table of the review note of round 2
@@ -363,8 +371,8 @@ if [ "$ROUND" -eq 3 ]; then
 fi
 if [ "$ROUND" -eq 4 ]; then
   case "$STAGE" in
-    edits) ;;
-    *) echo "--round 4 allows --stage edits only" >&2; exit 2 ;;
+    edits|approval-pending|approval-recorded) ;;
+    *) echo "--round 4 allows --stage edits, approval-pending or approval-recorded only" >&2; exit 2 ;;
   esac
 fi
 if [ "$ROUND" -ge 3 ]; then
@@ -1239,7 +1247,7 @@ PATTERNS
   while IFS= read -r tok; do
     case "$allowed" in
       *" $tok "*) ;;
-      *) echo "hash-like token [$tok] that is not one of the round-1 pins or the disposition record blob"; return 0 ;;
+      *) echo "hash-like token [$tok] that is not one of the previously approved pins or the disposition record blob"; return 0 ;;
     esac
   done < <(grep -o -E '[0-9A-Fa-f]{7,}' "$f" | grep '[0-9]' | sort -u)
   return 0
@@ -1866,6 +1874,9 @@ if [ "$ROUND" -ge 3 ]; then
   AR_H1="# Owner approval record, fix round $ROUND: proposed normative method specification"
   AP_FOLLOWS_1='If you approve, the text goes to an independent review by a reviewer that is not the Requestor. Before anything is sent, you decide which parts of the text that review reads, with the figures of what changed where, and you consent to the exact run. Any later edit of the specification voids the approval.'
 fi
+# Profile 4: the reading of a change for which no decision was asked (the kind repair).
+AP_NOASK_CELL='no decision asked: the finding names the fix'
+AP_NOASK_BULLET='none asked; the finding leaves no design choice'
 
 # ap_facts: the pins of the working specification, read once into globals.
 ap_facts() {
@@ -1953,7 +1964,9 @@ print_ap() {
   total=$(wc -l < "$TMP/reg.rows" | tr -d ' ')
   printf '%s\n\n%s\n\n' "$AP_H1" "$AP_PENDING"
   printf '## What you are asked\n\n'
-  if [ "$ROUND" -ge 3 ]; then
+  if [ "$ROUND" -eq 4 ]; then
+    printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it a third time; the owner asked for the three findings that the reviewer rated BLOCKING, its strongest rating, to be fixed. For two of them the owner chose how; for the third the finding itself names the fix. The text has been changed in three places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
+  elif [ "$ROUND" -eq 3 ]; then
     printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it a second time; the owner asked for the three findings that the reviewer rated BLOCKING, its strongest rating, to be fixed, and chose how. The text has been changed in three places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
   else
     printf 'On %s the owner approved the text of the specification. The independent reviewer then reported its findings, and the owner asked for eleven of them to be fixed. The text has been changed in nine places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$AP_ADATE"
@@ -1961,7 +1974,9 @@ print_ap() {
   printf '%s\n\n| # | What changed | Why | Whose reading |\n|---|---|---|---|\n' "$REG_TBL_H"
   while IFS=$'\t' read -r g _ _ k _ _ _; do
     n=$((n + 1))
-    if [ "$ROUND" -ge 3 ]; then
+    if [ "$ROUND" -eq 4 ] && [ "$k" = repair ]; then
+      printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$AP_NOASK_CELL"
+    elif [ "$ROUND" -ge 3 ]; then
       printf '| %s | %s | %s | your decision: %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ev "$g" "Owner decision")"
     else
       printf '| %s | %s | %s | %s |\n' "$n" "$(ev "$g" "What changed")" "$(ev "$g" "Why")" "$(ap_reading "$k")"
@@ -1972,7 +1987,9 @@ print_ap() {
   while IFS=$'\t' read -r g t f k _ _ _; do
     n=$((n + 1))
     printf '### Change %s of %s: %s\n\n' "$n" "$total" "$t"
-    if [ "$ROUND" -ge 3 ]; then
+    if [ "$ROUND" -eq 4 ] && [ "$k" = repair ]; then
+      printf -- '- Findings: %s\n- Your decision: %s\n- Before: %s\n- After: %s\n\n' "$f" "$AP_NOASK_BULLET" "$(ev "$g" "Before")" "$(ev "$g" "After")"
+    elif [ "$ROUND" -ge 3 ]; then
       printf -- '- Findings: %s\n- Options offered: %s\n- Your decision: %s; reason: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "Options")" "$(ev "$g" "Owner decision")" "$(ev "$g" "Owner reason")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
     else
       printf -- '- Findings: %s\n- My choice: %s\n- Before: %s\n- After: %s\n\n' "$f" "$(ev "$g" "My choice")" "$(ev "$g" "Before")" "$(ev "$g" "After")"
