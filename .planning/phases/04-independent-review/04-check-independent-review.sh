@@ -4,7 +4,7 @@
 # the scope, status, encoding and self-containment of the note.
 #
 # Usage: 04-check-independent-review.sh [options]
-#   --round N         the round profile, 1 (default, behaves as it always has), 2 or 3 (any other value exits 2).
+#   --round N         the round profile, 1 (default, behaves as it always has), 2, 3 or 4 (any other value exits 2).
 #                     Round 2 changes only names and the run set: the pass ids carry the prefix RR (the six
 #                     rows of the brief's pass table RR-A, RR-B, RR-C, RR-D, RR-E, RR-X; the test run RR-P; the
 #                     findings RR-<letter>-NNN), the run set is the passes RR-A, RR-B and RR-X (defined once, as
@@ -16,19 +16,22 @@
 #                     defaults of the table below, and a run set that is the choice of the repository owner (the
 #                     option --passes, else the Passes table of the note, else it is not defined and every option
 #                     or stage that needs it exits 2). The check Z1 calls the approval check of the fix round with
-#                     --round 3. Wherever round 2 is tested, round 2 or later is tested
-#                       default of          round 1                              round 2                              round 3
-#                       --note              the note of round 1                  the note of round 2                  the note of round 3
-#                       --approval-record   the owner approval record            the approval record of the fix round the approval record of fix round 3
-#                       --approval-packet   the owner approval packet            the approval packet of the fix round the approval packet of fix round 3
-#                       --brief             the brief                            the brief of round 2 (printed)       the brief of round 3 (printed)
-#                       --record            the disposition record               the disposition record of round 2    the disposition record of round 3
-#   --passes LIST     round 3 only (exit 2 in the other rounds): the run set, a comma-separated list of ids of the
+#                     --round 3. Round 4 changes names and defaults only, in the same way as round 3: the
+#                     prefix RF (RF-A, RF-B, RF-C, RF-D, RF-E, RF-X; the test run RF-P; the findings
+#                     RF-<letter>-NNN), the defaults of the table below, the two H1 lines with round 4, and the
+#                     check Z1 with --round 4. Wherever round 2 is tested, round 2 or later is tested
+#                       default of          round 1                              round 2                              round 3                              round 4
+#                       --note              the note of round 1                  the note of round 2                  the note of round 3                  the note of round 4
+#                       --approval-record   the owner approval record            the approval record of the fix round the approval record of fix round 3  the approval record of fix round 4
+#                       --approval-packet   the owner approval packet            the approval packet of the fix round the approval packet of fix round 3  the approval packet of fix round 4
+#                       --brief             the brief                            the brief of round 2 (printed)       the brief of round 3 (printed)       the brief of round 4 (printed)
+#                       --record            the disposition record               the disposition record of round 2    the disposition record of round 3    the disposition record of round 4
+#   --passes LIST     round 3 or later (exit 2 in rounds 1 and 2): the run set, a comma-separated list of ids of the
 #                     brief's pass table of the active prefix, in table order, without a repeat, at least one (for
 #                     example RT-A,RT-D,RT-X); any other value exits 2. When absent the run set is read from the
 #                     Passes table of the note, if the note holds at least one row of the prefix
 #   --print-consent-question MODEL
-#                     round 3 only: print on one line the question put to the repository owner for the run set
+#                     round 3 or later: print on one line the question put to the repository owner for the run set
 #                     and the model (the number word or one review pass, the pass ids, the run set id and the
 #                     model); the check CT1 compares the recorded question with this output; needs the run set
 #   --stage STAGE     pins (default): the pin and note checks listed below; brief: those and the checks of
@@ -82,7 +85,8 @@
 #   --pass ID        the pass of the report: RV-A, RV-B, RV-C, RV-D, RV-E or RV-X (exit 2 for another id);
 #                     RV-P only together with --pilot-dir. In round 2 the ids of the run set RR-A, RR-B and RR-X,
 #                     and RR-P only together with --pilot-dir; every other id, RR-C, RR-D and RR-E included,
-#                     exits 2. In round 3 the ids of the run set and RT-P (with --pilot-dir) only
+#                     exits 2. In round 3 the ids of the run set and RT-P (with --pilot-dir) only; in round 4
+#                     the ids of the run set and RF-P (with --pilot-dir) only
 #   --pilot-dir DIR   pilot mode of --report-file, valid only with --pass RV-P (and --pass RV-P needs it): the
 #                     report is checked against the synthetic pilot inputs in DIR (the specification text
 #                     DIR/SPEC.md, the base text DIR/BASE.md, the pilot SHA-256 values, the whole of DIR/SPEC.md
@@ -254,8 +258,8 @@ for cur_arg in "$@"; do
   prev_arg="$cur_arg"
 done
 case "$ROUND" in
-  1|2|3) ;;
-  *) echo "--round must be 1, 2 or 3" >&2; exit 2 ;;
+  1|2|3|4) ;;
+  *) echo "--round must be 1, 2, 3 or 4" >&2; exit 2 ;;
 esac
 if [ "$ROUND" -eq 1 ]; then
   PFX="RV"
@@ -279,7 +283,7 @@ elif [ "$ROUND" -eq 2 ]; then
   REC_H1="# Review disposition record, round 2: proposed normative method specification"
   PASS_IDS=(RR-A RR-B RR-X)
   NP_WORD="three"
-else
+elif [ "$ROUND" -eq 3 ]; then
   # Round 3: the run set is the owner's choice and is not typed here. It comes from --passes or from the Passes
   # table of the note (set after the options are read); until then PASS_IDS is empty.
   PFX="RT"
@@ -290,6 +294,18 @@ else
   RECORD_DEFAULT=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-3.md"
   NOTE_H1="# Independent review, round 3: proposed normative method specification"
   REC_H1="# Review disposition record, round 3: proposed normative method specification"
+  PASS_IDS=()
+  NP_WORD=""
+else
+  # Round 4: names and defaults only; the run set is the owner's choice exactly as in round 3.
+  PFX="RF"
+  NOTE_DEFAULT=".planning/reviews/2026-10-27-normative-spec-independent-review-round-4.md"
+  ARC_DEFAULT=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-record.md"
+  APK_DEFAULT=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-packet.md"
+  BRIEF_DEFAULT=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R4.md"
+  RECORD_DEFAULT=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-4.md"
+  NOTE_H1="# Independent review, round 4: proposed normative method specification"
+  REC_H1="# Review disposition record, round 4: proposed normative method specification"
   PASS_IDS=()
   NP_WORD=""
 fi
@@ -418,7 +434,7 @@ if [ "$ROUND" -eq 1 ] && { [ "$PRINT_BRIEF" -eq 1 ] || [ "$PRINT_NOTE_SKEL" -eq 
   exit 2
 fi
 if [ "$ROUND" -lt 3 ] && { [ -n "$PASSES_ARG" ] || [ -n "$PRINT_CQ" ]; }; then
-  echo "--passes and --print-consent-question are used with --round 3 only" >&2
+  echo "--passes and --print-consent-question are used with --round 3 or later" >&2
   exit 2
 fi
 
@@ -996,7 +1012,7 @@ pass_line() {
 
 # print_brief: the brief of round 2 or later, printed from the brief of round 1 (the blob in HEAD) with exactly two
 # substitutions: every pass id of the form RV- followed by a pass letter or P becomes the prefix of the round (RR-
-# or RT-) with the same letter, and the SHA-256 of SPEC.md in the table of inputs becomes the SHA-256 of the
+# RT- or RF-) with the same letter, and the SHA-256 of SPEC.md in the table of inputs becomes the SHA-256 of the
 # approved text (as input_hashes prints it). Nothing else changes. Returns 1 when it cannot be built.
 print_brief() {
   local new
