@@ -1492,7 +1492,7 @@ The obligation to terminate applies to a fail condition of the severity `hard`. 
 
 A retry limit is a soft fail condition, so that reaching it pauses the flow for a human disposition, and the human closes the change as failed or records an override (Section 24.7).
 
-The obligation to terminate of this section does not cover a retry limit: reaching one pauses the flow for a human disposition and does not end it by itself, as the earlier text of this method did.
+The obligation to terminate of this section does not cover a retry limit: reaching one pauses the flow for a human disposition and does not end it by itself.
 
 ### 12.1 Typical Fail Categories
 
