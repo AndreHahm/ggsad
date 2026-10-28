@@ -265,7 +265,7 @@ Plans:
 
 **Wave 17** *(blocked on Wave 16 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-17-PLAN.md — Plain disposition questions of round 4 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+- [x] 04-17-PLAN.md — Plain disposition questions of round 4 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
