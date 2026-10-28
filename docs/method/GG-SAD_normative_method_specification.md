@@ -892,7 +892,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `resume` | A non-closed phase with status `waiting` | The recorded resume condition is satisfied and the recorded or explicitly required resume phase is non-closed. | DoF → DoW → DoR for the recorded non-closed resume phase or explicitly required earlier non-closed phase; current-phase DoD and next-phase DoR are not applicable. | Recorded non-closed resume phase, or an explicitly required earlier non-closed phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. When the resume-phase DoR is not satisfied or a DoW condition is still active, record the evaluation in the history, remain `waiting`, and answer `blocked` (Section 22.2). Fail when DoF determines failure (Section 24.7). |
 | `fail` | Any non-closed phase/status | A soft failure awaits disposition: the status is `waiting` with a wait state of the category `WAIT_DECISION` for a DoF condition of the severity `soft` that is active (Section 24.7). | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
 | `cancel` | Any non-closed phase/status | An authorized cancellation decision exists. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `cancelled`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
-| `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied. |
+| `supersede` | Any non-closed phase/status | A later goal-bound change is authorized to replace this change. | DoF; DoW, current-phase DoR, current-phase DoD, and next-phase DoR are not applicable. | `closed` phase with status `superseded`, unless DoF determines `failed`. | Reject without any partial mutation of persisted state when the precondition is not satisfied or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). |
 | `reopen` (`full` only) | The `closed` phase with a terminal status | Corrective follow-up work is authorized with a reason and a new goal-bound scope. | DoF for the new corrective scope → DoW for the new corrective scope → DoR for the recorded resume phase or explicitly stated earlier phase; the prior terminal outcome's DoF and DoW, closed-phase DoD, and next-phase DoR are not applicable. | The resume phase recorded at closure, or an explicitly stated earlier phase, with status `active`. | Reject without any partial mutation of persisted state when the precondition or resume-phase DoR is not satisfied or a DoW condition of the new corrective scope is active; fail when the new corrective scope's DoF determines failure. |
 
 **Rejected and Blocked Results per Action (`full`)**
@@ -905,7 +905,7 @@ Then the status `done` is legal as the local completion signal of the phase, and
 | `resume` | The status is not `waiting`, the resume condition is not satisfied, or the resume phase is closed. | The resume-phase DoR is not satisfied, or a DoW condition is still active, so that the change remains `waiting`. |
 | `fail` | The change is closed, or no soft failure awaits disposition, so that an active DoF condition of the severity `hard` alone does not allow the action. | Never. |
 | `cancel` | The change is closed, or no authorized cancellation decision exists. | Never. |
-| `supersede` | The change is closed, or no later change is authorized to replace this change. | Never. |
+| `supersede` | The change is closed, no later change is authorized to replace this change, or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). | Never. |
 | `reopen` | The change is not in the `closed` phase, the corrective follow-up work is not authorized with a reason and a new goal-bound scope, the resume-phase DoR is not satisfied, or a Definition of Wait condition of the new corrective scope is active. | Never. |
 
 An action whose evaluation closes the change as failed answers `success` (Section 24.7). An action answers `blocked` only where this table lists a case, and a `complete` that preserves the current phase with the status `done` because the next-phase DoR is not satisfied answers `success`. See AE-121, AE-122, AE-123, AE-124.
@@ -1062,7 +1062,7 @@ these actions. DoF retains first priority; when DoF determines that the change h
 resulting terminal status is `failed` rather than `cancelled` or `superseded`. A gate that cannot be evaluated
 determines no failure, so that the action takes effect (Section 24.2).
 
-The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel` or `supersede`.
+The comparison of the gate definitions with the approved ones (Section 24.1) does not stop `cancel`. It does stop `supersede`: while the gate definitions differ from the approved ones, `supersede` is rejected with the issue code `gates-changed`, and it can go ahead only after a human has approved the gate definitions again.
 
 A fail condition of the severity `hard` closes the change as failed without human action, and a fail condition of the severity `soft` waits for a human, who either closes the change with `fail` or records an override (Section 24.7).
 
@@ -2550,7 +2550,7 @@ A `core` change changes state only through the actions of the table below. An ac
 | `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
 | `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-39, AE-40, AE-41. |
 | `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
-| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45. |
+| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, except that differing gate definitions prevent the action (Section 24.1), and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45, AE-309. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
 
 The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
@@ -2575,7 +2575,7 @@ A `follows` field is a reference and not a state transition: it never changes th
 | `close` | The state is not `active`. | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
 | `fail` | The state is not `waiting` with a wait record of kind `fail-gate`, or no reason is given. | Never. |
 | `cancel` | The state is `closed`. | Never. |
-| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist. | Never. |
+| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). | Never. |
 | `adopt` | The history already has an anchor. | Never. |
 
 A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-117, AE-118, AE-119, AE-120.
@@ -3211,7 +3211,7 @@ The identity of the fixed definitions is the content hash (Section 25.2) of the 
 
 Every state-changing operation MUST first compute the hash of the current gate definitions and compare it with the approved hash. When the two differ, the operation MUST write nothing, and its result MUST be `rejected` with `changed` false (Section 22.2) and the stable issue code `gates-changed`, whose message states that the gate definitions differ from the approved ones and that a human has to approve them again. See AE-75, AE-76, AE-86.
 
-Three operations are exempt from the comparison and MUST NOT be stopped by it: `cancel`, `supersede`, and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` and `supersede` ensures that a change whose definitions were altered can always be ended. The approval that replaces the approved hash is the re-approval; without the exemption, no change could leave this state. See AE-77, AE-78, AE-81.
+Two operations are exempt from the comparison and MUST NOT be stopped by it: `cancel` and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` ensures that a change whose definitions were altered can always be ended. The action `supersede` is not exempt: while the hashes differ, it is rejected with `changed` false and the issue code `gates-changed`, and it can go ahead only after a human has approved the gate definitions again. The approval that replaces the approved hash is the re-approval; without its exemption, no change could leave this state. See AE-77, AE-78, AE-309, AE-81.
 
 The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7). See AE-81, AE-85.
 
@@ -3245,13 +3245,21 @@ Given a `core` change whose gate definitions differ from the approved ones
 When a human performs the `cancel` action  
 Then the state is `closed` and the outcome is `cancelled`
 
-**AE-78 — Supersede is not stopped by differing gate definitions**
+**AE-78 — Supersede goes ahead once the gate definitions are approved again**
+
+- Covers: Section 24.1
+
+Given a `core` change A whose gate definitions differed from the approved ones and were approved again by a human, and an existing change B  
+When a human performs the `supersede` action on change A with `replaced_by` naming change B  
+Then change A is `closed` with the outcome `cancelled` and `replaced_by` naming change B
+
+**AE-309 — Supersede is rejected while the gate definitions differ**
 
 - Covers: Section 24.1
 
 Given a `core` change A whose gate definitions differ from the approved ones, and an existing change B  
 When a human performs the `supersede` action on change A with `replaced_by` naming change B  
-Then change A is `closed` with the outcome `cancelled` and `replaced_by` naming change B
+Then the result is `rejected` with `changed` false and the issue code `gates-changed`, change A is not closed, and nothing is written to the history
 
 **AE-79 — A formatting-only edit does not differ**
 
