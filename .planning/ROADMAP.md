@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 13/17 plans executed
+**Plans**: 17/21 plans executed
 
 Plans:
 **Wave 1**
@@ -266,6 +266,22 @@ Plans:
 **Wave 17** *(blocked on Wave 16 completion; has the owner dispositions checkpoint)*
 
 - [x] 04-17-PLAN.md — Plain disposition questions of round 4 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+
+**Wave 18** *(gap closure from the round-4 dispositions, outcome `fix pending`; blocked on Wave 17 completion; has the owner dispositions and design-choices checkpoint)*
+
+- [ ] 04-18-PLAN.md — Round 5 profile, disposition addendum of round 4 and round-4 replay of the fix round script (tracer), the owner dispositions the four related findings and chooses how each finding with the disposition fix is fixed, the specification is edited for those findings only and the register is written (REVIEW-02)
+
+**Wave 19** *(blocked on Wave 18 completion; has the owner approval checkpoint)*
+
+- [ ] 04-19-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+
+**Wave 20** *(blocked on Wave 19 completion; has the owner decision and consent checkpoint)*
+
+- [ ] 04-20-PLAN.md — Round 5 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-5 note (REVIEW-01)
+
+**Wave 21** *(blocked on Wave 20 completion; has the owner dispositions checkpoint)*
+
+- [ ] 04-21-PLAN.md — Plain disposition questions of round 5 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 

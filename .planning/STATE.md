@@ -5,14 +5,14 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-17-PLAN.md (round 4 outcome fix pending; round 5 to plan)
-last_updated: "2026-10-28T09:00:00.000Z"
+stopped_at: Round 5 planned (04-18 to 04-21); next execute 04-18
+last_updated: "2026-10-28T16:40:47.314Z"
 last_activity: 2026-10-28
 last_activity_desc: Completed plan 04-17 - owner chose Fix for RF-X-001; outcome fix pending
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 31
+  total_plans: 35
   completed_plans: 31
   percent: 38
 ---
@@ -35,7 +35,7 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 Phase: 4 (Independent Review) — EXECUTING
 Plan: 17 of 17 complete (fix round 4 reviewed by Devin, owner chose Fix for the BLOCKING finding RF-X-001; outcome fix pending; round 5 not yet planned)
-Status: Plans 04-01 to 04-17 complete; PHASE NOT COMPLETE (fix pending, REVIEW-01/02 unticked); next step: plan fix round 5 for RF-X-001 (owner may also disposition the related RF-B-004, RF-X-002 to RF-X-004)
+Status: Plans 04-01 to 04-17 complete; 04-18 to 04-21 planned (fix round 5 for RF-X-001 and the related MAJOR findings); PHASE NOT COMPLETE (REVIEW-01/02 unticked); next step: /gsd-execute-phase 4 (starts at 04-18)
 Last activity: 2026-10-28 — Completed 04-17 (round 4 dispositions recorded)
 
 Progress: [█████████░] 93%
