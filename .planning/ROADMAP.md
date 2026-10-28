@@ -257,7 +257,7 @@ Plans:
 
 **Wave 15** *(blocked on Wave 14 completion; has the owner approval checkpoint)*
 
-- [ ] 04-15-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+- [x] 04-15-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
 
 **Wave 16** *(blocked on Wave 15 completion; has the owner decision and consent checkpoint)*
 

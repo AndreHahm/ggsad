@@ -5,15 +5,15 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-14-PLAN.md (round 4 edits drafted, awaiting approval in 04-15)
+stopped_at: Completed 04-15-PLAN.md (round 4 text approved, review pending in 04-16)
 last_updated: "2026-10-28T09:00:00.000Z"
 last_activity: 2026-10-28
-last_activity_desc: Completed plan 04-14 - owner chose Cancel only (OD-4) and Soft, said openly (OD-5); three edits and register committed
+last_activity_desc: Completed plan 04-15 - owner approved the exact round 4 text; approval record committed
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 31
-  completed_plans: 28
+  completed_plans: 29
   percent: 38
 ---
 
@@ -34,9 +34,9 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ## Current Position
 
 Phase: 4 (Independent Review) — EXECUTING
-Plan: 14 of 17 complete (fix round 4: profile 4, owner choices OD-4 Cancel only and OD-5 Soft, said openly, three edits drafted; text blob fca228479a34e228785f4c0b100da3c6745ada0a, not yet approved); plans 04-15 to 04-17 planned
-Status: Plans 04-01 to 04-14 complete; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-15: identity of the new text, approval packet, owner approval with name and date)
-Last activity: 2026-10-28 — Completed 04-14 (round 4 edits and register)
+Plan: 15 of 17 complete (fix round 4: owner approved the exact text fca228479a34e228785f4c0b100da3c6745ada0a on 2026-10-28, name AndreHahm, both picked from candidates the owner asked for; text not yet independently reviewed); plans 04-16 and 04-17 planned
+Status: Plans 04-01 to 04-15 complete; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-16: round 4 review profile, owner picks passes and consents, Devin run)
+Last activity: 2026-10-28 — Completed 04-15 (owner approval of the round 4 text recorded)
 
 Progress: [█████████░] 93%
 
