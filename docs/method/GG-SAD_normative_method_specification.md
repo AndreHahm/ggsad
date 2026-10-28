@@ -1575,7 +1575,15 @@ When a requirement conflicts with an ADR, the agent MUST:
 4. request a decision,
 5. communicate and reference the decision.
 
-An existing ADR MUST only be changed or replaced through an explicitly approved change flow.
+An existing ADR MUST only be changed or replaced through an explicitly approved change flow. See AE-313.
+
+**AE-313 — An agent stops on a conflict with an accepted ADR and returns the requirement**
+
+- Covers: Section 13.1
+
+Given an `active` change whose requirement R2 states that jobs are kept in a message queue, and an accepted ADR that fixes a database table as the place where jobs are kept  
+When the agent finds that R2 conflicts with the ADR  
+Then the agent documents the conflict in the requirement or the specification, stops planning or implementation, returns R2 to the requestor, and requests a decision, it communicates and references the decision once it is made, and the ADR is neither changed nor replaced except through an explicitly approved change flow
 
 ### 13.2 Specification Drift
 
@@ -1586,9 +1594,27 @@ When implementation or tests deviate from the specification, one of the followin
 - document the deviation as an accepted exception,
 - stop the flow if the deviation is not permitted.
 
+See AE-314.
+
+**AE-314 — A deviation from the specification leads to one of the actions of Section 13.2**
+
+- Covers: Section 13.2
+
+Given two `active` changes whose tests deviate from the approved specification, where a human decides in the first change that the specification is to change, and the deviation in the second change is not permitted  
+When the deviation is found in each change  
+Then the specification of the first change is changed and reapproved before the work continues, and the flow of the second change is stopped, and neither change continues with the deviation left as it is
+
 ### 13.3 Breaking Changes
 
-Breaking changes MUST be explicitly marked, assessed, and approved. Without approval, the corresponding DoF rule applies.
+Breaking changes MUST be explicitly marked, assessed, and approved. Without approval, the corresponding DoF rule applies. See AE-315.
+
+**AE-315 — A breaking change without approval triggers the corresponding fail rule**
+
+- Covers: Section 13.3
+
+Given two changes that each remove a field that clients of an interface use, where the first change marks the removal as a breaking change, assesses it, and has it approved, and the second change marks and assesses it and has no approval, and a fail rule whose trigger is that a breaking change is required but has not been approved (the template F-01 of Section 12.2)  
+When each change implements the removal  
+Then the fail rule does not apply to the first change, and it applies to the second change, which is stopped and closed as failed
 
 ---
 
