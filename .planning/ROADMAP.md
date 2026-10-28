@@ -261,7 +261,7 @@ Plans:
 
 **Wave 16** *(blocked on Wave 15 completion; has the owner decision and consent checkpoint)*
 
-- [ ] 04-16-PLAN.md — Round 4 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-4 note (REVIEW-01)
+- [x] 04-16-PLAN.md — Round 4 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-4 note (REVIEW-01)
 
 **Wave 17** *(blocked on Wave 16 completion; has the owner dispositions checkpoint)*
 

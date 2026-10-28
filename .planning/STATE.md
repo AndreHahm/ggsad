@@ -5,15 +5,15 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-15-PLAN.md (round 4 text approved, review pending in 04-16)
+stopped_at: Completed 04-16-PLAN.md (round 4 reported, 1 BLOCKING finding, dispositions in 04-17)
 last_updated: "2026-10-28T09:00:00.000Z"
 last_activity: 2026-10-28
-last_activity_desc: Completed plan 04-15 - owner approved the exact round 4 text; approval record committed
+last_activity_desc: Completed plan 04-16 - six Devin passes, 34 findings (1 BLOCKING, 10 MAJOR, 20 MINOR, 3 INFO)
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 31
-  completed_plans: 29
+  completed_plans: 30
   percent: 38
 ---
 
@@ -34,9 +34,9 @@ GG-SAD/CHG-001 completion evidence claims it does.
 ## Current Position
 
 Phase: 4 (Independent Review) — EXECUTING
-Plan: 15 of 17 complete (fix round 4: owner approved the exact text fca228479a34e228785f4c0b100da3c6745ada0a on 2026-10-28, name AndreHahm, both picked from candidates the owner asked for; text not yet independently reviewed); plans 04-16 and 04-17 planned
-Status: Plans 04-01 to 04-15 complete; PHASE NOT COMPLETE (fix pending); next step /gsd-execute-phase 4 --gaps-only (plan 04-16: round 4 review profile, owner picks passes and consents, Devin run)
-Last activity: 2026-10-28 — Completed 04-15 (owner approval of the round 4 text recorded)
+Plan: 16 of 17 complete (fix round 4: independent review of the approved text done by Devin, six passes, 34 findings, 1 BLOCKING: RF-X-001; dispositions pending in 04-17)
+Status: Plans 04-01 to 04-16 complete; PHASE NOT COMPLETE; next step /gsd-execute-phase 4 --gaps-only (plan 04-17: owner dispositions of the BLOCKING finding, record, closing check)
+Last activity: 2026-10-28 — Completed 04-16 (round 4 review reported)
 
 Progress: [█████████░] 93%
 
