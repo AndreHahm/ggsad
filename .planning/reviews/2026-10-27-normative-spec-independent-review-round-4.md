@@ -1,7 +1,7 @@
 # Independent review, round 4: proposed normative method specification
 
 - Independent review: reported
-- Owner dispositions: pending
+- Owner dispositions: recorded in the review disposition record
 - Blocking findings: 1
 
 ## The text reviewed
@@ -454,7 +454,7 @@ Each report is quoted whole, line by line: a quote mark and a space are added at
 | RF-E-002 | MINOR | file SPEC; section 24.7; lines 4031-4031; quote "It lapses when its N attempts are used up and when the gate definitions are amended." | "lapses when its N attempts are used up and when the gate definitions are amended" reads as a conjunction of two conditions rather than two independent lapse triggers. |  |
 | RF-E-003 | MINOR | file SPEC; section 25.3; lines 4708-4708; quote "It takes the file and optionally a target version, which is a supported version that is higher than the version of the file" | The result of a `migrate` request whose target version is unsupported, or is supported but unreachable by a chain of steps, is unspecified. |  |
 | RF-E-004 | MINOR | file SPEC; section 24.9; lines 4344-4344; quote "an evidence command that is `satisfied` is bound to R1 and the action is requested again" | AE-168 does not state whether the gate definitions were approved, so it can be read as binding a new evidence command without the re-approval that Sections 24.1 and 24.9 require. |  |
-| RF-X-001 | BLOCKING | file SPEC; section 5.6; lines 577-577; quote "4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 16.1 to 16.4, and the diagram of Section 21" | Sections 16.1 to 16.4 are marked full-only yet contain normative rules and no acceptance example, which SPEC-14 requires for each full rule. |  |
+| RF-X-001 | BLOCKING | file SPEC; section 5.6; lines 577-577; quote "4.1, 5.5, 6, 7, 8.1 to 8.5, 9, 10, 16.1 to 16.4, and the diagram of Section 21" | Sections 16.1 to 16.4 are marked full-only yet contain normative rules and no acceptance example, which SPEC-14 requires for each full rule. | fix |
 | RF-X-002 | MAJOR | file SPEC; section 13.1; lines 1570-1576; quote "When a requirement conflicts with an ADR, the agent MUST:" | Section 13 (ADR conflicts, specification drift, breaking changes) has MUST rules but no acceptance example anywhere in the section. |  |
 | RF-X-003 | MAJOR | file SPEC; section 14.3; lines 1628-1637; quote "A Pair Review cycle MUST:" | Sections 14.3 to 14.5 (review cycle, findings, review artifacts) contain MUST rules with no acceptance example. |  |
 | RF-X-004 | MAJOR | file SPEC; section 19.1; lines 2133-2142; quote "An AI agent MUST NOT:" | The agent prohibitions of Section 19.1 have no acceptance example. |  |
