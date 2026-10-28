@@ -4,7 +4,8 @@
 # of the three round-1 checks at the commit that holds the round-1 text, the record of the five owner
 # decisions D-1 to D-5 with the printers of its questions and of its skeleton, the edits of the fix round
 # with the register that lists them, and the owner approval of the exact new text with the printers of the
-# packet, of its questions, of the exact change and of the skeleton of the record.
+# packet, of its questions, of the exact change and of the skeleton of the record. Profile 5 adds the disposition
+# addendum of round 4 (its printer and its checks DA1 to DA5) and the changes of fix round 5.
 #
 # Usage: 04-check-fix-round.sh [options]
 #   --stage STAGE     state (default): ST1 and the fact line ST2; decisions: FD1 to FD8 on the decisions
@@ -70,11 +71,25 @@
 #                     print the approval record in its unfilled form for the packet (the only way the record
 #                     is created); every field the owner completes holds the fill marker; exit 2 if the packet
 #                     status line is not the pending form
+#   --addendum PATH   the disposition addendum of round 4, read in profile 5 (default: the addendum path of the
+#                     repository; relative paths are taken from the repository root)
+#   --print-addendum-skeleton
+#                     print the disposition addendum of round 4 in its unfilled form (the only way the addendum
+#                     is created): the pin rows copied from the disposition record of round 4, one block for each
+#                     finding of --findings as the review check script prints it (the question is never typed
+#                     here), the reply details and the fixed text; every field the owner or the executor
+#                     completes holds the fill marker; exit 0 (exit 2 for any round but 5 and when the review
+#                     note or a record cannot be read)
+#   --findings LIST   modifier of --print-addendum-skeleton: a comma-separated list of finding ids of the review
+#                     note of round 4 (default: RF-B-004,RF-X-002,RF-X-003,RF-X-004); the blocks are printed in
+#                     the order of the findings table; an id that the disposition record of round 4 dispositions,
+#                     that the note does not hold or that occurs twice exits 2
 #   --round N         the round profile: 2 (default) holds every value that this script has always held (the
 #                     fix round that follows the first independent review); 3 is the profile of the fix round
 #                     that follows the second independent review (plans 04-10 and 04-11); 4 is the profile of
-#                     the fix round that follows the third independent review (plans 04-14 and 04-15); any
-#                     other value exits 2. Profile 3 reads the approval record, the disposition record and the
+#                     the fix round that follows the third independent review (plans 04-14 and 04-15); 5 is the
+#                     profile of the fix round that follows the fourth independent review (plans 04-18 and
+#                     04-19); any other value exits 2. Profile 3 reads the approval record, the disposition record and the
 #                     review note of the second round, finds the findings with the prefix RR, has three
 #                     changes FG-10 to FG-12 and nine findings without a disposition, and allows the stages
 #                     edits, approval-pending and approval-recorded (the stage defaults to edits; the stages
@@ -83,7 +98,13 @@
 #                     the findings with the prefix RT, has three changes FG-13 to FG-15 and twenty findings
 #                     without a disposition, and allows the stages edits, approval-pending and approval-recorded
 #                     (the stage defaults to edits; the stages state and decisions and the printer of the
-#                     decisions record exit 2)
+#                     decisions record exit 2). Profile 5 reads the
+#                     approval record of round 4, the disposition record of round 4 and its addendum, and the
+#                     review note of the fourth round, finds the findings with the prefix RF, has up to seven
+#                     changes FG-16 to FG-22 (a change is present only when its primary finding has the
+#                     disposition fix in the record or the addendum, so the number of changes is derived),
+#                     and allows the stage edits (the stage defaults to edits; the stages state, decisions,
+#                     approval-pending and approval-recorded and the printer of the decisions record exit 2)
 #   --replay-round-2  run R2-1 to R2-8 instead of a stage (no other check runs): R2-1 the newest commit
 #                     reachable from HEAD at which the specification holds the result blob of the approval
 #                     record of the fix round (read from --approval-record, default: the record path of the fix
@@ -117,32 +138,36 @@
 #                     --replay-round-2 (exit 2)
 #   -h, --help        print this text and exit 0
 #
-# Profiles 3 and 4 (--round 3 and --round 4), used by plans 04-10 and 04-11 and by plans 04-14 and 04-15. The
-# profile table (round 2 is the default and holds every value this script has always held):
-#   value                 round 2                       round 3                       round 4
-#   packet, record        the fix round approval        the packet and the record     the packet and the record
-#                         packet and record of the      of fix round 3 (2026-10-27-   of fix round 4 (2026-10-27-
-#                         repository                    ...-fix-round-3-*)            ...-fix-round-4-*)
-#   register              the nine-change register      the register of round 3       the register of round 4
-#                                                       (three changes)               (three changes)
-#   approval record       the record of round 1         the record of the fix round   the record of fix round 3
+# Profiles 3, 4 and 5 (--round 3, --round 4 and --round 5), used by plans 04-10 and 04-11, by plans 04-14 and
+# 04-15 and by plans 04-18 and 04-19. The profile table (round 2 is the default and holds every value this script
+# has always held; the column for round 5 lists the values of the register and of the edits, the approval stages
+# of round 5 are added by plan 04-19):
+#   value                 round 2                       round 3                       round 4                       round 5
+#   packet, record        the fix round approval        the packet and the record     the packet and the record     the packet and the record
+#                         packet and record of the      of fix round 3 (2026-10-27-   of fix round 4 (2026-10-27-   of fix round 5 (2026-10-28-
+#                         repository                    ...-fix-round-3-*)            ...-fix-round-4-*)            ...-fix-round-5-*)
+#   register              the nine-change register      the register of round 3       the register of round 4       the register of round 5
+#                                                       (three changes)               (three changes)               (derived number of changes)
+#   approval record       the record of round 1         the record of the fix round   the record of fix round 3     the record of fix round 4
 #                                                       (round 2)
-#   disposition record    the record of round 1         the record of round 2         the record of round 3
-#   review note           the note of round 1           the note of round 2           the note of round 3
-#   finding ids           RV                            RR                            RT
-#   changes               FG-01 to FG-09                FG-10 to FG-12                FG-13 to FG-15
-#   undispositioned       14                            9                             20
-#   first new example     AE-295                        AE-306                        AE-309
-#   text approved before  the text of round 1           the text of round 2           the text of round 3
+#   disposition record    the record of round 1         the record of round 2         the record of round 3         the record of round 4 and
+#                                                                                                                   its addendum
+#   review note           the note of round 1           the note of round 2           the note of round 3           the note of round 4
+#   finding ids           RV                            RR                            RT                            RF
+#   changes               FG-01 to FG-09                FG-10 to FG-12                FG-13 to FG-15                FG-16 to FG-22 (derived)
+#   undispositioned       14                            9                             20                            33 less the findings of
+#                                                                                                                   the addendum
+#   first new example     AE-295                        AE-306                        AE-309                        AE-311
+#   text approved before  the text of round 1           the text of round 2           the text of round 3           the text of round 4
 #   changes in the packet nine, "my choice" or repair   three, "your decision:        three, "your decision:
 #                                                       <label>" with the options     <label>" with the options
 #                                                       offered, the decision and     offered, the decision and
 #                                                       its reason                    its reason; for the kind
 #                                                                                     repair "no decision asked:
 #                                                                                     the finding names the fix"
-#   kinds of change       repair, my choice             owner decision                owner decision, repair
-#   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"
-#   stages                all five                      edits, approval-pending,      edits, approval-pending,
+#   kinds of change       repair, my choice             owner decision                owner decision, repair        owner decision, repair
+#   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"                 "fix round 5"
+#   stages                all five                      edits, approval-pending,      edits, approval-pending,      edits
 #                                                       approval-recorded             approval-recorded
 # The questions Q01 to Q04, their headers and options are the same in all profiles. Under --round 3 and --round 4
 # the stages approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
@@ -181,6 +206,35 @@
 #   profile 3, and for the kind repair requires that each of the bullets Options, Owner decision, Owner reason
 #   and Channel is the fixed no-choice sentence "none: no design choice was open, because the finding names the
 #   fix itself.". Profile 3 behaves exactly as before.
+#   Profile 5 (--round 5), used by plans 04-18 and 04-19, differs from profile 4 in values and in the derived
+#   number of changes, nothing more. --print-decision-questions prints the four decisions OD-6 to OD-9 (findings
+#   RF-X-001, RF-X-002, RF-X-003 and RF-X-004, each with the options "Add examples" and "Say none needed") in the
+#   form of profile 3, and --print-register-skeleton prints the skeleton of the fix register of round 5 with the
+#   heading "## The changes", the changes whose primary finding has the disposition fix in the disposition record
+#   of round 4 or its addendum, and the findings without a disposition. The data function holds a static table of
+#   seven changes: FG-16 (RF-X-001 and RF-B-004), FG-17 (RF-X-002), FG-18 (RF-X-003) and FG-19 (RF-X-004) are an
+#   owner decision, FG-20 (RF-C-001), FG-21 (RF-C-002) and FG-22 (RF-B-001) are a repair; the findings field of a
+#   change is cut to the findings that have the disposition fix. Stage edits runs the addendum checks DA1 to DA5
+#   first and then FE3 to FE7. FE3 expects the findings without a disposition to be 33 less the findings of the
+#   addendum and does not look up a quoted sentence that the text of round 4 does not hold; FE5 expects as many
+#   entries as the register skeleton prints, the Kind cell that the data function gives, example ids that run on
+#   from AE-311 and, with --complete, the Findings cells equal to exactly the findings with the disposition fix
+#   in the record and the addendum; FE7 maps FG-16 to OD-6, FG-17 to OD-7, FG-18 to OD-8 and FG-19 to OD-9 and
+#   applies the rules of profile 4.
+#
+# The checks of the disposition addendum (profile 5), DA1 to DA5, on --addendum, the records and the note; they do
+# not read the specification: DA1 the addendum is valid UTF-8 without byte order mark, LF only with one final LF,
+# without a tab or a fill marker, passes the self-containment scan (the hash-like tokens of its table are
+# allowed), has the H1, exactly one line "- Owner disposition date:", the three H2 headings in order and the
+# closing line last; DA2 the seven copied pin rows and the Reports SHA-256 equal the disposition record of round 4,
+# the Reports SHA-256 equals the hash of the Reports section of the note, the note file, the record file and the
+# blob of the record at HEAD are right and the three owner rows are filled; DA3 each block is a finding of the
+# note without a disposition that the record does not hold, once, in table order, with the question that the review
+# check script prints, one of fix, accept, defer, reject and a reason (for accept, defer and reject not "none
+# given"), the four default findings are present, and every fix has a change in the static table; DA4 the reply
+# details (the two fixed questions, the name equal to the row Dispositions given by, a valid calendar date equal to
+# the date line and not earlier than the date of the record of round 4, and a filled Owner reply row); DA5 the
+# section What follows equals the fixed text and the closing line ends the addendum.
 #
 # Stage state: ST1 the approval record holds exactly one outcome line "- Owner approval: approved" and the pin
 # rows Result blob (40 lowercase hexadecimal digits), Reviewed SHA-256 (64) and Line count (an integer), the
@@ -280,6 +334,16 @@ BRIEF3_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R3.md"
 FREG4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-register.md"
 APK4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-packet.md"
 ARC4_PATH=".planning/reviews/2026-10-27-normative-spec-fix-round-4-approval-record.md"
+NOTE4_PATH=".planning/reviews/2026-10-27-normative-spec-independent-review-round-4.md"
+DREC4_PATH=".planning/reviews/2026-10-27-normative-spec-review-disposition-record-round-4.md"
+# The files of round 5 (the fix round that follows the fourth independent review): the disposition addendum of
+# round 4 and the register, the packet and the record of fix round 5.
+DADD4_PATH=".planning/reviews/2026-10-28-normative-spec-review-disposition-addendum-round-4.md"
+FREG5_PATH=".planning/reviews/2026-10-28-normative-spec-fix-round-5-register.md"
+APK5_PATH=".planning/reviews/2026-10-28-normative-spec-fix-round-5-approval-packet.md"
+ARC5_PATH=".planning/reviews/2026-10-28-normative-spec-fix-round-5-approval-record.md"
+# The number of findings of the review note of round 4 with an empty Disposition cell (34 rows, one dispositioned).
+NUNDISP5_BASE=33
 FIXP=".planning/phases/04-independent-review/04-check-fix-round.sh"
 
 STAGE=""
@@ -294,6 +358,10 @@ REPLAY=0
 RP1=0
 RP2=0
 RP3=0
+RP4=0
+ADDENDUM=""
+PRINT_ADS=0
+ADS_FINDINGS=""
 CURRENT=0
 PRINT_Q=0
 PRINT_SKEL=0
@@ -338,6 +406,10 @@ while [ "$#" -gt 0 ]; do
     --replay-round-1) REPLAY=1; RP1=1; shift ;;
     --replay-round-2) REPLAY=1; RP2=1; shift ;;
     --replay-round-3) REPLAY=1; RP3=1; shift ;;
+    --replay-round-4) REPLAY=1; RP4=1; shift ;;
+    --addendum) need_value "$@"; ADDENDUM="$2"; shift 2 ;;
+    --print-addendum-skeleton) PRINT_ADS=1; shift ;;
+    --findings) need_value "$@"; ADS_FINDINGS="$2"; shift 2 ;;
     --round) need_value "$@"; ROUND="$2"; shift 2 ;;
     --with-current-scripts) CURRENT=1; shift ;;
     --print-decision-questions) PRINT_Q=1; shift ;;
@@ -349,11 +421,12 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$ROUND" in
-  2|3|4) ;;
-  *) echo "--round must be 2, 3 or 4" >&2; exit 2 ;;
+  2|3|4|5) ;;
+  *) echo "--round must be 2, 3, 4 or 5" >&2; exit 2 ;;
 esac
 [ "$RP1" -eq 0 ] || [ "$RP2" -eq 0 ] || { echo "--replay-round-1 and --replay-round-2 cannot be used together" >&2; exit 2; }
 [ "$RP3" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ]; } || { echo "--replay-round-3 cannot be used with --replay-round-1 or --replay-round-2" >&2; exit 2; }
+[ "$RP4" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ] && [ "$RP3" -eq 0 ]; } || { echo "--replay-round-4 cannot be used with --replay-round-1, --replay-round-2 or --replay-round-3" >&2; exit 2; }
 if [ -z "$STAGE" ]; then
   if [ "$ROUND" -ge 3 ]; then STAGE="edits"; else STAGE="state"; fi
 fi
@@ -362,7 +435,9 @@ case "$STAGE" in
   *) echo "--stage must be state, decisions, edits, approval-pending or approval-recorded" >&2; exit 2 ;;
 esac
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
-[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2 or --replay-round-3 only" >&2; exit 2; }
+[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2, --replay-round-3 or --replay-round-4 only" >&2; exit 2; }
+[ "$PRINT_ADS" -eq 0 ] || [ "$ROUND" -eq 5 ] || { echo "--print-addendum-skeleton is used with --round 5 only" >&2; exit 2; }
+[ -z "$ADS_FINDINGS" ] || [ "$PRINT_ADS" -eq 1 ] || { echo "--findings is used with --print-addendum-skeleton only" >&2; exit 2; }
 if [ "$ROUND" -eq 3 ]; then
   case "$STAGE" in
     edits|approval-pending|approval-recorded) ;;
@@ -374,6 +449,16 @@ if [ "$ROUND" -eq 4 ]; then
     edits|approval-pending|approval-recorded) ;;
     *) echo "--round 4 allows --stage edits, approval-pending or approval-recorded only" >&2; exit 2 ;;
   esac
+fi
+if [ "$ROUND" -eq 5 ]; then
+  case "$STAGE" in
+    edits) ;;
+    *) echo "--round 5 allows --stage edits only" >&2; exit 2 ;;
+  esac
+  if [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
+    echo "the approval printers are not available in --round 5" >&2
+    exit 2
+  fi
 fi
 if [ "$ROUND" -ge 3 ]; then
   [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
@@ -400,7 +485,7 @@ if [ "$ROUND" -ge 3 ]; then
     EX_FIRST=306
     PACKET_DEFAULT="$APK3_PATH"
     RECORD_DEFAULT="$ARC3_PATH"
-  else
+  elif [ "$ROUND" -eq 4 ]; then
     ARC_DEFAULT="$ARC3_PATH"
     DREC_DEFAULT="$DREC3_PATH"
     NOTE_DEFAULT="$NOTE3_PATH"
@@ -410,6 +495,21 @@ if [ "$ROUND" -ge 3 ]; then
     EX_FIRST=309
     PACKET_DEFAULT="$APK4_PATH"
     RECORD_DEFAULT="$ARC4_PATH"
+  else
+    # Profile 5: the number of changes depends on the dispositions and is derived once the records are read.
+    ARC_DEFAULT="$ARC4_PATH"
+    DREC_DEFAULT="$DREC4_PATH"
+    NOTE_DEFAULT="$NOTE4_PATH"
+    FREG_DEFAULT="$FREG5_PATH"
+    FPFX="RF"
+    NCHG=0
+    NCHG_W="zero"
+    NUNDISP=$NUNDISP5_BASE
+    EX_FIRST=311
+    REG_TBL_H="## The changes"
+    PACKET_DEFAULT="$APK5_PATH"
+    RECORD_DEFAULT="$ARC5_PATH"
+    [ -n "$ADDENDUM" ] || ADDENDUM="$DADD4_PATH"
   fi
 else
   FPFX="RV"
@@ -423,7 +523,7 @@ fi
 REG_BULLETS_RE=$(printf '%s|' "${REG_BULLETS[@]}")
 REG_BULLETS_RE=${REG_BULLETS_RE%|}
 if [ -z "$APPROVAL" ]; then
-  if [ "$RP2" -eq 1 ]; then APPROVAL="$ARC2_PATH"; elif [ "$RP3" -eq 1 ]; then APPROVAL="$ARC3_PATH"; else APPROVAL="$ARC_DEFAULT"; fi
+  if [ "$RP2" -eq 1 ]; then APPROVAL="$ARC2_PATH"; elif [ "$RP3" -eq 1 ]; then APPROVAL="$ARC3_PATH"; elif [ "$RP4" -eq 1 ]; then APPROVAL="$ARC4_PATH"; else APPROVAL="$ARC_DEFAULT"; fi
 fi
 [ -n "$DISPO" ] || DISPO="$DREC_DEFAULT"
 [ -n "$REGISTER" ] || REGISTER="$FREG_DEFAULT"
@@ -534,8 +634,8 @@ readable "$AR" "$APPROVAL"
 readable "$DR" "$DISPO"
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = decisions ]; then readable "$DC" "$DECISIONS"; fi
 if [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = state ]; then readable "$SP" "$SPECFILE"; fi
-if [ "$PRINT_REG" -eq 1 ] || [ "$PRINT_Q" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
-if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_Q" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
+if [ "$PRINT_REG" -eq 1 ] || [ "$PRINT_Q" -eq 1 ] || [ "$PRINT_ADS" -eq 1 ] || { [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; }; then readable "$NT" "$NOTE_DEFAULT"; fi
+if [ "$PRINT_REG" -eq 0 ] && [ "$PRINT_Q" -eq 0 ] && [ "$PRINT_ADS" -eq 0 ] && [ "$PRINT_SKEL" -eq 0 ] && [ "$REPLAY" -eq 0 ] && [ "$STAGE" = edits ]; then
   readable "$SP" "$SPECFILE"
   readable "$RG" "$REGISTER"
 fi
@@ -623,6 +723,14 @@ D_LINES=$(pin_tok "$TMP/dr.pins" "Line count")
 # drec_fix_ids: the finding ids with the disposition fix in the disposition record, one per line.
 drec_fix_ids() {
   awk -v p="$FPFX-" '/^### / { id = (index($2, p) == 1) ? $2 : "" } /^- Disposition: fix$/ && id != "" { print id; id = "" }' "$DR"
+  if [ "$ROUND" -eq 5 ]; then
+    awk -v p="$FPFX-" '/^### / { id = (index($2, p) == 1) ? $2 : "" } /^- Disposition: fix$/ && id != "" { print id; id = "" }' "$AD"
+  fi
+}
+
+# add_ids: the finding ids of the blocks of the disposition addendum (profile 5), one per line in file order.
+add_ids() {
+  awk -v p="$FPFX-" '/^### / && index($2, p) == 1 { print $2 }' "$AD"
 }
 
 # print_skeleton: the decisions record with the fill marker in every field the owner completes.
@@ -665,11 +773,52 @@ REG3_H1='# Fix register, round 3: what changed in the specification and why'
 REG3_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the second independent review that the owner dispositioned fix. Each change implements the way the owner chose, which is recorded in the entry together with the options that were offered. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
 REG4_H1='# Fix register, round 4: what changed in the specification and why'
 REG4_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the third independent review that the owner dispositioned fix. For two of them the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For the third the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
+REG5_H1='# Fix register, round 5: what changed in the specification and why'
+REG5_INTRO='This register lists the changes made to the specification to fix the BLOCKING finding of the fourth independent review that the owner dispositioned fix, and the related findings that the owner dispositioned fix in the disposition addendum of round 4. For a change of the kind owner decision the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For a change of the kind repair the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
 CHANNEL_TEXT='Given by the repository owner through the interactive question tool and relayed by the orchestrating session.'
 NOCHOICE_TEXT='none: no design choice was open, because the finding names the fix itself.'
 
+# fg5_static: the static table of the seven changes of profile 5, "id|title|findings|kind". The first finding of a
+# row is its primary finding.
+fg5_static() {
+  cat << 'DATA5'
+FG-16|Rules of the full-only templates that have no acceptance example|RF-X-001, RF-B-004|owner decision
+FG-17|Rules on ADR conflicts, drift and breaking changes that have no acceptance example|RF-X-002|owner decision
+FG-18|Rules on the review cycle and its artifacts that have no acceptance example|RF-X-003|owner decision
+FG-19|Prohibitions on an AI agent that have no acceptance example|RF-X-004|owner decision
+FG-20|How the evaluation of a core change stops|RF-C-001|repair
+FG-21|A retry limit that names a check gate which does not exist|RF-C-002|repair
+FG-22|A sentence that cites the earlier text of the method|RF-B-001|repair
+DATA5
+}
+
+# fg5_ids: every finding id that the static table of profile 5 names (primary or companion), one per line.
+fg5_ids() {
+  fg5_static | cut -d'|' -f3 | tr ',' '\n' | tr -d ' '
+}
+
+# fg5_data: the rows of the static table whose primary finding has the disposition fix in the disposition record or
+# the addendum, with the findings field cut to the findings that have it.
+fg5_data() {
+  local fixids g t f k prim x cutf
+  fixids=$(drec_fix_ids)
+  while IFS='|' read -r g t f k; do
+    prim=${f%%,*}
+    printf '%s\n' "$fixids" | grep -q -x -F -e "$prim" || continue
+    cutf=""
+    for x in ${f//,/ }; do
+      if printf '%s\n' "$fixids" | grep -q -x -F -e "$x"; then cutf="${cutf:+$cutf, }$x"; fi
+    done
+    printf '%s|%s|%s|%s\n' "$g" "$t" "$cutf" "$k"
+  done < <(fg5_static)
+}
+
 # fg_data: one line per group, "id|title|findings|kind".
 fg_data() {
+  if [ "$ROUND" -eq 5 ]; then
+    fg5_data
+    return 0
+  fi
   if [ "$ROUND" -eq 4 ]; then
     cat << 'DATA4'
 FG-13|How the gate comparison treats the supersede action|RT-A-001|owner decision
@@ -705,17 +854,21 @@ fg_kind() {
 }
 
 # undisp: the findings of the review note without a disposition, one per line as "id TAB severity TAB quote".
-undisp() {
-  awk -F'|' -v p="$FPFX-" '
+undisp_skip() {
+  awk -F'|' -v p="$FPFX-" -v skip=" $1 " '
     function trim(s) { sub(/^ +/, "", s); sub(/ +$/, "", s); return s }
     /^## / { on = ($0 == "## Findings"); next }
     on && index($0, "| " p) == 1 {
-      if (trim($6) == "") {
+      if (trim($6) == "" && index(skip, " " trim($2) " ") == 0) {
         q = trim($4); sub(/^.*quote "/, "", q); sub(/"$/, "", q)
         print trim($2) "\t" trim($3) "\t" q
       }
     }
   ' "$NT"
+}
+# undisp: in profile 5 the findings that the addendum dispositions are dropped too.
+undisp() {
+  if [ "$ROUND" -eq 5 ]; then undisp_skip "$(add_ids | tr '\n' ' ')"; else undisp_skip ""; fi
 }
 
 # base_ids: the ids of the findings of the review note whose reference names the file BASE (the base text is not
@@ -732,6 +885,27 @@ base_ids() {
 # bar: "D|id|header|finding" opens a decision, "Q|question" is its question, "O|label|description" is one option.
 # No option is recommended.
 od_data() {
+  if [ "$ROUND" -eq 5 ]; then
+    cat << 'DATA5'
+D|OD-6|Templates|RF-X-001
+Q|Sections 16.1 to 16.4 apply to the full profile only, and none of their rules has an acceptance example. How should this be fixed?
+O|Add examples|Examples are added that show these rules, in the same layout as the existing examples.
+O|Say none needed|The text says plainly that these rules need no example of their own, and gives the reason that you state.
+D|OD-7|ADR rules|RF-X-002
+Q|The rules of Section 13 (conflict with an ADR, specification drift, breaking changes) have no acceptance example. How should this be fixed?
+O|Add examples|Examples are added that show these rules, in the same layout as the existing examples.
+O|Say none needed|The text says plainly that these rules need no example of their own, and gives the reason that you state.
+D|OD-8|Review rules|RF-X-003
+Q|The rules of Sections 14.3 to 14.5 (the review cycle, findings and review artifacts) have no acceptance example. How should this be fixed?
+O|Add examples|Examples are added that show these rules, in the same layout as the existing examples.
+O|Say none needed|The text says plainly that these rules need no example of their own, and gives the reason that you state.
+D|OD-9|Agent bans|RF-X-004
+Q|The prohibitions on an AI agent in Section 19.1 have no acceptance example. How should this be fixed?
+O|Add examples|Examples are added that show these rules, in the same layout as the existing examples.
+O|Say none needed|The text says plainly that these rules need no example of their own, and gives the reason that you state.
+DATA5
+    return 0
+  fi
   if [ "$ROUND" -eq 4 ]; then
     cat << 'DATA4'
 D|OD-4|Supersede|RT-A-001
@@ -816,6 +990,7 @@ print_register_skeleton() {
   local g t f k id sev b h1="$REG_H1" intro="$REG_INTRO"
   if [ "$ROUND" -eq 3 ]; then h1="$REG3_H1"; intro="$REG3_INTRO"; fi
   if [ "$ROUND" -eq 4 ]; then h1="$REG4_H1"; intro="$REG4_INTRO"; fi
+  if [ "$ROUND" -eq 5 ]; then h1="$REG5_H1"; intro="$REG5_INTRO"; fi
   printf '%s\n\n%s\n\n' "$h1" "$intro"
   printf '%s\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n' "$REG_TBL_H"
   while IFS='|' read -r g t f k; do
@@ -833,6 +1008,95 @@ print_register_skeleton() {
   done < <(undisp)
   printf '\n## Header\n\n%s\n' "$REG_HEADER"
 }
+
+# ---- the disposition addendum of round 4 (profile 5) ----------------------------------------------------------
+
+# AD is the working copy of the addendum (an empty file when it does not exist), AD_OK says whether it was read.
+AD="$TMP/addendum"
+AD_OK=0
+if [ "$ROUND" -eq 5 ]; then
+  if [ -f "$ADDENDUM" ] && [ -r "$ADDENDUM" ] && cp "$ADDENDUM" "$AD" 2> /dev/null; then AD_OK=1; else : > "$AD"; fi
+  NCHG=$(fg_data | wc -l | tr -d ' ')
+  case "$NCHG" in
+    0) NCHG_W="zero" ;;
+    1) NCHG_W="one" ;;
+    2) NCHG_W="two" ;;
+    3) NCHG_W="three" ;;
+    4) NCHG_W="four" ;;
+    5) NCHG_W="five" ;;
+    6) NCHG_W="six" ;;
+    *) NCHG_W="seven" ;;
+  esac
+  NUNDISP=$((NUNDISP5_BASE - $(add_ids | wc -l | tr -d ' ')))
+fi
+
+AD_H1='# Review disposition addendum, round 4: proposed normative method specification'
+AD_FOLLOWS_TEXT='The owner answered the findings above. A finding with the disposition fix is fixed in fix round 5 and listed in the register of that round; a finding with another disposition needs no change of the text. This addendum supplements the disposition record of round 4, which stays as it is.'
+AD_NAME_Q='Under which name or handle should these dispositions be recorded for the repository owner?'
+AD_DATE_Q='Which date are these dispositions given? Give it as YYYY-MM-DD.'
+AD_DEFAULT_IDS="RF-B-004,RF-X-002,RF-X-003,RF-X-004"
+AD_COPIED=("Reviewed file" "Base blob" "Result blob" "Reviewed SHA-256" "Line count" "Diffstat" "Commits touching the file")
+AD_LABELS=("${AD_COPIED[@]}" "Review note file" "Reports SHA-256" "Disposition record file" "Disposition record blob" "Dispositions given by" "Owner reply" "Check results")
+
+# reports_sha: the SHA-256 of the Reports section of the review note, computed as the review check script computes it.
+reports_sha() {
+  awk -v sect="Reports" '/^```/ { fence = !fence } !fence && /^## / { on = ($0 == "## " sect); next } on' "$NT" | sha256sum | cut -d ' ' -f1
+}
+
+# disp_q ID: the Question line that the review check script prints for the finding ID.
+disp_q() {
+  bash "$CHK" --round 4 --print-disposition-skeleton --finding "$1" 2> /dev/null | grep -m1 '^- Question: '
+}
+
+# print_addendum_skeleton: the addendum in its unfilled form (the only way it is created).
+print_addendum_skeleton() {
+  local id l x drb list dup sel
+  list=${ADS_FINDINGS:-$AD_DEFAULT_IDS}
+  list=${list// /}
+  sel=""
+  for x in ${list//,/ }; do
+    if ! [[ "$x" =~ ^RF-[A-Z]-[0-9]{3}$ ]]; then echo "--findings: [$x] is not a finding id" >&2; exit 2; fi
+    case " $sel " in *" $x "*) echo "--findings: $x occurs twice" >&2; exit 2 ;; esac
+    sel="$sel $x"
+  done
+  if [ -z "$sel" ]; then echo "--findings names no finding" >&2; exit 2; fi
+  undisp_skip "" | cut -f1 > "$TMP/ads.avail"
+  awk '/^### / { print $2 }' "$DR" > "$TMP/ads.drids"
+  for x in $sel; do
+    if grep -q -x -F -e "$x" "$TMP/ads.drids"; then echo "--findings: $x is dispositioned by the disposition record" >&2; exit 2; fi
+    if ! grep -q -x -F -e "$x" "$TMP/ads.avail"; then echo "--findings: $x is no finding of the review note without a disposition" >&2; exit 2; fi
+  done
+  drb=$(git rev-parse --verify --quiet "HEAD:$DREC_DEFAULT") || { echo "cannot read the disposition record at HEAD" >&2; exit 2; }
+  parse_pins "$DR" "$TMP/dr.pins"
+  for l in "${AD_COPIED[@]}" "Reports SHA-256"; do
+    if [ -z "$(pin_raw "$TMP/dr.pins" "$l")" ]; then echo "the disposition record has no row [$l]" >&2; exit 2; fi
+  done
+  : > "$TMP/ads.blocks"
+  while IFS= read -r id; do
+    case " $sel " in *" $id "*) ;; *) continue ;; esac
+    bash "$CHK" --round 4 --print-disposition-skeleton --finding "$id" >> "$TMP/ads.blocks" 2> /dev/null || { echo "cannot print the block of $id" >&2; exit 2; }
+  done < "$TMP/ads.avail"
+  dup=$(grep -c '^### ' "$TMP/ads.blocks")
+  if [ "$dup" -eq 0 ]; then echo "no block could be printed" >&2; exit 2; fi
+  printf '%s\n\n' "$AD_H1"
+  printf -- '- Owner disposition date: %s\n\n' "$FILL"
+  printf '| Field | Value |\n|---|---|\n'
+  for l in "${AD_COPIED[@]}"; do printf '| %s | %s |\n' "$l" "$(pin_raw "$TMP/dr.pins" "$l")"; done
+  printf '| Review note file | `%s` |\n' "$NOTE_DEFAULT"
+  printf '| Reports SHA-256 | %s |\n' "$(pin_raw "$TMP/dr.pins" "Reports SHA-256")"
+  printf '| Disposition record file | `%s` |\n' "$DREC_DEFAULT"
+  printf '| Disposition record blob | `%s` |\n' "$drb"
+  printf '| Dispositions given by | %s |\n| Owner reply | %s |\n| Check results | %s |\n\n' "$FILL" "$FILL" "$FILL"
+  printf '## Findings dispositioned by the owner\n\n'
+  cat "$TMP/ads.blocks"
+  printf '## Reply details\n\n### Name\n\n- Question: %s\n- Answer: %s\n\n### Date\n\n- Question: %s\n- Answer: %s\n\n' "$AD_NAME_Q" "$FILL" "$AD_DATE_Q" "$FILL"
+  printf '## What follows\n\n%s\n\n%s\n' "$AD_FOLLOWS_TEXT" "$CLOSING_LINE"
+}
+
+if [ "$PRINT_ADS" -eq 1 ]; then
+  print_addendum_skeleton
+  exit 0
+fi
 
 if [ "$PRINT_Q" -eq 1 ]; then
   print_od_questions
@@ -1586,6 +1850,9 @@ fe3() {
   if [ "$(wc -l < "$TMP/undisp.tsv" | tr -d ' ')" -ne "$NUNDISP" ]; then bad "the review note does not hold $NUNDISP findings without a disposition"; fi
   if [ "$ROUND" -ge 3 ]; then base_ids > "$TMP/base.ids"; else : > "$TMP/base.ids"; fi
   while IFS=$'\t' read -r id sev q; do
+    # Profile 5: a quoted sentence that the text of round 4 does not hold (a quote that differs from the text in
+    # letter case, for example) cannot have been removed by an edit and is not looked up.
+    if [ "$ROUND" -eq 5 ] && ! grep -q -F -e "$q" "$T1"; then continue; fi
     if [ -n "$q" ] && ! grep -q -F -e "$q" "$SP" && ! grep -q -x -F -e "$id" "$TMP/touched.ids" && ! grep -q -x -F -e "$id" "$TMP/base.ids"; then
       bad "the quoted sentence of the undispositioned finding $id is no longer in the specification and the register lists no reason"
     fi
@@ -1817,6 +2084,10 @@ fe7() {
       FG-12) od=OD-3 ;;
       FG-13) od=OD-4 ;;
       FG-14) od=OD-5 ;;
+      FG-16) od=OD-6 ;;
+      FG-17) od=OD-7 ;;
+      FG-18) od=OD-8 ;;
+      FG-19) od=OD-9 ;;
       *) bad "$g: no decision belongs to this change"; continue ;;
     esac
     want=$(od_labels "$od" | awk 'NR > 1 { printf " | " } { printf "%s", $0 }')
@@ -1836,11 +2107,165 @@ fe7() {
   if [ -n "$PROB" ]; then fail FE7 "$PROB"; else pass FE7 "for each of the $n drafted entries the Options are the labels that were offered, the Owner decision is one of them, the Owner reason is given and the Channel is the fixed sentence"; fi
 }
 
+# ---- stage dispositions: DA1 to DA5 on the disposition addendum (profile 5) ----------------------------------
+
+# ad_blocks: the blocks of the addendum, one line per block: "#id TAB status TAB =question TAB =disposition TAB =reason".
+ad_blocks() {
+  h2sec "$AD" "Findings dispositioned by the owner" | awk '
+    function trim(s) { sub(/^[ \t]+/, "", s); sub(/[ \t]+$/, "", s); return s }
+    function val(l, p) { return trim(substr(l, length(p) + 1)) }
+    function flush() {
+      if (id == "") return
+      if (bad == "" && st < 3) bad = "the block lacks the bullets Question, Disposition, Owner reason in that order"
+      print "#" id "\t" (bad == "" ? "ok" : bad) "\t=" q "\t=" d "\t=" trim(r)
+    }
+    /^### / { flush(); id = trim(substr($0, 5)); q = ""; d = ""; r = ""; bad = ""; st = 0; next }
+    id == "" { next }
+    st == 3 { r = r " " $0; next }
+    NF == 0 { next }
+    st == 0 { if (index($0, "- Question: ") == 1) { q = $0; st = 1 } else { bad = "the first bullet is not [- Question: ]"; st = 9 }; next }
+    st == 1 { if (index($0, "- Disposition:") == 1) { d = val($0, "- Disposition:"); st = 2 } else { bad = "the second bullet is not [- Disposition: ]"; st = 9 }; next }
+    st == 2 { if (index($0, "- Owner reason:") == 1) { r = val($0, "- Owner reason:"); st = 3 } else { bad = "the third bullet is not [- Owner reason: ]"; st = 9 }; next }
+    END { flush() }
+  '
+}
+
+da_checks() {
+  local m l n id st q d r exp_q rsha_calc drb drdate name_a date_a given_by date_line dd
+  local -a rd=()
+
+  # DA1
+  if [ "$AD_OK" -eq 0 ]; then
+    fail DA1 "the addendum cannot be read"
+    return 0
+  fi
+  m=$(enc1 "$AD")
+  if [ -z "$m" ]; then m=$(enc2 "$AD"); fi
+  if [ -z "$m" ] && grep -q -F "$FILL" "$AD"; then m="a fill marker is left in a field (line $(grep -n -F "$FILL" "$AD" | head -n1 | cut -d: -f1))"; fi
+  if [ -z "$m" ]; then m=$(fd1_scan "$AD" "$(tbl_tokens < "$AD")"); fi
+  if [ -z "$m" ]; then
+    if [ "$(head -n1 "$AD")" != "$AD_H1" ]; then
+      m="the first line is not the H1 [$AD_H1]"
+    elif [ "$(grep -c '^- Owner disposition date:' "$AD")" -ne 1 ]; then
+      m="the addendum does not hold exactly one line [- Owner disposition date:]"
+    elif [ "$(awk '/^```/ { f = !f; next } !f && /^## / { print }' "$AD" | tr '\n' '|')" != "## Findings dispositioned by the owner|## Reply details|## What follows|" ]; then
+      m="the H2 headings are not the three expected ones in order"
+    elif [ "$(tail -n1 "$AD")" != "$CLOSING_LINE" ] || [ "$(grep -c -x -F "$CLOSING_LINE" "$AD")" -ne 1 ]; then
+      m="the closing line is not the last line, once"
+    fi
+  fi
+  if [ -n "$m" ]; then fail DA1 "$m"; else pass DA1 "the addendum is clean text without fill markers, passes the scan and has the expected structure"; fi
+
+  # DA2
+  m=""
+  parse_pins "$AD" "$TMP/ad.pins"
+  if [ "$(awk -F'\t' '{ printf "%s|", $1 }' "$TMP/ad.pins")" != "$(printf '%s|' "${AD_LABELS[@]}")" ]; then
+    m="the table rows are not the expected rows in the expected order"
+  fi
+  if [ -z "$m" ]; then
+    for l in "${AD_COPIED[@]}" "Reports SHA-256"; do
+      if [ "$(pin_raw "$TMP/ad.pins" "$l")" != "$(pin_raw "$TMP/dr.pins" "$l")" ]; then m="the row [$l] differs from the disposition record"; break; fi
+    done
+  fi
+  if [ -z "$m" ] && [ "$(pin_raw "$TMP/ad.pins" "Review note file")" != "\`$NOTE_DEFAULT\`" ]; then m="Review note file is not \`$NOTE_DEFAULT\`"; fi
+  if [ -z "$m" ]; then
+    rsha_calc=$(reports_sha)
+    if [ "$(pin_raw "$TMP/ad.pins" "Reports SHA-256")" != "\`$rsha_calc\`" ]; then m="Reports SHA-256 is not the hash of the Reports section of the review note ($rsha_calc)"; fi
+  fi
+  if [ -z "$m" ] && [ "$(pin_raw "$TMP/ad.pins" "Disposition record file")" != "\`$DREC_DEFAULT\`" ]; then m="Disposition record file is not \`$DREC_DEFAULT\`"; fi
+  if [ -z "$m" ]; then
+    drb=$(git rev-parse --verify --quiet "HEAD:$DREC_DEFAULT") || drb=""
+    if [ "$(pin_raw "$TMP/ad.pins" "Disposition record blob")" != "\`$drb\`" ]; then m="Disposition record blob is not the blob of the disposition record at HEAD"; fi
+  fi
+  if [ -z "$m" ]; then
+    for l in "Dispositions given by" "Owner reply" "Check results"; do
+      if [ -z "$(pin_raw "$TMP/ad.pins" "$l")" ]; then m="the row [$l] is empty"; break; fi
+    done
+  fi
+  if [ -n "$m" ]; then fail DA2 "$m"; else pass DA2 "the pin rows, the Reports SHA-256, the disposition record file and blob equal the records and the note, and the owner rows are filled"; fi
+
+  # DA3
+  m=""
+  ad_blocks > "$TMP/ad.blocks"
+  n=$(wc -l < "$TMP/ad.blocks" | tr -d ' ')
+  undisp_skip "" | cut -f1 > "$TMP/ad.avail"
+  awk '/^### / { print $2 }' "$DR" > "$TMP/ad.drids"
+  fg5_ids | sort -u > "$TMP/ad.static"
+  if [ -n "$(h2sec "$AD" "Findings dispositioned by the owner" | awk '/^### / { exit } NF')" ]; then
+    m="the section Findings dispositioned by the owner holds text before its first block"
+  fi
+  while [ -z "$m" ] && IFS=$'\t' read -r id st q d r; do
+    id=${id#\#}; q=${q#=}; d=${d#=}; r=${r#=}
+    if grep -q -x -F -e "$id" "$TMP/ad.drids"; then m="block $id: the disposition record of round 4 already dispositions this finding"; break; fi
+    if ! grep -q -x -F -e "$id" "$TMP/ad.avail"; then m="block $id: no finding of the review note without a disposition has this id"; break; fi
+    if [ "$st" != ok ]; then m="block $id: $st"; break; fi
+    exp_q=$(disp_q "$id")
+    if [ -z "$exp_q" ] || [ "$q" != "$exp_q" ]; then m="block $id: the question differs from the one that the review check script prints"; break; fi
+    case "$d" in fix|accept|defer|reject) ;; *) m="block $id: the disposition [${d:0:40}] is not one of fix, accept, defer, reject"; break ;; esac
+    if [ -z "$r" ]; then m="block $id: the owner reason is empty"; break; fi
+    if [ "$d" != fix ] && [ "$r" = "none given" ]; then m="block $id: the disposition $d needs a reason, [none given] is not one"; break; fi
+    if [ "$d" = fix ] && ! grep -q -x -F -e "$id" "$TMP/ad.static"; then m="block $id: the disposition fix has no change in the plan of round 5 (the plan is revised outside this script)"; break; fi
+  done < "$TMP/ad.blocks"
+  if [ -z "$m" ]; then
+    cut -f1 "$TMP/ad.blocks" | sed 's/^#//' > "$TMP/ad.ids"
+    if [ -n "$(sort "$TMP/ad.ids" | uniq -d)" ]; then
+      m="the block $(sort "$TMP/ad.ids" | uniq -d | head -n1) occurs twice"
+    elif ! cmp -s "$TMP/ad.ids" <(grep -x -F -f "$TMP/ad.ids" "$TMP/ad.avail"); then
+      m="the blocks are not in the order of the findings table of the review note"
+    else
+      for id in ${AD_DEFAULT_IDS//,/ }; do
+        if ! grep -q -x -F -e "$id" "$TMP/ad.ids"; then m="the block of $id is missing"; break; fi
+      done
+    fi
+  fi
+  if [ -n "$m" ]; then fail DA3 "$m"; else pass DA3 "the $n blocks are findings without a disposition in table order, each with the printed question, one of fix, accept, defer, reject and a reason, and every fix has a change"; fi
+
+  # DA4
+  m=""
+  mapfile -t rd < <(h2sec "$AD" "Reply details" | grep -v '^[[:space:]]*$')
+  given_by=$(pin_raw "$TMP/ad.pins" "Dispositions given by")
+  date_line=$(line_val "- Owner disposition date:" "$AD")
+  drdate=$(line_val "- Owner disposition date:" "$DR")
+  if [ "${#rd[@]}" -ne 6 ] || [ "${rd[0]}" != "### Name" ] || [ "${rd[1]}" != "- Question: $AD_NAME_Q" ] || [ "${rd[3]}" != "### Date" ] || [ "${rd[4]}" != "- Question: $AD_DATE_Q" ] \
+    || [[ "${rd[2]}" != "- Answer: "* ]] || [[ "${rd[5]}" != "- Answer: "* ]]; then
+    m="the section Reply details is not the blocks Name and Date, each with the fixed question and a one-line answer"
+  else
+    name_a=${rd[2]#- Answer: }
+    date_a=${rd[5]#- Answer: }
+    if [ -z "$(trim_ws "$name_a")" ] || [ "$name_a" != "$(trim_ws "$name_a")" ]; then
+      m="the name is empty or padded"
+    elif [ "$name_a" != "$given_by" ]; then
+      m="the name differs from the row Dispositions given by"
+    elif ! [[ "$date_a" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]] || [ "$(date -u -d "$date_a" +%F 2> /dev/null)" != "$date_a" ]; then
+      m="the date [${date_a:0:30}] is not a valid calendar date in the form YYYY-MM-DD"
+    elif [ "$date_a" != "$date_line" ]; then
+      m="the date answer differs from the line [- Owner disposition date:]"
+    elif ! [[ "$drdate" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+      m="the owner disposition date of the disposition record of round 4 is not a date"
+    elif [[ "$date_a" < "$drdate" ]]; then
+      m="the date $date_a is earlier than the owner disposition date of the record of round 4 ($drdate)"
+    fi
+  fi
+  if [ -z "$m" ] && [ -z "$(trim_ws "$(pin_raw "$TMP/ad.pins" "Owner reply")")" ]; then m="the Owner reply row is empty"; fi
+  if [ -n "$m" ]; then fail DA4 "$m"; else pass DA4 "the name equals Dispositions given by, the date is a valid calendar date equal to the date line and not earlier than $drdate"; fi
+
+  # DA5
+  dd=$(h2sec "$AD" "What follows" | grep -v -x -F "$CLOSING_LINE" | grep -v '^$')
+  if [ "$dd" != "$AD_FOLLOWS_TEXT" ]; then
+    fail DA5 "the section What follows differs from the printed text"
+  elif [ "$(tail -n1 "$AD")" != "$CLOSING_LINE" ] || [ "$(grep -c -x -F "$CLOSING_LINE" "$AD")" -ne 1 ]; then
+    fail DA5 "the closing line is not the last line, once"
+  else
+    pass DA5 "the section What follows equals the printed text and the closing line ends the addendum"
+  fi
+}
+
 edits_stage() {
   if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then echo "the result blob of the approval record is not 40 lowercase hexadecimal digits" >&2; exit 2; fi
   git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-$((ROUND - 1)) text cannot be read from the repository" >&2; exit 2; }
   reg_load
   fe_diff
+  if [ "$ROUND" -eq 5 ]; then da_checks; fi
   if [ "$ROUND" -eq 2 ]; then
     fe1
     fe2
