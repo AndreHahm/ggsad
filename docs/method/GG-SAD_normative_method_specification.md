@@ -3132,6 +3132,8 @@ The base gates have the identifiers `scope-violation`, `unanswered-question`, `s
 
 The predicate of a base gate has the identifier of the gate as its name, and the rules of Section 23.3 about the kind and the condition of a gate govern the gates of the change definition and not the base gates. The check of Section 5.3 on the identifiers of the base gates is made before the other checks of Sections 23.1 and 23.3, so that a gate with the identifier of a base gate is rejected as Section 5.3 states, whatever its condition. A specification that was never approved has no approved version from which it can differ, so that the stale specification approval gate is not active for it and does not stop the `start` action. See AE-276.
 
+The specification file `spec.md` of a `core` change is protected against later edits only after it was approved: before its first approval, an edit of `spec.md` is not reported as a difference from an approved version, and `change.yaml` is the only machine-checkable anchor of the change. See AE-323.
+
 **AE-56 — The scope violation gate applies without being listed**
 
 - Covers: Section 23.7
@@ -3163,6 +3165,14 @@ Then the change does not close, because the incomplete evidence gate is not sati
 Given an `open` `core` change in a project whose configuration does not require the approval of the specification, whose `spec.md` was never approved
 When the `start` action is requested, and later a human approves `spec`, `spec.md` is edited, and the `close` action is requested
 Then the `start` action succeeds, because the stale specification approval gate is not active, and the `close` action does not close the change, because the gate is active after the edit
+
+**AE-323 — An edit of a specification that was never approved is not reported**
+
+- Covers: Section 23.7
+
+Given an `active` `core` change in a project whose configuration does not require the approval of the specification, whose `spec.md` was never approved and was edited after the change started, and whose other gates are satisfied  
+When the `close` action is requested  
+Then the change closes, because the stale specification approval gate is not active and the edit of `spec.md` is not reported as a difference from an approved version
 
 ---
 
