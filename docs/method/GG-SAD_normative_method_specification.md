@@ -300,7 +300,7 @@ specs/<change-id>/
 
 `spec.md` remains the mandatory file for normal (Class M and Class L) changes as defined in Section 6.
 
-The identifier of a change, which is the `id` of a `core` change definition (Section 23.1) and the Change ID of a `full` change specification (Section 16.1), names the directory `specs/<change-id>/` of the change. The whole identifier MUST match `[A-Za-z0-9][A-Za-z0-9._-]*`, so that it holds no path separator. It MUST NOT end with the character `.`. It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case. Two identifiers that are equal after that folding name the same directory on a file system that ignores letter case, so an identifier MUST also be unique among the changes of the project after the folding: an identifier that differs from the identifier of an existing change only in the case of ASCII letters is not unique. The same syntax applies to the values of `follows` and `replaced_by`, which name a change by its identifier. A definition with an identifier that does not follow these rules is rejected, and nothing is written. See AE-288.
+The identifier of a change, which is the `id` of a `core` change definition (Section 23.1) and the Change ID of a `full` change specification (Section 16.1), names the directory `specs/<change-id>/` of the change. The whole identifier MUST match `[A-Za-z0-9][A-Za-z0-9._-]*`, so that it holds no path separator. It MUST NOT end with the character `.`. The part of the identifier before its first dot, which is the whole identifier when it holds no dot, MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case. Two identifiers that are equal after that folding name the same directory on a file system that ignores letter case, so an identifier MUST also be unique among the changes of the project after the folding: an identifier that differs from the identifier of an existing change only in the case of ASCII letters is not unique. The same syntax applies to the values of `follows` and `replaced_by`, which name a change by its identifier. A definition with an identifier that does not follow these rules is rejected, and nothing is written. See AE-288. See AE-321.
 
 Every change carries mandatory information regardless of file layout: the goal, specification anchor, gate outcome, evidence, wait or fail behavior when applicable, and final status.
 
@@ -329,6 +329,14 @@ Inline storage of any of this information is permitted only when its authoritati
 Given a project that holds the change `Task-7`, and five change definitions whose identifiers are `../x`, `a/b`, `task-7`, `nul`, and `c-1`  
 When the `new` action receives each definition  
 Then the first four are rejected and nothing is written, because `../x` and `a/b` hold a path separator, `task-7` differs from `Task-7` only in letter case, and `nul` is a reserved name, and the definition with the identifier `c-1` is accepted
+
+**AE-321 — A reserved name before the first dot is rejected**
+
+- Covers: Section 4.3
+
+Given a project and four change definitions whose identifiers are `nul.txt`, `COM3.log`, `nul-1`, and `console.txt`  
+When the `new` action receives each definition  
+Then the first two are rejected and nothing is written for them, because the part before the first dot, `nul` and `COM3` (which is `com3` after the folding), is a reserved name, and the definitions with the identifiers `nul-1` and `console.txt` are accepted, because the part before the first dot, `nul-1` and `console`, is not a reserved name
 
 ---
 
