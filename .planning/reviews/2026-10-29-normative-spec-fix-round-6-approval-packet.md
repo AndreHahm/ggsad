@@ -1,6 +1,6 @@
 # Owner approval packet, fix round 6: proposed normative method specification
 
-- Owner approval: pending
+- Owner approval: recorded in the owner approval record
 
 ## What you are asked
 
