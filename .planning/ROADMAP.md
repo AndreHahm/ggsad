@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 19/21 plans executed
+**Plans**: 20/21 plans executed
 
 Plans:
 **Wave 1**
@@ -277,7 +277,7 @@ Plans:
 
 **Wave 20** *(blocked on Wave 19 completion; has the owner decision and consent checkpoint)*
 
-- [ ] 04-20-PLAN.md — Round 5 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-5 note (REVIEW-01)
+- [x] 04-20-PLAN.md — Round 5 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-5 note (REVIEW-01)
 
 **Wave 21** *(blocked on Wave 20 completion; has the owner dispositions checkpoint)*
 
