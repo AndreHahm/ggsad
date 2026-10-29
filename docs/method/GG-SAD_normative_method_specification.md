@@ -2654,7 +2654,7 @@ A `core` change changes state only through the actions of the table below. An ac
 | `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
 | `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-39, AE-40, AE-41. |
 | `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
-| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, except that differing gate definitions prevent the action (Section 24.1), and `replaced_by` names a different change that exists. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45, AE-309. |
+| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, except that differing gate definitions prevent the action (Section 24.1), and `replaced_by` names a different change that exists and is not `closed`. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45, AE-309, AE-322. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
 
 The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-24.
@@ -2679,7 +2679,7 @@ A `follows` field is a reference and not a state transition: it never changes th
 | `close` | The state is not `active`. | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
 | `fail` | The state is not `waiting` with a wait record of kind `fail-gate`, or no reason is given. | Never. |
 | `cancel` | The state is `closed`. | Never. |
-| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). | Never. |
+| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or names a change that is `closed`, or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). | Never. |
 | `adopt` | The history already has an anchor. | Never. |
 
 A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-117, AE-118, AE-119, AE-120.
@@ -2957,6 +2957,14 @@ Then change A is `closed` with the outcome `cancelled` and `replaced_by` naming 
 Given an `active` change A  
 When a human performs the `supersede` action on change A and gives no `replaced_by`  
 Then the action is rejected, and change A remains `active`
+
+**AE-322 — Reject supersede with a closed replacement**
+
+- Covers: Section 23.4 (`supersede`)
+
+Given an `active` change A and a `closed` change B  
+When a human performs the `supersede` action on change A with `replaced_by` naming change B  
+Then the result is `rejected` with `changed` false, change A is not closed, and nothing is written to the history
 
 **AE-46 — Adopt an unanchored history**
 
