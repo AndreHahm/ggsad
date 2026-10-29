@@ -45,7 +45,8 @@
 #                     modifier of --replay-round-1: the working-tree versions of the three scripts are copied
 #                     over the three paths in the clone and the three runs are repeated as FR5 (a later
 #                     extension of a script still validates the round-1 evidence); the same modifier of
-#                     --replay-round-2 and --replay-round-3 repeats the six runs as R2-8 and R3-8
+#                     --replay-round-2, --replay-round-3 and --replay-round-5 repeats the six runs as R2-8, R3-8
+#                     and R5-8
 #   --print-decision-questions
 #                     print the five decisions as the owner is asked them: a line with the id and the header,
 #                     a line Findings:, the question on one line, one line per option "- label: description"
@@ -143,6 +144,25 @@
 #                     paths in the clone and the six runs are repeated as R3-8. The clone is removed on exit; the
 #                     repository and its refs are not changed. It cannot be combined with --replay-round-1 or
 #                     --replay-round-2 (exit 2)
+#   --replay-round-5  run R5-1 to R5-8 instead of a stage (no other check runs; the round profile is not
+#                     consulted): R5-1 the result blob of the approval record of fix round 5 (read from
+#                     --approval-record, default: the record path of fix round 5) is read, the newest commit
+#                     reachable from HEAD at which the specification holds that blob is found, and that commit holds
+#                     the approval record, the disposition record, the review note, the fix register, the approval
+#                     packet and the review brief of round 5 and the disposition addendum of round 4; the commit is
+#                     never printed. In a throwaway local clone outside the repository, checked out detached at that
+#                     commit with origin/main aligned as in the replay of round 1, and with the scripts as they are
+#                     at that commit: R5-2 the drafting check with --final, R5-3 this script with --round 5 in stage
+#                     edits with --complete, R5-4 this script with --round 5 in stage approval-pending, R5-5 this
+#                     script with --round 5 in stage approval-recorded, R5-6 the review check with --round 5 prints
+#                     the review brief of round 5 character for character, R5-7 the review check with --round 5 in
+#                     stage dispositioned each end RESULT: PASS (R5-6: equal). With --with-current-scripts the
+#                     working-tree versions of the three scripts are copied over their paths in the clone and the six
+#                     runs are repeated as R5-8. The clone is removed on exit; the repository and its refs are not
+#                     changed. It cannot be combined with --replay-round-1, --replay-round-2, --replay-round-3 or
+#                     --replay-round-4 (exit 2). Once the specification no longer holds the text of round 5, the
+#                     live checks that pin that text fail by design and this replay is the way to check the evidence
+#                     of round 5
 #   -h, --help        print this text and exit 0
 #
 # Profiles 3, 4 and 5 (--round 3, --round 4 and --round 5), used by plans 04-10 and 04-11, by plans 04-14 and
@@ -383,6 +403,7 @@ NUNDISP5_BASE=33
 # fix round 6.
 NOTE5_PATH=".planning/reviews/2026-10-28-normative-spec-independent-review-round-5.md"
 DREC5_PATH=".planning/reviews/2026-10-28-normative-spec-review-disposition-record-round-5.md"
+BRIEF5_PATH=".planning/phases/04-independent-review/04-REVIEW-BRIEF-R5.md"
 DADD5_PATH=".planning/reviews/2026-10-29-normative-spec-review-disposition-addendum-round-5.md"
 FREG6_PATH=".planning/reviews/2026-10-29-normative-spec-fix-round-6-register.md"
 APK6_PATH=".planning/reviews/2026-10-29-normative-spec-fix-round-6-approval-packet.md"
@@ -404,6 +425,7 @@ RP1=0
 RP2=0
 RP3=0
 RP4=0
+RP5=0
 ADDENDUM=""
 PRINT_ADS=0
 ADS_FINDINGS=""
@@ -452,6 +474,7 @@ while [ "$#" -gt 0 ]; do
     --replay-round-2) REPLAY=1; RP2=1; shift ;;
     --replay-round-3) REPLAY=1; RP3=1; shift ;;
     --replay-round-4) REPLAY=1; RP4=1; shift ;;
+    --replay-round-5) REPLAY=1; RP5=1; shift ;;
     --addendum) need_value "$@"; ADDENDUM="$2"; shift 2 ;;
     --print-addendum-skeleton) PRINT_ADS=1; shift ;;
     --findings) need_value "$@"; ADS_FINDINGS="$2"; shift 2 ;;
@@ -472,6 +495,7 @@ esac
 [ "$RP1" -eq 0 ] || [ "$RP2" -eq 0 ] || { echo "--replay-round-1 and --replay-round-2 cannot be used together" >&2; exit 2; }
 [ "$RP3" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ]; } || { echo "--replay-round-3 cannot be used with --replay-round-1 or --replay-round-2" >&2; exit 2; }
 [ "$RP4" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ] && [ "$RP3" -eq 0 ]; } || { echo "--replay-round-4 cannot be used with --replay-round-1, --replay-round-2 or --replay-round-3" >&2; exit 2; }
+[ "$RP5" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ] && [ "$RP3" -eq 0 ] && [ "$RP4" -eq 0 ]; } || { echo "--replay-round-5 cannot be used with --replay-round-1, --replay-round-2, --replay-round-3 or --replay-round-4" >&2; exit 2; }
 if [ -z "$STAGE" ]; then
   if [ "$ROUND" -ge 3 ]; then STAGE="edits"; else STAGE="state"; fi
 fi
@@ -481,7 +505,7 @@ case "$STAGE" in
 esac
 [ "$STAGE" != dispositions ] || [ "$ROUND" -ge 5 ] || { echo "--stage dispositions is used with --round 5 or --round 6 only" >&2; exit 2; }
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
-[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2, --replay-round-3 or --replay-round-4 only" >&2; exit 2; }
+[ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2, --replay-round-3, --replay-round-4 or --replay-round-5 only" >&2; exit 2; }
 [ "$PRINT_ADS" -eq 0 ] || [ "$ROUND" -ge 5 ] || { echo "--print-addendum-skeleton is used with --round 5 or --round 6 only" >&2; exit 2; }
 [ -z "$ADS_FINDINGS" ] || [ "$PRINT_ADS" -eq 1 ] || { echo "--findings is used with --print-addendum-skeleton only" >&2; exit 2; }
 if [ "$ROUND" -eq 3 ]; then
@@ -611,7 +635,7 @@ fi
 REG_BULLETS_RE=$(printf '%s|' "${REG_BULLETS[@]}")
 REG_BULLETS_RE=${REG_BULLETS_RE%|}
 if [ -z "$APPROVAL" ]; then
-  if [ "$RP2" -eq 1 ]; then APPROVAL="$ARC2_PATH"; elif [ "$RP3" -eq 1 ]; then APPROVAL="$ARC3_PATH"; elif [ "$RP4" -eq 1 ]; then APPROVAL="$ARC4_PATH"; else APPROVAL="$ARC_DEFAULT"; fi
+  if [ "$RP2" -eq 1 ]; then APPROVAL="$ARC2_PATH"; elif [ "$RP3" -eq 1 ]; then APPROVAL="$ARC3_PATH"; elif [ "$RP4" -eq 1 ]; then APPROVAL="$ARC4_PATH"; elif [ "$RP5" -eq 1 ]; then APPROVAL="$ARC5_PATH"; else APPROVAL="$ARC_DEFAULT"; fi
 fi
 [ -n "$DISPO" ] || DISPO="$DREC_DEFAULT"
 [ -n "$REGISTER" ] || REGISTER="$FREG_DEFAULT"
@@ -1516,6 +1540,71 @@ replay4() {
 replay4_brief() {
   (cd "$CL" && bash "$CHK" --round 4 --print-brief) > "$TMP/brief.out" 2> /dev/null || return 1
   cmp -s "$TMP/brief.out" "$CL/$BRIEF4_PATH"
+}
+
+# replay5: R5-1 to R5-8, the checks of the fix round of round 5 at the commit that holds the text of round 5.
+replay5() {
+  local c om cm t f st
+  if ! [[ "$A_BLOB" =~ ^[0-9a-f]{40}$ ]]; then
+    fail R5-1 "the result blob of the approval record is not 40 lowercase hexadecimal digits"
+    return 0
+  fi
+  c=$(find_round1_commit "$A_BLOB")
+  if [ -z "$c" ]; then
+    fail R5-1 "no commit reachable from HEAD holds the specification with the round-5 blob"
+    return 0
+  fi
+  for f in "$ARC5_PATH" "$DREC5_PATH" "$NOTE5_PATH" "$FREG5_PATH" "$APK5_PATH" "$BRIEF5_PATH" "$DADD4_PATH"; do
+    if ! git cat-file -e "$c:$f" 2> /dev/null; then
+      fail R5-1 "the commit that holds the round-5 text does not hold all seven round-5 files: the round-5 evidence is not in the history"
+      return 0
+    fi
+  done
+  pass R5-1 "found the newest commit reachable from HEAD that holds the round-5 text and the seven round-5 files"
+  CL="$TMP/clone"
+  if ! git clone --local --no-checkout --quiet -- "$ROOT" "$CL" > /dev/null 2>&1; then
+    fail R5-1 "the throwaway clone could not be made"
+    return 0
+  fi
+  if ! git -C "$CL" checkout --quiet --detach "$c" > /dev/null 2>&1; then
+    fail R5-1 "the commit could not be checked out in the throwaway clone"
+    return 0
+  fi
+  om=$(git rev-parse --verify --quiet "$BASE^{commit}")
+  cm=$(git -C "$CL" rev-parse --verify --quiet "origin/main^{commit}" 2> /dev/null) || cm=""
+  if [ "$cm" != "$om" ]; then
+    git -C "$CL" update-ref refs/remotes/origin/main "$om" > /dev/null 2>&1
+  fi
+  if run_in_clone "$CHK2" --final; then pass R5-2 "the drafting check with --final at the round-5 commit: $LAST"; else fail R5-2 "the drafting check with --final at the round-5 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 5 --stage edits --complete; then pass R5-3 "the fix round check with --round 5 in stage edits with --complete at the round-5 commit: $LAST"; else fail R5-3 "the fix round check with --round 5 in stage edits with --complete at the round-5 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 5 --stage approval-pending; then pass R5-4 "the fix round check with --round 5 in stage approval-pending at the round-5 commit: $LAST"; else fail R5-4 "the fix round check with --round 5 in stage approval-pending at the round-5 commit: $LAST"; fi
+  if run_in_clone "$FIXP" --round 5 --stage approval-recorded; then pass R5-5 "the fix round check with --round 5 in stage approval-recorded at the round-5 commit: $LAST"; else fail R5-5 "the fix round check with --round 5 in stage approval-recorded at the round-5 commit: $LAST"; fi
+  if replay5_brief; then pass R5-6 "the review check with --round 5 prints the review brief of round 5 character for character at the round-5 commit"; else fail R5-6 "the review check with --round 5 does not print the review brief of round 5 at the round-5 commit"; fi
+  if run_in_clone "$CHK" --round 5 --stage dispositioned; then pass R5-7 "the review check with --round 5 in stage dispositioned at the round-5 commit: $LAST"; else fail R5-7 "the review check with --round 5 in stage dispositioned at the round-5 commit: $LAST"; fi
+  if [ "$CURRENT" -eq 1 ]; then
+    for t in "$CHK2" "$CHK" "$FIXP"; do
+      if ! cp "$ROOT/$t" "$CL/$t" 2> /dev/null; then fail R5-8 "the current version of a script could not be copied into the clone"; return 0; fi
+    done
+    st=""
+    run_in_clone "$CHK2" --final || st="$st drafting check ($LAST);"
+    run_in_clone "$FIXP" --round 5 --stage edits --complete || st="$st edits ($LAST);"
+    run_in_clone "$FIXP" --round 5 --stage approval-pending || st="$st approval-pending ($LAST);"
+    run_in_clone "$FIXP" --round 5 --stage approval-recorded || st="$st approval-recorded ($LAST);"
+    replay5_brief || st="$st review brief;"
+    run_in_clone "$CHK" --round 5 --stage dispositioned || st="$st dispositioned ($LAST);"
+    if [ -z "$st" ]; then
+      pass R5-8 "the current versions of the three scripts also pass the six runs at the round-5 commit"
+    else
+      fail R5-8 "the current versions of the three scripts at the round-5 commit fail:$st"
+    fi
+  fi
+}
+
+# replay5_brief: in the clone, the review check with --round 5 prints the review brief of round 5 character for
+# character.
+replay5_brief() {
+  (cd "$CL" && bash "$CHK" --round 5 --print-brief) > "$TMP/brief.out" 2> /dev/null || return 1
+  cmp -s "$TMP/brief.out" "$CL/$BRIEF5_PATH"
 }
 
 # replay2_brief: in the clone, the review check with --round 2 prints the review brief of round 2 character for
@@ -2905,7 +2994,7 @@ if [ "$PRINT_ARS" -eq 1 ] && [ "$AP_ON" -eq 1 ]; then
 fi
 
 if [ "$REPLAY" -eq 1 ]; then
-  if [ "$RP4" -eq 1 ]; then replay4; elif [ "$RP3" -eq 1 ]; then replay3; elif [ "$RP2" -eq 1 ]; then replay2; else replay; fi
+  if [ "$RP5" -eq 1 ]; then replay5; elif [ "$RP4" -eq 1 ]; then replay4; elif [ "$RP3" -eq 1 ]; then replay3; elif [ "$RP2" -eq 1 ]; then replay2; else replay; fi
   finish
 fi
 
