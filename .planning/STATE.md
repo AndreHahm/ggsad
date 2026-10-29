@@ -5,7 +5,7 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-22 (specification edited for FG-23 to FG-25); next execute 04-23
+stopped_at: Completed 04-23 (owner approved the exact text of fix round 6); next execute 04-24
 last_updated: "2026-10-29T18:00:00.000Z"
 last_activity: 2026-10-28
 last_activity_desc: Completed plan 04-21 - owner chose Fix for the BLOCKING finding RG-A-001; outcome fix pending
@@ -13,7 +13,7 @@ progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 39
-  completed_plans: 36
+  completed_plans: 37
   percent: 38
 ---
 
@@ -35,8 +35,8 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 Phase: 4 (Independent Review) — EXECUTING
 Plan: 21 of 21 complete (round 5 reviewed by Devin, six passes, 22 findings; owner chose Fix for the one BLOCKING finding RG-A-001; outcome fix pending; round 6 not yet planned)
-Status: Plans 04-01 to 04-22 complete; 04-23 to 04-25 planned (owner chose Fix for RG-C-001, RG-X-001, RG-X-004 and RG-A-001; specification now blob 2acdd0b38174, 4924 lines, awaiting owner approval in 04-23); PHASE NOT COMPLETE (REVIEW-01/02 unticked); next step: /gsd-execute-phase 4 (starts at 04-23)
-Last activity: 2026-10-29 — Completed 04-22 (fix round 6 edits and register)
+Status: Plans 04-01 to 04-23 complete; 04-24 to 04-25 planned (owner approved the exact text of fix round 6, blob 2acdd0b38174, 4924 lines, on 2026-10-29; the text goes next to the independent review in 04-24); PHASE NOT COMPLETE (REVIEW-01/02 unticked); next step: /gsd-execute-phase 4 --gaps-only (starts at 04-24)
+Last activity: 2026-10-29 — Completed 04-23 (approval packet and record of fix round 6, outcome approved)
 
 Progress: [█████████░] 93%
 
