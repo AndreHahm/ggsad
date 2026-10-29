@@ -1,7 +1,7 @@
 # Independent review, round 5: proposed normative method specification
 
 - Independent review: reported
-- Owner dispositions: pending
+- Owner dispositions: recorded in the review disposition record
 - Blocking findings: 1
 
 ## The text reviewed
@@ -351,7 +351,7 @@ Each report is quoted whole, line by line: a quote mark and a space are added at
 
 | Finding | Severity | Reference | Summary | Disposition |
 |---|---|---|---|---|
-| RG-A-001 | BLOCKING | file SPEC; section 4.3; lines 303-303; quote "It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case." | The reserved-name check compares the whole identifier, so `nul.txt` or `con.x` passes the rule yet is still a reserved device name on Windows. |  |
+| RG-A-001 | BLOCKING | file SPEC; section 4.3; lines 303-303; quote "It MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case." | The reserved-name check compares the whole identifier, so `nul.txt` or `con.x` passes the rule yet is still a reserved device name on Windows. | fix |
 | RG-A-002 | MINOR | file SPEC; section 4.3; lines 309-309; quote "A `core` change (Section 23.1) always has a state document, and it keeps its documents in this layout:" | The `core` layout lists `review.md` inside the documents a change keeps, while the next paragraph says `review.md` is conditional and not a document of the change. |  |
 | RG-A-003 | MINOR | file SPEC; section 8.3; lines 891-891; quote "Reject without any partial mutation of persisted state when the precondition is not satisfied. When DoF finds a fail condition of the severity `hard` active, close the change as failed" | For `wait`, the outcome is unspecified when a hard DoF condition is active but no DoW condition is active: the precondition fails yet the fail clause fires. |  |
 | RG-A-004 | MINOR | file SPEC; section 8.3; lines 1019-1019; quote "and a second such change that also has an active Definition of Fail condition" | AE-244 does not give the severity of the active DoF condition, but only a hard condition determines failure under Section 24.7. |  |
