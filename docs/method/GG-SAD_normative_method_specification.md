@@ -4559,7 +4559,7 @@ The `body` of an entry holds exactly these fields:
 - `note`: the text that the actor gave, or `null`;
 - `after`: the record of the state of the change after the action.
 
-A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. The first entry of a `full` change is `new`, the entry of an approval is `approve`, and an entry with a name outside the closed set of `action` is not valid. See AE-189, AE-281, AE-285.
+A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. The first entry of a `full` change that the `new` action created is `new` (the first entry of a state document that was converted from a YAML state document is the `migrate` entry of Section 25.3), the entry of an approval is `approve`, and an entry with a name outside the closed set of `action` is not valid. See AE-189, AE-281, AE-285, AE-325.
 
 The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
 
@@ -4706,6 +4706,14 @@ Then the `reason` of the first change is a text that names the failing gate and 
 Given a new `full` change that is created and then approved, and an entry whose `action` is `rewind`  
 When the entries are written and the entry with that name is validated  
 Then the first entry of the `full` change has the `action` `new`, the entry of the approval has the `action` `approve`, and the entry whose `action` is not in the closed set is not valid
+
+**AE-325 — The first entry of a converted state document is a migrate entry**
+
+- Covers: Section 25.1
+
+Given a `full` change that the `new` action created, and a `full` change whose state document was converted from a YAML state document named `state.yaml`  
+When the first entry of the state document of each change is read  
+Then the first entry of the first change has the `action` `new`, and the first entry of the second change is the `migrate` entry with `n` 1 (Section 25.3)
 
 **AE-193 — An interrupted creation leaves no state document**
 
