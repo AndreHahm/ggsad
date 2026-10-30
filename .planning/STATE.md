@@ -5,15 +5,15 @@ milestone_name: Executable Core
 current_phase: 4
 current_phase_name: Independent Review
 status: executing
-stopped_at: Completed 04-24 (round 6 review run; 12 findings, 3 BLOCKING); next execute 04-25
-last_updated: "2026-10-30T12:00:00.000Z"
+stopped_at: Completed 04-25 (round 6 dispositions: three BLOCKING findings all fix; fix pending, phase not complete); next /gsd-plan-phase 4 --gaps
+last_updated: "2026-10-30T18:00:00.000Z"
 last_activity: 2026-10-30
-last_activity_desc: Completed plan 04-24 - round 6 independent review run through Devin; 12 findings, 3 BLOCKING (RH-C-001, RH-X-001, RH-X-002) await dispositions
+last_activity_desc: Completed plan 04-25 - owner chose Fix for RH-C-001, RH-X-001, RH-X-002; outcome fix pending; phase not complete
 progress:
   total_phases: 8
   completed_phases: 3
   total_plans: 39
-  completed_plans: 38
+  completed_plans: 39
   percent: 38
 ---
 
@@ -35,8 +35,8 @@ GG-SAD/CHG-001 completion evidence claims it does.
 
 Phase: 4 (Independent Review) — EXECUTING
 Plan: 21 of 21 complete (round 5 reviewed by Devin, six passes, 22 findings; owner chose Fix for the one BLOCKING finding RG-A-001; outcome fix pending; round 6 not yet planned)
-Status: Plans 04-01 to 04-24 complete; 04-25 planned (round 6 review run done: 12 findings, 3 BLOCKING, to be dispositioned by the owner in 04-25); PHASE NOT COMPLETE (REVIEW-01/02 unticked); next step: /gsd-execute-phase 4 --gaps-only (starts at 04-25)
-Last activity: 2026-10-30 — Completed 04-24 (round 6 independent review run and review note)
+Status: Plans 04-01 to 04-25 complete; PHASE NOT COMPLETE (REVIEW-01/02 unticked): the owner chose Fix for all three BLOCKING findings of round 6 (RH-C-001, RH-X-001, RH-X-002), outcome fix pending; next step: /gsd-plan-phase 4 --gaps (round 7)
+Last activity: 2026-10-30 — Completed 04-25 (dispositions of round 6, outcome fix pending)
 
 Progress: [█████████░] 93%
 

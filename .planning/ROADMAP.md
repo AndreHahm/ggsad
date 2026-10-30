@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 24/25 plans executed
+**Plans**: 25/25 plans executed
 
 Plans:
 **Wave 1**
@@ -297,7 +297,7 @@ Plans:
 
 **Wave 25** *(blocked on Wave 24 completion; has the owner dispositions checkpoint)*
 
-- [ ] 04-25-PLAN.md — Plain disposition questions of round 6 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+- [x] 04-25-PLAN.md — Plain disposition questions of round 6 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
