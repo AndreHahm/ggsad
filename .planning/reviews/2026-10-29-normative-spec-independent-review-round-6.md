@@ -1,7 +1,7 @@
 # Independent review, round 6: proposed normative method specification
 
 - Independent review: reported
-- Owner dispositions: pending
+- Owner dispositions: recorded in the review disposition record
 - Blocking findings: 3
 
 ## The text reviewed
@@ -250,12 +250,12 @@ Each report is quoted whole, line by line: a quote mark and a space are added at
 | RH-B-001 | MAJOR | file SPEC; section 12.2; lines 1527-1533; quote "required documentation" | The fail-rule template F-01 omits the mandatory element "required documentation" that the same section lists as MUST content. |  |
 | RH-B-002 | MINOR | file SPEC; section 22.1; lines 2301-2301; quote "as the read-only actions `check`, `review`, and `guard` (Section 22.4) do" | The reference "(Section 22.4)" is attached to three actions, but only `guard` is defined there; `check` and `review` are defined in Section 23.4. |  |
 | RH-B-003 | INFO | file SPEC; section 12; lines 1499-1503; quote "A retry limit is a soft fail condition, so that reaching it pauses the flow for a human disposition" | The rule that a retry limit is a soft fail condition is restated three times across Section 12 and 12.1. |  |
-| RH-C-001 | BLOCKING | file SPEC; section 23.4; lines 2656-2656; quote "The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active." | cancel and supersede close a change waiting on a soft fail as cancelled, contradicting the rule that the wait ends only by fail or override |  |
+| RH-C-001 | BLOCKING | file SPEC; section 23.4; lines 2656-2656; quote "The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active." | cancel and supersede close a change waiting on a soft fail as cancelled, contradicting the rule that the wait ends only by fail or override | fix |
 | RH-C-002 | MAJOR | file SPEC; section 23.3; lines 2576-2576; quote "`retry_limit`: a mapping with the members `gate` and `limit`, for a fail gate only." | A wait gate whose condition holds `retry_limit` violates the fail-gate-only rule, yet no clause requires its rejection |  |
 | RH-C-003 | MINOR | file SPEC; section 23.4; lines 2674-2674; quote "(issue code `start-blocked`)" | The parenthetical leaves unclear whether the issue code `start-blocked` covers every rejected `start` or only gate-decided ones |  |
 | RH-C-004 | INFO | file SPEC; section 23.4; lines 2658-2658; quote "the anchor is created from the history as it is" | `adopt` is legal from any state, including `closed`, although a closed change is declared final and adoption cannot detect entries lost earlier |  |
-| RH-X-001 | BLOCKING | file SPEC; section 25.1; lines 4552-4552; quote "The first entry of a `full` change is `new`" | Sections 25.1 and 25.3 contradict each other on the first history entry of a `full` change migrated from a YAML state document. |  |
-| RH-X-002 | BLOCKING | file SPEC; section 24.5; lines 3922-3922; quote "A file that an ignore file inside the repository tells version control to ignore is invisible to the measurement" | The scope rule does not fix which revision of an ignore file applies, so an in-scope edit of an ignore file can hide out-of-scope work. |  |
+| RH-X-001 | BLOCKING | file SPEC; section 25.1; lines 4552-4552; quote "The first entry of a `full` change is `new`" | Sections 25.1 and 25.3 contradict each other on the first history entry of a `full` change migrated from a YAML state document. | fix |
+| RH-X-002 | BLOCKING | file SPEC; section 24.5; lines 3922-3922; quote "A file that an ignore file inside the repository tells version control to ignore is invisible to the measurement" | The scope rule does not fix which revision of an ignore file applies, so an in-scope edit of an ignore file can hide out-of-scope work. | fix |
 | RH-X-003 | MAJOR | file SPEC; section 23.4; lines 2673-2673; quote "the gate definitions differ from the approved ones and the target is not the gate definitions" | Whether an `approve` with target `all` is exempt from the frozen-gate comparison while the gate definitions differ cannot be determined. |  |
 
 ## Requestor notes
