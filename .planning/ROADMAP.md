@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 25/25 plans executed
+**Plans**: 25/29 plans executed
 
 Plans:
 **Wave 1**
@@ -298,6 +298,22 @@ Plans:
 **Wave 25** *(blocked on Wave 24 completion; has the owner dispositions checkpoint)*
 
 - [x] 04-25-PLAN.md — Plain disposition questions of round 6 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
+
+**Wave 26** *(gap closure from the round-6 dispositions, outcome `fix pending`; blocked on Wave 25 completion; has the owner design-choices checkpoint)*
+
+- [ ] 04-26-PLAN.md — Round 7 profile and round-6 replay of the fix round script (tracer), the owner chooses how each finding with the disposition fix and a design choice is fixed, the specification is edited for RH-C-001, RH-X-001 and RH-X-002 only and the register is written (REVIEW-02)
+
+**Wave 27** *(blocked on Wave 26 completion; has the owner approval checkpoint)*
+
+- [ ] 04-27-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+
+**Wave 28** *(blocked on Wave 27 completion; has the owner decision and consent checkpoint)*
+
+- [ ] 04-28-PLAN.md — Round 7 profile of the review check script (tracer), the owner chooses the passes and consents to the run set, a test run and the chosen passes run through Devin CLI with one configuration, the verbatim reports and the round-7 note (REVIEW-01)
+
+**Wave 29** *(blocked on Wave 28 completion; has the owner dispositions checkpoint)*
+
+- [ ] 04-29-PLAN.md — Plain disposition questions of round 7 (tracer), the owner dispositions each BLOCKING finding, the record and the closing check with the closing rule and the honest statement of scope (REVIEW-02)
 
 #### Phase 5: State and Gate Engine
 
