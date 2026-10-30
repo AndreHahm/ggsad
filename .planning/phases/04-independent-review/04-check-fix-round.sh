@@ -9,7 +9,7 @@
 # exact new text (plan 04-19). Profile 6 (plan 04-22) is profile 5 one level up: the disposition addendum of round 5,
 # the changes of fix round 6 and the stages edits and dispositions (plan 04-22); plan 04-23 adds the approval stages and
 # the approval printers to profile 6. Profile 7 (plans 04-26 and 04-27) is profile 6 one level up and reads no
-# addendum: every disposition of round 6 is in the disposition record; plan 04-26 adds the stage edits to it.
+# addendum: every disposition of round 6 is in the disposition record; plan 04-26 adds the stage edits to it and plan 04-27 adds the approval stages and printers.
 #
 # Usage: 04-check-fix-round.sh [options]
 #   --stage STAGE     state (default): ST1 and the fact line ST2; decisions: FD1 to FD8 on the decisions
@@ -216,9 +216,9 @@
 #                                                                                                                   are listed
 #   kinds of change       repair, my choice             owner decision                owner decision, repair        owner decision, repair          owner decision, repair          owner decision, repair
 #   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"                 "fix round 5"                   "fix round 6"                   "fix round 7"
-#   stages                all five                      edits, approval-pending,      edits, approval-pending,      edits, dispositions,            as profile 5                    edits (plan 04-26); plan 04-27
-#                                                       approval-recorded             approval-recorded             approval-pending,                                               adds approval-pending and
-#                                                                                                                   approval-recorded                                               approval-recorded
+#   stages                all five                      edits, approval-pending,      edits, approval-pending,      edits, dispositions,            as profile 5                    edits, approval-pending,
+#                                                       approval-recorded             approval-recorded             approval-pending,                                               approval-recorded
+#                                                                                                                   approval-recorded
 # The questions Q01 to Q04, their headers and options are the same in all profiles. Under --round 3 and --round 4
 # the stages approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
 # --print-approval-packet and --print-approval-record-skeleton work, with the checks AP1 to AP5 and AR1 to AR5
@@ -309,8 +309,16 @@
 #   Disposition cell). Profile 7 reads the approval record of fix round 6 (so that the text approved before is the
 #   text of round 6), the disposition record and the review note of round 6, finds the findings with the prefix RH,
 #   and has up to three changes FG-26 to FG-28 (FG-26 RH-C-001, owner decision; FG-27 RH-X-001, repair; FG-28
-#   RH-X-002, owner decision; the number of changes is derived as in profile 6). Plan 04-26 allows the stage edits
-#   only; the stages approval-pending and approval-recorded and the approval printers exit 2 until plan 04-27.
+#   RH-X-002, owner decision; the number of changes is derived as in profile 6). Plan 04-26 uses the stage edits;
+#   plan 04-27 uses the stages approval-pending and approval-recorded and the printers --print-delta,
+#   --print-approval-questions, --print-approval-packet and --print-approval-record-skeleton, which work under
+#   --round 7 as under --round 6 with the profile values ADD_RND (0: every read of the addendum, in ap_facts,
+#   ap_pin_rows, the addendum argument of the call of the stage edits in AP4 and the lower bound of the date in AR5,
+#   is guarded by ADD_RND greater than 0) and AP_ORD (a sixth time). In the paragraph "What you are asked" the
+#   clause that lists the answers on further findings is left out because there is no addendum, and the pin table
+#   has no addendum rows. The stages state, decisions and dispositions exit 2 under --round 7. The defaults are
+#   --packet APK7, --record ARC7, --register FREG7, --identity the diff identity note, --approval-record ARC6 and
+#   --disposition-record DREC6.
 #   --print-decision-questions prints the two decisions OD-12 (RH-C-001, options "Close as failed" and "Allow
 #   cancelled") and OD-13 (RH-X-002, options "Base revision only" and "Forbid editing it") in the form of profile 3,
 #   always, whatever the dispositions are; --print-register-skeleton prints the register of round 7 with the heading
@@ -589,14 +597,10 @@ if [ "$ROUND" -eq 6 ]; then
   esac
 fi
 if [ "$ROUND" -eq 7 ]; then
-  if [ "$STAGE" != edits ]; then
-    echo "--round 7 allows --stage edits only" >&2
-    exit 2
-  fi
-  if [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
-    echo "--round 7 has no approval printers yet" >&2
-    exit 2
-  fi
+  case "$STAGE" in
+    edits|approval-pending|approval-recorded) ;;
+    *) echo "--round 7 allows --stage edits, approval-pending or approval-recorded only" >&2; exit 2 ;;
+  esac
 fi
 if [ "$ROUND" -ge 3 ]; then
   [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
@@ -2759,7 +2763,7 @@ ap_facts() {
   AP_REGBLOB=$(git hash-object --no-filters "$RG")
   AP_FPR=${AP_BLOB:0:12}
   AP_ADATE=$(line_val "- Owner reply date:" "$AR")
-  if [ "$ROUND" -ge 5 ]; then
+  if [ "$ADD_RND" -gt 0 ]; then
     if [ "$AD_OK" -ne 1 ]; then echo "cannot read $ADDENDUM" >&2; exit 2; fi
     AP_ADBLOB=$(git hash-object --no-filters "$AD")
   fi
@@ -2777,7 +2781,7 @@ ap_pin_rows() {
   printf '| Previously approved blob and SHA-256 | `%s` and `%s` |\n' "$A_BLOB" "$A_SHA"
   printf '| Register file | `%s` |\n' "$FREG_DEFAULT"
   printf '| Register blob | `%s` |\n' "$AP_REGBLOB"
-  if [ "$ROUND" -ge 5 ]; then
+  if [ "$ADD_RND" -gt 0 ]; then
     printf '| Disposition addendum file | `%s` |\n' "$DADD_PATH"
     printf '| Disposition addendum blob | `%s` |\n' "$AP_ADBLOB"
   fi
@@ -2835,15 +2839,20 @@ ap_reading() {
   if [ "$1" = repair ]; then printf 'repair: the text had one consistent reading'; else printf 'my choice: you can change it'; fi
 }
 
-# print_ask5: the paragraph "What you are asked" of profile 5. Every number and list is derived from the register
-# (the number and the kinds of the changes) and from the disposition addendum (the answers on the related findings,
-# one "id: word" pair for each block, in the order of the addendum).
+# print_ask5: the paragraph "What you are asked" of profile 5 and later. Every number and list is derived from the
+# register (the number and the kinds of the changes) and, when the profile has a disposition addendum (ADD_RND is
+# greater than 0), from the addendum (the answers on the related findings, one "id: word" pair for each block, in the
+# order of the addendum); a profile without an addendum has no such clause.
 print_ask5() {
-  local lst k_od k_rep
-  lst=$(awk '$0 ~ ("^### " pfx "-") { id = $2 } /^- Disposition: / && id != "" { w = $0; sub(/^- Disposition: /, "", w); printf "%s%s: %s", (n++ ? ", " : ""), id, w; id = "" }' pfx="$FPFX" "$AD")
+  local lst="" k_od k_rep
+  if [ "$ADD_RND" -gt 0 ]; then lst=$(awk '$0 ~ ("^### " pfx "-") { id = $2 } /^- Disposition: / && id != "" { w = $0; sub(/^- Disposition: /, "", w); printf "%s%s: %s", (n++ ? ", " : ""), id, w; id = "" }' pfx="$FPFX" "$AD"); fi
   k_od=$(cut -f4 "$TMP/reg.rows" | grep -c -x -F 'owner decision')
   k_rep=$(cut -f4 "$TMP/reg.rows" | grep -c -x -F 'repair')
-  printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it %s; the owner asked for the finding that the reviewer rated BLOCKING, its strongest rating, to be fixed, and answered the related findings that the disposition addendum records, each with the word the owner gave (%s).' "$AP_ADATE" "$AP_ORD" "$lst"
+  if [ "$ADD_RND" -gt 0 ]; then
+    printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it %s; the owner asked for the finding that the reviewer rated BLOCKING, its strongest rating, to be fixed, and answered the related findings that the disposition addendum records, each with the word the owner gave (%s).' "$AP_ADATE" "$AP_ORD" "$lst"
+  else
+    printf 'On %s the owner approved the text of the specification. The independent reviewer then looked at it %s; the owner asked for the %s findings that the reviewer rated BLOCKING, its strongest rating, to be fixed.' "$AP_ADATE" "$AP_ORD" "$NCHG_W"
+  fi
   if [ "$k_od" -gt 0 ]; then printf ' Where a change is of the kind owner decision the owner chose how.'; fi
   if [ "$k_rep" -gt 0 ]; then printf ' Where a change is of the kind repair the finding itself names the fix.'; fi
   printf ' The text has been changed in %s places. This packet shows each change in plain words with the text before and after, then identifies the exact text, then shows the exact change line by line. You approve the text exactly as it now stands, or you ask for changes. Nothing is approved until you answer. An answer that differs from the text as shown is a request for changes.\n\n' "$NCHG_W"
@@ -2999,7 +3008,7 @@ approval_pending_stage() {
   # AP4
   m=""
   local eargs=()
-  if [ "$ROUND" -ge 5 ]; then eargs=(--addendum "$ADDENDUM"); fi
+  if [ "$ADD_RND" -gt 0 ]; then eargs=(--addendum "$ADDENDUM"); fi
   out=$(bash "$SELF" --round "$ROUND" --stage edits --complete --register "$REGISTER" --spec "$SPECFILE" --base "$BASE" ${eargs[@]+"${eargs[@]}"} 2>&1)
   rc=$?
   last=$(printf '%s\n' "$out" | tail -n1)
@@ -3123,7 +3132,7 @@ approval_recorded_stage() {
   m=""
   nm=$(pin_raw "$TMP/rc.pins" "Reply given by")
   drdate=$(line_val "- Owner disposition date:" "$DR")
-  if [ "$ROUND" -ge 5 ]; then drdate=$(line_val "- Owner disposition date:" "$AD"); fi
+  if [ "$ADD_RND" -gt 0 ]; then drdate=$(line_val "- Owner disposition date:" "$AD"); fi
   if [ -z "$(trim_ws "$q3")" ] || [ "$q3" != "$(trim_ws "$q3")" ]; then
     m="the name (the answer of Q03) is empty or padded"
   elif [ "$(pin_count "$TMP/rc.pins" "Reply given by")" -ne 1 ] || [ "$nm" != "$q3" ]; then
@@ -3134,7 +3143,7 @@ approval_recorded_stage() {
     m="the Owner reply date line [$dt] differs from the answer of Q04 [$q4]"
   elif ! [[ "$drdate" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
     m="the owner disposition date of the disposition record is not a date"
-  elif [[ "$q4" < "$drdate" ]] && [ "$ROUND" -ge 5 ]; then
+  elif [[ "$q4" < "$drdate" ]] && [ "$ADD_RND" -gt 0 ]; then
     m="the date [$q4] is earlier than the owner disposition date of the addendum of round $ADD_RND [$drdate]"
   elif [[ "$q4" < "$drdate" ]]; then
     m="the date [$q4] is earlier than the owner disposition date of round $((ROUND - 1)) [$drdate]"
