@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 26/29 plans executed
+**Plans**: 27/29 plans executed
 
 Plans:
 **Wave 1**
@@ -305,7 +305,7 @@ Plans:
 
 **Wave 27** *(blocked on Wave 26 completion; has the owner approval checkpoint)*
 
-- [ ] 04-27-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
+- [x] 04-27-PLAN.md — Identity of the new text (tracer), the approval packet in plain words, the owner approves or asks for changes to the exact text, the approval record (REVIEW-02)
 
 **Wave 28** *(blocked on Wave 27 completion; has the owner decision and consent checkpoint)*
 
