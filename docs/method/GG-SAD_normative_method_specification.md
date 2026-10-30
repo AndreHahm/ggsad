@@ -4719,7 +4719,7 @@ Then the first entry of the `full` change has the `action` `new`, the entry of t
 
 - Covers: Section 25.1
 
-Given a `full` change that the `new` action created, and a `full` change whose state document was converted from a YAML state document named `state.yaml`  
+Given a `full` change that the `new` action created, and a `full` change whose state document was converted from a YAML state document  
 When the first entry of the state document of each change is read  
 Then the first entry of the first change has the `action` `new`, and the first entry of the second change is the `migrate` entry with `n` 1 (Section 25.3)
 
