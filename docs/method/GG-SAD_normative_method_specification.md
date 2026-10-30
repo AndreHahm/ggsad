@@ -2527,8 +2527,8 @@ A `core` change is always in exactly one of four states:
 A `closed` change has exactly one of three outcomes:
 
 - `done`: the change was completed successfully by the `close` action;
-- `failed`: the change ended unsuccessfully, because a hard fail condition was active or because a human disposed of a soft fail condition with the `fail` action (Section 24.7);
-- `cancelled`: the change was ended by the `cancel` or `supersede` action.
+- `failed`: the change ended unsuccessfully, because a hard fail condition was active or because a human disposed of a soft fail condition with the `fail` action, or with the `cancel` or `supersede` action while the change awaited that disposition (Section 24.7);
+- `cancelled`: the change was ended by the `cancel` or `supersede` action, when no hard fail condition was active and the change did not await the disposition of a soft fail condition (Section 23.4).
 
 The state document records the state in the field `state` and the outcome in the field `outcome` (Section 25.1). An outcome exists only when the state is `closed`; in every other state the outcome is `null`. An outcome of `failed` MUST carry a reason text, which the state document records in the field `reason` of the `after` record (Section 25.1). The final status codes of Section 12.2 apply to `full` only. See AE-14, AE-39, AE-41, AE-284.
 
@@ -2653,7 +2653,7 @@ A `core` change changes state only through the actions of the table below. An ac
 | `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. See AE-35, AE-36. |
 | `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-37, AE-38. |
 | `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-39, AE-40, AE-41. |
-| `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active. See AE-42, AE-43. |
+| `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active or when the change awaits the disposition of a soft fail condition, that is, when it is `waiting` with a wait record of kind `fail-gate` (Section 24.7). The actor MAY give a reason text with the action. When the outcome is `failed` because of a soft fail condition, the reason text of the outcome is the reason that the actor gave or, when the actor gave none, a text that names that soft fail condition (Section 25.1). See AE-42, AE-43, AE-324. |
 | `supersede` | Any state except `closed` | The preconditions of `cancel` hold, except that differing gate definitions prevent the action (Section 24.1), and `replaced_by` names a different change that exists and is not `closed`. | As `cancel`, with `replaced_by` recorded in the closed change. See AE-44, AE-45, AE-309, AE-322. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-46, AE-47. |
 
@@ -2922,7 +2922,7 @@ Then the action is rejected, and the change remains `waiting`
 
 - Covers: Section 23.4 (`cancel`)
 
-Given a `waiting` change  
+Given a `waiting` change with a wait record of kind `manual`  
 When a human performs the `cancel` action  
 Then the state is `closed` and the outcome is `cancelled`, although a wait was active
 
@@ -2933,6 +2933,14 @@ Then the state is `closed` and the outcome is `cancelled`, although a wait was a
 Given an `active` change with a hard fail condition active  
 When a human performs the `cancel` action  
 Then the state is `closed` and the outcome is `failed`, not `cancelled`
+
+**AE-324 — Cancel and supersede close a change that waits on a soft failure as failed**
+
+- Covers: Section 23.4 (`cancel` and `supersede`)
+
+Given a `waiting` `core` change A and a second such change C, each with a wait record of kind `fail-gate` for a fail gate of the severity `soft`, and an existing change B that is not `closed`  
+When a human performs the `cancel` action on change A with the reason `no longer needed`, and the `supersede` action on change C with `replaced_by` naming change B and no reason  
+Then change A is `closed` with the outcome `failed` and the reason `no longer needed`, not `cancelled`, and change C is `closed` with the outcome `failed`, `replaced_by` naming change B, and a reason text that names the soft fail condition that awaited disposition
 
 **AE-299 — Cancel proceeds when a fail gate cannot be evaluated**
 
@@ -4125,14 +4133,16 @@ Then the result is `rejected` with the issue code `gates-changed`, and the basel
 
 Every fail condition has a severity, which is `hard` or `soft`, written in exact lowercase. A fail condition without a severity, or with any other value, is invalid and MUST be rejected when the gate definitions are approved. In `core`, the severity is the field `severity` of a fail gate (Section 23.3). In `full`, every fail rule states its severity (Section 12.2). A retry limit (Section 24.2) is a fail condition of the severity `soft`, and a retry limit that declares the severity `hard` is invalid and MUST be rejected. See AE-97, AE-108, AE-110.
 
-A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4). The action `start` is an exception: it never closes a change. When a fail gate of the severity `hard` is active, `start` is rejected with `changed` false and the issue code `start-blocked` (Section 24.2), and the change keeps its state. The action `fail` is a second exception: it is valid only while a soft failure awaits disposition, so that with only a fail condition of the severity `hard` active it is rejected with `changed` false (Sections 8.3 and 23.4), and the change keeps its state. The failure is decided by `cancel`, by `supersede`, or by the first action that completes or resumes the change. See AE-98, AE-279.
+A hard failure ends the change as failed without any human action. When an action that evaluates gates finds a fail condition of the severity `hard` active, the action MUST close the change as failed in the same state mutation: in `core`, the state `closed` with the outcome `failed`; in `full`, the `closed` phase with the status `failed`. This decision comes before every other decision of Section 24.2, and the action that makes it answers `success`. An active hard failure also turns `cancel` and `supersede` into a close as failed (Sections 8.4 and 23.4), and in `core` so does a change that awaits the disposition of a soft failure (see the next paragraphs). The action `start` is an exception: it never closes a change. When a fail gate of the severity `hard` is active, `start` is rejected with `changed` false and the issue code `start-blocked` (Section 24.2), and the change keeps its state. The action `fail` is a second exception: it is valid only while a soft failure awaits disposition, so that with only a fail condition of the severity `hard` active it is rejected with `changed` false (Sections 8.3 and 23.4), and the change keeps its state. The failure is decided by `cancel`, by `supersede`, or by the first action that completes or resumes the change. See AE-98, AE-279.
 
 A soft failure pauses the change for a human. When an action that evaluates gates finds a fail condition of the severity `soft` active and no hard failure, the action MUST NOT close the change. The change waits: in `core`, in the state `waiting` with a wait record of kind `fail-gate` (Section 23.5); in `full`, with the status `waiting` and a wait state of the category `WAIT_DECISION` (Section 11.1), whose resume condition is that a human has recorded an override. The wait ends by a human disposition (Section 24.3), which is one of two:
 
-- the human closes the change as failed with the `fail` action and a reason (Sections 8.3 and 23.4);
+- the human closes the change as failed, with the `fail` action and a reason (Sections 8.3 and 23.4) or, in `core`, with the `cancel` or `supersede` action (Section 23.4);
 - the human records an override of the soft failure.
 
 The `fail` action is valid only while a soft failure awaits disposition. See AE-99, AE-100, AE-101, AE-308.
+
+In `core`, a `cancel` or `supersede` of a change that is `waiting` with a wait record of kind `fail-gate` therefore closes the change as failed and not as cancelled, in the same way as an active hard failure does. The reason text of the outcome is the reason that the actor gave with the action or, when the actor gave none, a text that names the soft fail condition that awaited disposition (Section 25.1). In `full`, `cancel` and `supersede` do not do this: a `full` change that waits for a decision on a soft failure ends with the status `cancelled` or `superseded` (Section 8.4), so the two method profiles differ here. See AE-324.
 
 When a retry limit is reached, the change waits as it does for a soft failure, and the human closes the change as failed or records an override. Nothing ends the change automatically.
 
@@ -4559,7 +4569,7 @@ The `after` record holds the whole state of the change after the action, and not
 - `wait`: the wait record (Section 23.5), or `null`;
 - `base_revision`: the base revision (Section 24.5), or `null` before it is recorded;
 - `replaced_by`: the identifier given to `supersede`, or `null`;
-- `reason`: `null` unless the outcome is `failed`; when the `fail` action ended the change, the reason text that the actor gave; when a hard fail condition ended the change, a text that names each failing gate and the detail that the evaluation recorded for it, such as the paths outside the scope (Section 24.5);
+- `reason`: `null` unless the outcome is `failed`; when the `fail` action ended the change, the reason text that the actor gave; when a hard fail condition ended the change, a text that names each failing gate and the detail that the evaluation recorded for it, such as the paths outside the scope (Section 24.5); when `cancel` or `supersede` ended a change that awaited the disposition of a soft fail condition, the reason text that the actor gave or, when the actor gave none, a text that names that soft fail condition (Section 23.4);
 - `schema_version`: the version of the schema of the document after the action (Section 25.3).
 
 In `full`, the `after` record holds `phase` and `status` (Section 8.1) in place of `state` and `outcome`. Its field `wait` holds the wait content of Section 11.2 and the other metadata of Section 8.1, or `null`, its field `reason` is `null` unless the status is `failed`, and its other fields are those of `core`. See AE-190, AE-284.
