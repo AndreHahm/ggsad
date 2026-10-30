@@ -8,7 +8,8 @@
 # addendum of round 4 (its printer and its checks DA1 to DA5), the changes of fix round 5 and the approval of the
 # exact new text (plan 04-19). Profile 6 (plan 04-22) is profile 5 one level up: the disposition addendum of round 5,
 # the changes of fix round 6 and the stages edits and dispositions (plan 04-22); plan 04-23 adds the approval stages and
-# the approval printers to profile 6.
+# the approval printers to profile 6. Profile 7 (plans 04-26 and 04-27) is profile 6 one level up and reads no
+# addendum: every disposition of round 6 is in the disposition record; plan 04-26 adds the stage edits to it.
 #
 # Usage: 04-check-fix-round.sh [options]
 #   --stage STAGE     state (default): ST1 and the fact line ST2; decisions: FD1 to FD8 on the decisions
@@ -95,7 +96,8 @@
 #                     the fix round that follows the third independent review (plans 04-14 and 04-15); 5 is the
 #                     profile of the fix round that follows the fourth independent review (plans 04-18 and
 #                     04-19); 6 is the profile of the fix round that follows the fifth independent review (plans
-#                     04-22 and 04-23); any other value exits 2. Profile 3 reads the approval record, the disposition record and the
+#                     04-22 and 04-23); 7 is the profile of the fix round that follows the sixth independent
+#                     review (plans 04-26 and 04-27); any other value exits 2. Profile 3 reads the approval record, the disposition record and the
 #                     review note of the second round, finds the findings with the prefix RR, has three
 #                     changes FG-10 to FG-12 and nine findings without a disposition, and allows the stages
 #                     edits, approval-pending and approval-recorded (the stage defaults to edits; the stages
@@ -169,35 +171,35 @@
 # Profiles 3, 4 and 5 (--round 3, --round 4 and --round 5), used by plans 04-10 and 04-11, by plans 04-14 and
 # 04-15 and by plans 04-18 and 04-19. The profile table (round 2 is the default and holds every value this script
 # has always held; the column for round 5 lists the values of the register, of the edits and of the approval):
-#   value                 round 2                       round 3                       round 4                       round 5                         round 6
-#   packet, record        the fix round approval        the packet and the record     the packet and the record     the packet and the record       the packet and the record
-#                         packet and record of the      of fix round 3 (2026-10-27-   of fix round 4 (2026-10-27-   of fix round 5 (2026-10-28-     of fix round 6 (2026-10-29-
-#                         repository                    ...-fix-round-3-*)            ...-fix-round-4-*)            ...-fix-round-5-*)              ...-fix-round-6-*)
-#   register              the nine-change register      the register of round 3       the register of round 4       the register of round 5         the register of round 6
-#                                                       (three changes)               (three changes)               (derived number of changes)     (derived number of changes)
-#   approval record       the record of round 1         the record of the fix round   the record of fix round 3     the record of fix round 4       the record of fix round 5
+#   value                 round 2                       round 3                       round 4                       round 5                         round 6                         round 7
+#   packet, record        the fix round approval        the packet and the record     the packet and the record     the packet and the record       the packet and the record       the packet and the record
+#                         packet and record of the      of fix round 3 (2026-10-27-   of fix round 4 (2026-10-27-   of fix round 5 (2026-10-28-     of fix round 6 (2026-10-29-     of fix round 7 (2026-10-30-
+#                         repository                    ...-fix-round-3-*)            ...-fix-round-4-*)            ...-fix-round-5-*)              ...-fix-round-6-*)              ...-fix-round-7-*)
+#   register              the nine-change register      the register of round 3       the register of round 4       the register of round 5         the register of round 6         the register of round 7
+#                                                       (three changes)               (three changes)               (derived number of changes)     (derived number of changes)     (derived number of changes)
+#   approval record       the record of round 1         the record of the fix round   the record of fix round 3     the record of fix round 4       the record of fix round 5       the record of fix round 6
 #                                                       (round 2)
-#   disposition record    the record of round 1         the record of round 2         the record of round 3         the record of round 4 and       the record of round 5 and
-#                                                                                                                   its addendum                    its addendum
-#   review note           the note of round 1           the note of round 2           the note of round 3           the note of round 4             the note of round 5
-#   finding ids           RV                            RR                            RT                            RF                              RG
-#   changes               FG-01 to FG-09                FG-10 to FG-12                FG-13 to FG-15                FG-16 to FG-22 (derived)        FG-23 to FG-25 (derived)
-#   undispositioned       14                            9                             20                            33 less the findings of         21 less the findings of
+#   disposition record    the record of round 1         the record of round 2         the record of round 3         the record of round 4 and       the record of round 5 and       the record of round 6 (no
+#                                                                                                                   its addendum                    its addendum                    addendum)
+#   review note           the note of round 1           the note of round 2           the note of round 3           the note of round 4             the note of round 5             the note of round 6
+#   finding ids           RV                            RR                            RT                            RF                              RG                              RH
+#   changes               FG-01 to FG-09                FG-10 to FG-12                FG-13 to FG-15                FG-16 to FG-22 (derived)        FG-23 to FG-25 (derived)        FG-26 to FG-28 (derived)
+#   undispositioned       14                            9                             20                            33 less the findings of         21 less the findings of         12 rows less 3 dispositioned: 9
 #                                                                                                                   the addendum                    the addendum
-#   first new example     AE-295                        AE-306                        AE-309                        AE-311                          AE-321
-#   text approved before  the text of round 1           the text of round 2           the text of round 3           the text of round 4             the text of round 5
-#   changes in the packet nine, "my choice" or repair   three, "your decision:        three, "your decision:        as many as the register         as profile 5 (plan 04-23
-#                                                       <label>" with the options     <label>" with the options     holds (derived), shown as       prints it)
+#   first new example     AE-295                        AE-306                        AE-309                        AE-311                          AE-321                          AE-324
+#   text approved before  the text of round 1           the text of round 2           the text of round 3           the text of round 4             the text of round 5             the text of round 6
+#   changes in the packet nine, "my choice" or repair   three, "your decision:        three, "your decision:        as many as the register         as profile 5 (plan 04-23        as profile 5 (plan 04-27
+#                                                       <label>" with the options     <label>" with the options     holds (derived), shown as       prints it)                      prints it)
 #                                                       offered, the decision and     offered, the decision and     in profile 4; the pins
 #                                                       its reason                    its reason; for the kind      also name the disposition
 #                                                                                     repair "no decision asked:    addendum, and the answers
 #                                                                                     the finding names the fix"    on the related findings
 #                                                                                                                   are listed
-#   kinds of change       repair, my choice             owner decision                owner decision, repair        owner decision, repair          owner decision, repair
-#   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"                 "fix round 5"                   "fix round 6"
-#   stages                all five                      edits, approval-pending,      edits, approval-pending,      edits, dispositions,            as profile 5
-#                                                       approval-recorded             approval-recorded             approval-pending,
-#                                                                                                                   approval-recorded
+#   kinds of change       repair, my choice             owner decision                owner decision, repair        owner decision, repair          owner decision, repair          owner decision, repair
+#   H1 lines              "fix round"                   "fix round 3"                 "fix round 4"                 "fix round 5"                   "fix round 6"                   "fix round 7"
+#   stages                all five                      edits, approval-pending,      edits, approval-pending,      edits, dispositions,            as profile 5                    edits (plan 04-26); plan 04-27
+#                                                       approval-recorded             approval-recorded             approval-pending,                                               adds approval-pending and
+#                                                                                                                   approval-recorded                                               approval-recorded
 # The questions Q01 to Q04, their headers and options are the same in all profiles. Under --round 3 and --round 4
 # the stages approval-pending and approval-recorded and the printers --print-delta, --print-approval-questions,
 # --print-approval-packet and --print-approval-record-skeleton work, with the checks AP1 to AP5 and AR1 to AR5
@@ -280,6 +282,21 @@
 #   round 6 with the heading "## The changes". Stage edits runs the addendum checks DA1 to DA5 first and then FE3
 #   to FE7 with the values of profile 6: example ids run on from AE-321, FE7 maps FG-24 to OD-10 and FG-25 to
 #   OD-11 and applies the rules of profile 4 (FG-23 is a repair).
+#   Profile 7 (--round 7), used by plans 04-26 and 04-27, is profile 6 one level up and reads no addendum: every
+#   disposition of round 6 is in the disposition record, so ADD_RND is 0 and DADD_PATH, AD_H1, AD_FOLLOWS_TEXT and
+#   AD_DEFAULT_IDS are empty (the addendum checks DA1 to DA5, the stage dispositions, --print-addendum-skeleton and
+#   --findings exit 2 or do not run under --round 7). The new constants are NOTE6_PATH, DREC6_PATH, BRIEF6_PATH,
+#   FREG7_PATH, APK7_PATH, ARC7_PATH and NUNDISP7_BASE (9: the findings of the note of round 6 with an empty
+#   Disposition cell). Profile 7 reads the approval record of fix round 6 (so that the text approved before is the
+#   text of round 6), the disposition record and the review note of round 6, finds the findings with the prefix RH,
+#   and has up to three changes FG-26 to FG-28 (FG-26 RH-C-001, owner decision; FG-27 RH-X-001, repair; FG-28
+#   RH-X-002, owner decision; the number of changes is derived as in profile 6). Plan 04-26 allows the stage edits
+#   only; the stages approval-pending and approval-recorded and the approval printers exit 2 until plan 04-27.
+#   --print-decision-questions prints the two decisions OD-12 (RH-C-001, options "Close as failed" and "Allow
+#   cancelled") and OD-13 (RH-X-002, options "Base revision only" and "Forbid editing it") in the form of profile 3,
+#   always, whatever the dispositions are; --print-register-skeleton prints the register of round 7 with the heading
+#   "## The changes". Stage edits runs FE3 to FE7 with the values of profile 7: example ids run on from AE-324,
+#   FE7 maps FG-26 to OD-12 and FG-28 to OD-13 and applies the rules of profile 4 (FG-27 is a repair).
 #
 # The checks of the disposition addendum (profiles 5 and 6), DA1 to DA5, on --addendum, the records and the note; they do
 # not read the specification: DA1 the addendum is valid UTF-8 without byte order mark, LF only with one final LF,
@@ -416,6 +433,16 @@ APK6_PATH=".planning/reviews/2026-10-29-normative-spec-fix-round-6-approval-pack
 ARC6_PATH=".planning/reviews/2026-10-29-normative-spec-fix-round-6-approval-record.md"
 # The number of findings of the review note of round 5 with an empty Disposition cell (22 rows, one dispositioned).
 NUNDISP6_BASE=21
+# The files of round 7 (the fix round that follows the sixth independent review): the review note and the disposition
+# record of round 6, and the register, the packet and the record of fix round 7. Round 7 has no
+# disposition addendum.
+NOTE6_PATH=".planning/reviews/2026-10-29-normative-spec-independent-review-round-6.md"
+DREC6_PATH=".planning/reviews/2026-10-29-normative-spec-review-disposition-record-round-6.md"
+FREG7_PATH=".planning/reviews/2026-10-30-normative-spec-fix-round-7-register.md"
+APK7_PATH=".planning/reviews/2026-10-30-normative-spec-fix-round-7-approval-packet.md"
+ARC7_PATH=".planning/reviews/2026-10-30-normative-spec-fix-round-7-approval-record.md"
+# The number of findings of the review note of round 6 with an empty Disposition cell (12 rows, three dispositioned).
+NUNDISP7_BASE=9
 FIXP=".planning/phases/04-independent-review/04-check-fix-round.sh"
 
 STAGE=""
@@ -495,8 +522,8 @@ while [ "$#" -gt 0 ]; do
 done
 
 case "$ROUND" in
-  2|3|4|5|6) ;;
-  *) echo "--round must be 2, 3, 4, 5 or 6" >&2; exit 2 ;;
+  2|3|4|5|6|7) ;;
+  *) echo "--round must be 2, 3, 4, 5, 6 or 7" >&2; exit 2 ;;
 esac
 [ "$RP1" -eq 0 ] || [ "$RP2" -eq 0 ] || { echo "--replay-round-1 and --replay-round-2 cannot be used together" >&2; exit 2; }
 [ "$RP3" -eq 0 ] || { [ "$RP1" -eq 0 ] && [ "$RP2" -eq 0 ]; } || { echo "--replay-round-3 cannot be used with --replay-round-1 or --replay-round-2" >&2; exit 2; }
@@ -509,10 +536,10 @@ case "$STAGE" in
   state|decisions|edits|approval-pending|approval-recorded|dispositions) ;;
   *) echo "--stage must be state, decisions, edits, approval-pending, approval-recorded or dispositions" >&2; exit 2 ;;
 esac
-[ "$STAGE" != dispositions ] || [ "$ROUND" -ge 5 ] || { echo "--stage dispositions is used with --round 5 or --round 6 only" >&2; exit 2; }
+[ "$STAGE" != dispositions ] || [ "$ROUND" -eq 5 ] || [ "$ROUND" -eq 6 ] || { echo "--stage dispositions is used with --round 5 or --round 6 only" >&2; exit 2; }
 [ "$COMPLETE" -eq 0 ] || { [ "$STAGE" = edits ] && [ "$REPLAY" -eq 0 ]; } || { echo "--complete is used with --stage edits only" >&2; exit 2; }
 [ "$CURRENT" -eq 0 ] || [ "$REPLAY" -eq 1 ] || { echo "--with-current-scripts is used with --replay-round-1, --replay-round-2, --replay-round-3, --replay-round-4 or --replay-round-5 only" >&2; exit 2; }
-[ "$PRINT_ADS" -eq 0 ] || [ "$ROUND" -ge 5 ] || { echo "--print-addendum-skeleton is used with --round 5 or --round 6 only" >&2; exit 2; }
+[ "$PRINT_ADS" -eq 0 ] || [ "$ROUND" -eq 5 ] || [ "$ROUND" -eq 6 ] || { echo "--print-addendum-skeleton is used with --round 5 or --round 6 only" >&2; exit 2; }
 [ -z "$ADS_FINDINGS" ] || [ "$PRINT_ADS" -eq 1 ] || { echo "--findings is used with --print-addendum-skeleton only" >&2; exit 2; }
 if [ "$ROUND" -eq 3 ]; then
   case "$STAGE" in
@@ -538,6 +565,16 @@ if [ "$ROUND" -eq 6 ]; then
     *) echo "--round 6 allows --stage edits, dispositions, approval-pending or approval-recorded only" >&2; exit 2 ;;
   esac
 fi
+if [ "$ROUND" -eq 7 ]; then
+  if [ "$STAGE" != edits ]; then
+    echo "--round 7 allows --stage edits only" >&2
+    exit 2
+  fi
+  if [ "$PRINT_DELTA" -eq 1 ] || [ "$PRINT_AQ" -eq 1 ] || [ "$PRINT_APK" -eq 1 ] || [ "$PRINT_ARS" -eq 1 ]; then
+    echo "--round 7 has no approval printers yet" >&2
+    exit 2
+  fi
+fi
 if [ "$ROUND" -ge 3 ]; then
   [ "$RP1" -eq 0 ] || { echo "--replay-round-1 is used with --round 2 only" >&2; exit 2; }
   if [ "$PRINT_SKEL" -eq 1 ]; then
@@ -547,9 +584,10 @@ if [ "$ROUND" -ge 3 ]; then
 fi
 
 # The round profile: the one place that sets every value that differs between round 2 (the default, the values this
-# script has always held), round 3, round 4, round 5 and round 6. The profile variables of the disposition addendum
-# (profiles 5 and 6) are ADD_RND (the round of the review whose findings the addendum dispositions), DADD_PATH,
-# NUNDISP_BASE, AD_H1, AD_FOLLOWS_TEXT and AD_DEFAULT_IDS.
+# script has always held), round 3, round 4, round 5, round 6 and round 7. The profile variables of the disposition
+# addendum (profiles 5 and 6; profile 7 has none and leaves them empty) are ADD_RND (the round of the review whose
+# findings the addendum dispositions, 0 when the profile reads no addendum), DADD_PATH, NUNDISP_BASE, AD_H1,
+# AD_FOLLOWS_TEXT and AD_DEFAULT_IDS.
 ADD_RND=0
 AP_ORD=""
 DADD_PATH=""
@@ -604,7 +642,7 @@ if [ "$ROUND" -ge 3 ]; then
     AD_FOLLOWS_TEXT='The owner answered the findings above. A finding with the disposition fix is fixed in fix round 5 and listed in the register of that round; a finding with another disposition needs no change of the text. This addendum supplements the disposition record of round 4, which stays as it is.'
     AD_DEFAULT_IDS="RF-B-004,RF-X-002,RF-X-003,RF-X-004"
     [ -n "$ADDENDUM" ] || ADDENDUM="$DADD_PATH"
-  else
+  elif [ "$ROUND" -eq 6 ]; then
     # Profile 6: profile 5 one level up. The text approved before is the text of round 5 (the approval record of fix
     # round 5), the number of changes is derived, and the addendum dispositions findings of the review of round 5.
     ARC_DEFAULT="$ARC5_PATH"
@@ -627,6 +665,26 @@ if [ "$ROUND" -ge 3 ]; then
     AD_FOLLOWS_TEXT='The owner answered the findings above. A finding with the disposition fix is fixed in fix round 6 and listed in the register of that round; a finding with another disposition needs no change of the text. This addendum supplements the disposition record of round 5, which stays as it is.'
     AD_DEFAULT_IDS="RG-C-001,RG-X-001,RG-X-004"
     [ -n "$ADDENDUM" ] || ADDENDUM="$DADD_PATH"
+  else
+    # Profile 7: profile 6 one level up, without an addendum (every disposition of round 6 is in the disposition
+    # record). The text approved before is the text of round 6 (the approval record of fix round 6), the number of
+    # changes is derived, ADD_RND is 0 and no addendum is read.
+    ARC_DEFAULT="$ARC6_PATH"
+    DREC_DEFAULT="$DREC6_PATH"
+    NOTE_DEFAULT="$NOTE6_PATH"
+    FREG_DEFAULT="$FREG7_PATH"
+    FPFX="RH"
+    NCHG=0
+    NCHG_W="zero"
+    NUNDISP=$NUNDISP7_BASE
+    NUNDISP_BASE=$NUNDISP7_BASE
+    EX_FIRST=324
+    REG_TBL_H="## The changes"
+    PACKET_DEFAULT="$APK7_PATH"
+    RECORD_DEFAULT="$ARC7_PATH"
+    ADD_RND=0
+    AP_ORD="a sixth time"
+    ADDENDUM=""
   fi
 else
   FPFX="RV"
@@ -894,12 +952,22 @@ REG5_H1='# Fix register, round 5: what changed in the specification and why'
 REG5_INTRO='This register lists the changes made to the specification to fix the BLOCKING finding of the fourth independent review that the owner dispositioned fix, and the related findings that the owner dispositioned fix in the disposition addendum of round 4. For a change of the kind owner decision the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For a change of the kind repair the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
 REG6_H1='# Fix register, round 6: what changed in the specification and why'
 REG6_INTRO='This register lists the changes made to the specification to fix the BLOCKING finding of the fifth independent review that the owner dispositioned fix, and the further findings that the owner dispositioned fix in the disposition addendum of round 5. For a change of the kind owner decision the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For a change of the kind repair the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
+REG7_H1='# Fix register, round 7: what changed in the specification and why'
+REG7_INTRO='This register lists the three changes made to the specification to fix the three BLOCKING findings of the sixth independent review that the owner dispositioned fix. For a change of the kind owner decision the finding leaves more than one way to fix, and the change implements the way the owner chose, which is recorded in the entry together with the options that were offered. For a change of the kind repair the finding names the fix itself, and its entry says that no design choice was open. A choice becomes final only through the owner approval of the exact new text. The approval packet is printed from this register.'
 CHANNEL_TEXT='Given by the repository owner through the interactive question tool and relayed by the orchestrating session.'
 NOCHOICE_TEXT='none: no design choice was open, because the finding names the fix itself.'
 
 # fg5_static: the static table of the seven changes of profile 5, "id|title|findings|kind". The first finding of a
 # row is its primary finding.
 fg5_static() {
+  if [ "$ROUND" -eq 7 ]; then
+    cat << 'DATA7'
+FG-26|How cancel and supersede end a change that waits for a decision on a soft failure|RH-C-001|owner decision
+FG-27|The first entry of a change that was converted from a YAML state document|RH-X-001|repair
+FG-28|Which revision of an ignore file the scope measurement applies|RH-X-002|owner decision
+DATA7
+    return 0
+  fi
   if [ "$ROUND" -eq 6 ]; then
     cat << 'DATA6'
 FG-23|A reserved device name that is followed by an extension|RG-A-001, RG-X-004|repair
@@ -1012,6 +1080,19 @@ base_ids() {
 # bar: "D|id|header|finding" opens a decision, "Q|question" is its question, "O|label|description" is one option.
 # No option is recommended.
 od_data() {
+  if [ "$ROUND" -eq 7 ]; then
+    cat << 'DATA7'
+D|OD-12|Soft failure|RH-C-001
+Q|The text says that a change which waits for a human decision on a soft failure ends that wait only by the fail action or by an override, and it also lets the cancel and supersede actions close such a change as cancelled. How should a cancel or supersede of such a change end it?
+O|Close as failed|A cancel or supersede of such a change closes it as failed, not as cancelled.
+O|Allow cancelled|A cancel or supersede of such a change may close it as cancelled, and the text says so where it now says that the wait ends only by fail or override.
+D|OD-13|Ignore file|RH-X-002
+Q|The scope rule does not measure a path that an ignore file inside the repository hides, and it does not say which version of that file counts, so a change could first edit the ignore file and then work in the paths it now hides. What should the text say?
+O|Base revision only|Only the ignore files as they were at the base revision hide paths, so an ignore file that the change creates or alters hides nothing.
+O|Forbid editing it|A change may not create or alter an ignore file inside the repository, and doing so is a scope violation even when the allowed path list matches the file.
+DATA7
+    return 0
+  fi
   if [ "$ROUND" -eq 6 ]; then
     cat << 'DATA6'
 D|OD-10|Replacement|RG-C-001
@@ -1133,6 +1214,7 @@ print_register_skeleton() {
   if [ "$ROUND" -eq 4 ]; then h1="$REG4_H1"; intro="$REG4_INTRO"; fi
   if [ "$ROUND" -eq 5 ]; then h1="$REG5_H1"; intro="$REG5_INTRO"; fi
   if [ "$ROUND" -eq 6 ]; then h1="$REG6_H1"; intro="$REG6_INTRO"; fi
+  if [ "$ROUND" -eq 7 ]; then h1="$REG7_H1"; intro="$REG7_INTRO"; fi
   printf '%s\n\n%s\n\n' "$h1" "$intro"
   printf '%s\n\n| Change | Title | Findings | Kind | Status | Sections | Examples |\n|---|---|---|---|---|---|---|\n' "$REG_TBL_H"
   while IFS='|' read -r g t f k; do
@@ -1157,7 +1239,7 @@ print_register_skeleton() {
 AD="$TMP/addendum"
 AD_OK=0
 if [ "$ROUND" -ge 5 ]; then
-  if [ -f "$ADDENDUM" ] && [ -r "$ADDENDUM" ] && cp "$ADDENDUM" "$AD" 2> /dev/null; then AD_OK=1; else : > "$AD"; fi
+  if [ "$ADD_RND" -gt 0 ] && [ -f "$ADDENDUM" ] && [ -r "$ADDENDUM" ] && cp "$ADDENDUM" "$AD" 2> /dev/null; then AD_OK=1; else : > "$AD"; fi
   NCHG=$(fg_data | wc -l | tr -d ' ')
   case "$NCHG" in
     0) NCHG_W="zero" ;;
@@ -2359,6 +2441,8 @@ fe7() {
       FG-19) od=OD-9 ;;
       FG-24) od=OD-10 ;;
       FG-25) od=OD-11 ;;
+      FG-26) od=OD-12 ;;
+      FG-28) od=OD-13 ;;
       *) bad "$g: no decision belongs to this change"; continue ;;
     esac
     want=$(od_labels "$od" | awk 'NR > 1 { printf " | " } { printf "%s", $0 }')
@@ -2536,7 +2620,7 @@ edits_stage() {
   git cat-file blob "$A_BLOB" > "$T1" 2> /dev/null || { echo "the round-$((ROUND - 1)) text cannot be read from the repository" >&2; exit 2; }
   reg_load
   fe_diff
-  if [ "$ROUND" -ge 5 ]; then da_checks; fi
+  if [ "$ADD_RND" -gt 0 ]; then da_checks; fi
   if [ "$ROUND" -eq 2 ]; then
     fe1
     fe2
