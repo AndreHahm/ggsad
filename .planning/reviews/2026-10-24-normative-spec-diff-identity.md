@@ -17,6 +17,6 @@ The date in the file name is the date on which this note was created. The values
 
 How to review: open `docs/method/GG-SAD_normative_method_specification.md`, or run `git diff origin/main...HEAD -- docs/method/GG-SAD_normative_method_specification.md`.
 
-Owner approval of this text and the independent review of this text have not taken place. The approval records, the review notes, the disposition records and the disposition addenda that exist under .planning/reviews/ belong to earlier texts. The values above belong to exactly this text; any later edit to the file voids them, and new values have to be recorded.
+Owner approval of this text is recorded in the owner approval record of round 7 (.planning/reviews/2026-10-30-normative-spec-fix-round-7-approval-record.md), and the independent review of this text has not taken place. The approval records, the review notes, the disposition records and the disposition addenda that exist under .planning/reviews/ belong to earlier texts. The values above belong to exactly this text; any later edit to the file voids them, and new values have to be recorded.
 
 This note is evidence only. It does not change the reviewed file.
