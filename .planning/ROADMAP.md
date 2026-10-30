@@ -196,7 +196,7 @@ Plans:
   2. Review findings carry stable IDs, severity and exact references (REVIEW-01)
   3. All blocking findings are resolved (fixed) or explicitly dispositioned by the owner before the diff is treated as final (REVIEW-02)
 
-**Plans**: 25/29 plans executed
+**Plans**: 26/29 plans executed
 
 Plans:
 **Wave 1**
@@ -301,7 +301,7 @@ Plans:
 
 **Wave 26** *(gap closure from the round-6 dispositions, outcome `fix pending`; blocked on Wave 25 completion; has the owner design-choices checkpoint)*
 
-- [ ] 04-26-PLAN.md — Round 7 profile and round-6 replay of the fix round script (tracer), the owner chooses how each finding with the disposition fix and a design choice is fixed, the specification is edited for RH-C-001, RH-X-001 and RH-X-002 only and the register is written (REVIEW-02)
+- [x] 04-26-PLAN.md — Round 7 profile and round-6 replay of the fix round script (tracer), the owner chooses how each finding with the disposition fix and a design choice is fixed, the specification is edited for RH-C-001, RH-X-001 and RH-X-002 only and the register is written (REVIEW-02)
 
 **Wave 27** *(blocked on Wave 26 completion; has the owner approval checkpoint)*
 
