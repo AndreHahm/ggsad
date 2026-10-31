@@ -7,14 +7,17 @@ semantics and reference-implementation behavior. Development artifacts must not 
 
 ## Development method
 
-This repository uses pinned GSD Core 1.10.0 as its sole development method. Read and follow the
-active `.planning/` project, requirements, roadmap, state, context, plans, and verification
-artifacts. Do not create or advance GG-SAD change state to govern repository development.
+This repository is developed with plain, small, reviewable commits on short-lived branches. GSD is
+no longer the development method: the `.planning/` directory is a historical record, and no plan,
+summary, review brief, or state file is required for a change. Do not create or advance GG-SAD change
+state to govern repository development.
 
 ## Approval and review
 
 Changes to the English normative specification require explicit repository-owner approval and
 independent review by a reviewer that is not the Requestor. A fresh context or subagent of the Requestor is not independent.
+The review is bounded as Section 14.3 of the specification states: one review round and at most one
+re-check. The owner dispositions each finding as fix, defer, or reject.
 
 ## Engineering baseline
 
