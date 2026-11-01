@@ -20,6 +20,8 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - report on a change, as the read-only actions `check`, `review`, and `guard` (Section 22.4) do;
 - evaluate and execute one controlled state transition under the transition table of Section 23.4. See AE-067.
 
+The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
+
 **AE-067 — Asking a question is an operation of the contract**
 
 - Covers: Section 22.1
@@ -39,7 +41,7 @@ The four results are exact lowercase names with these meanings:
 - `blocked`: the operation was valid, its evaluation was recorded in the history, and the requested transition did not occur; `changed` is `true`;
 - `error`: the operation could not be carried out; nothing was written, and `changed` is `false`.
 
-A `rejected` result with `changed` true and a `blocked` result with `changed` false are invalid. Only the actions `close` and `resume` can answer `blocked`: `close` and `resume` (Section 23.4). Every other action answers `rejected` when it does not take effect. An action whose evaluation closes the change as failed answers `success` (Section 24.7). See AE-068, AE-069, AE-070.
+A `rejected` result with `changed` true and a `blocked` result with `changed` false are invalid. Only the actions `close` and `resume` (Section 23.4) can answer `blocked`. Every other action answers `rejected` when it does not take effect. An action whose evaluation closes the change as failed answers `success` (Section 24.7). See AE-068, AE-069, AE-070.
 
 The `state` field contains the resulting state of the change and is included when applicable to the operation; it is omitted when the operation produces no state result. It contains the state and the outcome (Section 23.2). The `issues` field contains stable codes plus human-readable messages. It is included whenever `result` is `rejected`, `blocked`, or `error`, and it then contains at least one issue; it is omitted whenever `result` is `success`. A result other than `success` without an issue is invalid. The `data` field is always optional operation-specific output and is present only when relevant to the operation.
 
@@ -125,7 +127,7 @@ Then the first verification holds, the issue code `anchor-missing` is not report
 
 ## 25. State, Hashing, and Schema Versions
 
-This section defines the state document, the canonical form and the content hash that the protections of Section 24 rely on, and the versions of the schema-governed files. It applies to both method profiles (Section 5.6). The history, the entry hash, and the approvals that Section 24 describes are stored and hashed as this section states.
+This section defines the state document, the canonical form and the content hash that the protections of Section 24 rely on, and the versions of the schema-governed files. It applies to the `core` method profile (Section 5.6). The history, the entry hash, and the approvals that Section 24 describes are stored and hashed as this section states.
 
 ### 25.1 State Document and Canonical Form
 

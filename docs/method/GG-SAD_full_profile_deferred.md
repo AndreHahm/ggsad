@@ -1063,6 +1063,28 @@ When the evidence of the change is written
 Then the line Gates that could not be evaluated of the Final Gate Evaluation names `run-tests --suite unit` with the cause that its program is missing, the condition is not recorded as Yes or No, and the Evidence cell of R1 in the requirement coverage table points at the evidence command `check-docs --strict` and records what it produced
 
 
+
+## 21. Quick Reference
+
+```text
+Goal
+  ↓
+Definition of Ready
+  ↓
+Active Phase
+  ├── Definition of Fail → FAILED
+  ├── Definition of Wait → WAITING
+  └── Definition of Done → DONE
+                              ↓
+                    Next Definition of Ready
+                              ↓
+                         Next Phase
+```
+
+The diagram above shows the `full` flow (Section 5.6). The flow of `core` is given by the transition table of Section 23.4 of the normative specification.
+
+---
+
 ## Appendix A. Acceptance Examples of the `full` Method Profile
 
 These examples were removed from the normative specification with the `full` method profile. Their numbers are those of version 1.4 and are not numbers of the normative specification.

@@ -1,6 +1,6 @@
 # GG-SAD — Signing Extension
 
-**Status:** Optional extension. A project MAY adopt it. It extends Section 24.3 of the normative specification (`GG-SAD_normative_method_specification.md`) with the assurance levels `A1` and `A2` and the signed approval. A reference to a section of the normative specification names that document.
+**Status:** Optional extension. A project MAY adopt it. It extends Section 24.3 of the normative specification (`GG-SAD_normative_method_specification.md`) with the assurance levels `A1` and `A2` and the signed approval. A reference to a section of the normative specification names that document, except that a reference to Section 22 or 25 names the Implementation Contract (`GG-SAD_implementation_contract.md`). An `AE-nnn` reference names the document that defines the example, as Section 1.1 of the normative specification states.
 
 ---
 
