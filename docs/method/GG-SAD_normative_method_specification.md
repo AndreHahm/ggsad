@@ -39,9 +39,9 @@ This specification contains the `core` method. Three further documents in `docs/
 |---|---|---|
 | `GG-SAD_implementation_contract.md` | 22 (automation contract) and 25 (state document, content hash, schema versions) | Normative for the reference implementation only |
 | `GG-SAD_signing_extension.md` | 24.3 as extended (assurance levels A1 and A2, signed approval) | Optional extension |
-| `GG-SAD_full_profile_deferred.md` | 4.1, 5.5, 6 to 10, 16.1 to 16.4, and the examples of the `full` method profile | Deferred, not normative |
+| `GG-SAD_full_profile_deferred.md` | 4.1, 5.5, 6 to 10, 16.1 to 16.4, the flow diagram of old Section 21, and the examples of the `full` method profile | Deferred, not normative |
 
-A reference in this document to a section of one of these documents names that document.
+A reference in this document to a section of one of these documents names that document. A bare reference to Section 22 or 25, or to a subsection of them, names `GG-SAD_implementation_contract.md`. An `AE-nnn` reference names the document that defines the example: `AE-001` to `AE-066` are in this document, `AE-067` to `AE-103` in `GG-SAD_implementation_contract.md`, and `AE-104` to `AE-109` in `GG-SAD_signing_extension.md`.
 
 ---
 
@@ -490,7 +490,7 @@ A Pair Review cycle is bounded. It consists of one review round and at most one 
 6. record the disposition of each finding,
 7. preserve the final review result as evidence.
 
-In the **review round**, the Reviewer reports every finding that the scope and criteria cover. The decision owner then marks each finding `fix`, `defer`, or `reject`, with a reason. The Requestor applies the findings marked `fix`.
+In the **review round**, the Reviewer reports every finding that the scope and criteria cover. The decision owner is the person who owns the repository of the project, or the person that the review scope names as the decision owner; neither the Requestor nor the Reviewer is the decision owner of its own work. The decision owner then marks each finding `fix`, `defer`, or `reject`, with a reason. The Requestor applies the findings marked `fix`.
 
 In the **re-check**, the Reviewer checks only the findings marked `fix` and reports each as `verified` or `open`. The re-check MUST NOT raise a finding about text that the review round covered. It MAY raise a finding about a defect that a fix itself introduced.
 
@@ -694,7 +694,7 @@ GG-SAD does not optimize for maximum documentation volume. It optimizes for **cl
 
 ## 23. The `core` Profile
 
-This section specifies the `core` method profile (Section 5.6). The protections of Section 24 and the state definitions of Section 25 apply to a `core` change as those sections state. Sections 1 to 22 apply to a `core` change as Section 5.6 states.
+This section specifies the `core` method profile (Section 5.6). The protections of Section 24 and the state definitions of Section 25 apply to a `core` change as those sections state. Sections 1 to 22 apply to a `core` change.
 
 ### 23.1 Change Definition and Documents
 
