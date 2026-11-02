@@ -20,6 +20,7 @@ A GG-SAD automation contract MUST support these technology-neutral operations:
 - repair a damaged history of a change, as the owner of the project (Section 24.4);
 - record a conflict between two documents as a question and a wait (Section 13.1);
 - create a follow-up change that is pre-filled from a closed change (Section 23.1);
+- hand a change over to a new Change owner, and reassign the owner of a question or a wait (Section 23.4);
 - report on a change, as the read-only actions `check`, `review`, `guard`, and `check-scope` (Section 22.4) do, with the status report of Section 23.8;
 - evaluate and execute one controlled state transition under the transition table of Section 23.4. See AE-067.
 
@@ -142,7 +143,7 @@ The state document is a JSON object with two fields. `schema_version` holds the 
 
 The `body` of an entry holds exactly these fields:
 
-- `action`: the name of the operation that the entry records, which is `new`, `approve`, `ask`, `answer`, `adopt`, `repair`, `conflict`, or `migrate` (Section 25.3), or an action of the transition table of Section 23.4. The set of names is closed, and an entry with another name is not valid;
+- `action`: the name of the operation that the entry records, which is `new`, `approve`, `ask`, `answer`, `adopt`, `repair`, `conflict`, `handover`, `reassign`, or `migrate` (Section 25.3), or an action of the transition table of Section 23.4. The set of names is closed, and an entry with another name is not valid;
 - `actor`: the identity of the participant that performed the action (Section 24.3);
 - `account`: the real account of the actor that the implementation reads from version control or from the hosting service, next to the typed identity in `actor`, or `null` when none can be read (Section 24.3);
 - `assurance`: the verified assurance level of the claim of the actor, which is `A0`, `A1`, or `A2` (Section 24.3);

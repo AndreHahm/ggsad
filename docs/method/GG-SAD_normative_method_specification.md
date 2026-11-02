@@ -151,7 +151,7 @@ GG-SAD supports **Pair Review** as a controlled collaboration model between two 
 - the **Requestor** creates or changes a governed work product;
 - the **Reviewer** independently reviews, verifies, tests, validates, or otherwise evaluates that work product and returns traceable findings to the Requestor.
 
-The Requestor and Reviewer MUST be different participants within the same review cycle. Supported combinations include Human–Human, Human–Agent, Agent–Human, Agent–Agent, and Human or Agent with an external review service.
+The Requestor and Reviewer MUST be different participants within the same review cycle. In version 1 the Requestor is an agent and the Reviewer is an agent or an external review service from a different vendor, as Section 3.11 states. A review that is performed under a `human:` identity is declined (Section 14.2). Human Requestors and human Reviewers are a future capability (Section 3.11).
 
 Pair Review is OPTIONAL by default. Its use and required depth MUST be resolved from the active compliance profile, project scope, risk, impact, and project-specific policy. A project MAY require Pair Review for selected phases, artifact types, or risk categories.
 
@@ -160,6 +160,72 @@ The Reviewer MUST NOT silently modify the Requestor's governed work product as p
 Where a rule of this specification requires a human participant, the claim of being a human is evidenced at an assurance level (Section 24.3).
 
 Pair Review MUST NOT replace a required human approval. Where segregation of duties applies, the project MAY require Requestor, Reviewer, and Approver to be three distinct participants.
+
+### 3.11 Roles
+
+GG-SAD version 1 fixes the roles below. Agents do the work and the review, and humans decide. Each role has a source, which says where it is named, and a fallback, which applies when it is not named. The implementation applies the fallback by itself and warns in the status report whenever it does (Section 23.8).
+
+| Role | Is | Named in | Fallback |
+|---|---|---|---|
+| Requestor | agent | the settings, as a list | none: an agent that is not on the list is declined |
+| Reviewer | agent or external review service, from a vendor different from the Requestor | the settings | the fallback Reviewer |
+| Fallback Reviewer | agent, from a third vendor | the settings | none |
+| Approver | human | the change definition (`approver`) | the Change owner |
+| Decision owner | human | the review scope, one per review | the Approver |
+| Owner | human | the hosting service, or the local version-control identity at `init`; confirmed once and saved in the settings | none |
+| Deputy | human | the deputy list in the settings | none |
+| Change owner | human | the change definition (`owner`) | the Author |
+| Author | human | the change definition (`author`) | the human who first approves the specification, then the Owner |
+| Owner of a question or wait | human | the question or the wait | the Author for a question about `spec.md`, otherwise the Change owner |
+
+Every role that is a human is an approved human (Section 24.3). A named human who is not approved is not accepted for a role: the Approver falls back to the Change owner, and for every other role the definition is rejected.
+
+**Requestor.** An agent that performs `new`, `start`, `ask`, `wait`, `conflict`, `resume`, or `close` MUST be on the list of Requestors in the settings, and an agent that is not is declined (Section 23.4). There is no human Requestor in version 1.
+
+**Approver.** The Approver of a change gives its approvals: of the specification, of the gate definitions, of a sign-off, of an override, of the review result, and of changed higher-ranking documents. A deputy acts in place of the Approver only when the Owner has recorded the Approver as unavailable in the settings.
+
+**Owner and deputies.** The Owner keeps the list of approved humans, the deputy list, and the Owner entry, and uses `repair`. A deputy never does these things. An empty deputy list is valid, except under the compliance profile `regulated`, which requires at least one deputy. When the hosting service names another owner than the settings do, the settings win and the status report warns.
+
+**Change owner.** The Change owner is the default owner of questions and waits, receives the warnings of the status report, and MAY `cancel`, `supersede`, or `fail` the change. The Owner or the current Change owner MAY hand the change over (Section 23.4).
+
+**One human in several roles.** The project setting `team_mode` is `solo` or `team`, and `team` is the default. One human MAY be both the Author and the Approver of a change according to this table, and the approval summary shows the mode (Section 24.1):
+
+| Compliance profile | `team` | `solo` |
+|---|---|---|
+| `lean` | allowed | allowed |
+| `standard` | not allowed | allowed |
+| `governed` | not allowed | allowed |
+| `regulated` | not allowed | not allowed |
+
+An approval that the table does not allow is rejected with the issue code `roles-not-separate`. The same human MAY also be the Author, the Approver, and the Decision owner where the table allows it, and the review record states it.
+
+**Future.** A future version MAY allow human Requestors and human Reviewers, and agents as Approvers, Decision owners, deputies, Change owners, Authors, and owners of questions and waits. Version 1 does not build this, and an implementation declines a role that the table above does not give to a human or to an agent respectively.
+
+See AE-323, AE-324, AE-325, AE-326.
+
+**AE-323 — An agent that is not a listed Requestor is declined**
+
+Given a project whose settings list `agent:builder` as the only Requestor and an `open` `core` change
+When `agent:helper` requests the `start` action
+Then the request is rejected with the issue code `requestor-not-approved`, and the change remains `open`
+
+**AE-324 — The fallback Reviewer takes over automatically and the report shows it**
+
+Given a required Pair Review whose Reviewer is `agent:devin` and whose fallback Reviewer is `agent:codex`, and a run of `agent:devin` that ends without a report
+When the review is requested again
+Then the implementation switches to `agent:codex` by itself, `review.md` records the switch with the reason, and the status report shows that the fallback Reviewer was used
+
+**AE-325 — A handover replaces the Change owner and is recorded**
+
+Given an `active` `core` change whose Change owner is `human:bo`, who has left the project
+When the Owner `human:ada` performs the `handover` action with the new Change owner `human:cy` and the reason `Bo left`
+Then the field `owner` of the change definition names `human:cy`, and the history records the handover and the reason
+
+**AE-326 — The same human may not be Author and Approver in a team under `standard`**
+
+Given a `core` change under the compliance profile `standard` with `team_mode` `team`, whose Author is `human:ada`, and the Approver is also `human:ada`
+When `human:ada` approves the target `spec`
+Then the approval is rejected with the issue code `roles-not-separate`, and it is accepted when `team_mode` is `solo`
 
 ## 4. Document Hierarchy
 
@@ -258,7 +324,7 @@ GG-SAD defines the following default compliance profiles:
 
 | Compliance Profile | Intended Use | Minimum Characteristics |
 |---|---|---|
-| `lean` | Pre-PMF MVPs, prototypes, solo development, fast iteration | Minimal artifacts, automated checks where available, self-approval permitted unless a critical rule applies |
+| `lean` | Pre-PMF MVPs, prototypes, solo development, fast iteration | Minimal artifacts, automated checks where available, one human MAY be Author and Approver (Section 3.11) unless a critical rule applies |
 | `standard` | Typical product and team development | Separate specification for normal changes, defined quality gates, recorded evidence, peer review where practical |
 | `governed` | Enterprise or high-impact delivery | Strong traceability, explicit approvals, security and architecture review, controlled release evidence |
 | `regulated` | Regulated, safety-critical, or externally audited work | Segregation of duties, immutable or retained evidence, formal approvals, compliance mappings, audit-ready history |
@@ -267,7 +333,7 @@ The core rules of this specification are the same for all four profiles. The pro
 
 | Compliance profile | What it changes in the rules of this specification |
 |---|---|
-| `lean` | A human who requested the work MAY approve it (Section 5.4). Pair Review MAY be omitted (Section 14.1). Fewer project documents are required (Section 4.2). |
+| `lean` | One human MAY be Author and Approver, also in a team (Section 3.11). Pair Review MAY be omitted (Section 14.1). Fewer project documents are required (Section 4.2). |
 | `standard` | Pair Review is applied where practical. The four project documents of Section 4.2 are required. |
 | `governed` | As `standard`, and Pair Review SHOULD be required for relevant high-impact changes (Section 14.1). |
 | `regulated` | As `governed`, and the project SHOULD require three distinct participants for Requestor, Reviewer, and Approver (Section 3.10). |
@@ -354,13 +420,13 @@ Self-approval under the `lean` profile is permitted only for decisions outside t
 
 A decision that a human makes is evidenced at an assurance level (Section 24.3). A claim satisfies a decision of the set above only if its verified level is at least the level that Section 24.3 requires for the action that records the decision, which is A0 when neither a gate nor the project configuration states a minimum. A claim at the level A0 is self-declared, and it satisfies such a decision only where the required level is A0.
 
-Self-approval under the `lean` compliance profile means that the human who requested the work may approve it. It never means that a participant that is not a human approves it, because every approval is performed by a human (Sections 23.4 and 24.3). See AE-006.
+Self-approval under the `lean` compliance profile means that one human may be both the Author and the Approver of a change (Section 3.11). It never means that a participant that is not a human approves it, because every approval is performed by a human (Sections 23.4 and 24.3). See AE-006.
 
 **AE-006 — Self-approval under `lean` is by a human only**
 
-Given a `core` change with the compliance profile `lean`, a decision outside the non-delegable set, the identity `human:ada` who requested the work, and the identity `agent:builder`  
+Given a `core` change with the compliance profile `lean`, a decision outside the non-delegable set, the identity `human:ada`, who is both the Author and the Approver of the change, and the identity `agent:builder`  
 When each identity approves the target `spec`  
-Then the approval by `human:ada` is recorded, although she requested the work, and the approval by `agent:builder` is rejected, because a participant that is not a human cannot approve
+Then the approval by `human:ada` is recorded, although she is also the Author, and the approval by `agent:builder` is rejected, because a participant that is not a human cannot approve
 
 ### 5.6 Method Profiles
 
@@ -509,19 +575,28 @@ The `lean` compliance profile MAY omit Pair Review. Governed or regulated compli
 
 ### 14.2 Participants and Identity
 
-A participant may be a human, AI agent, coding agent, review agent, or external review service. Requestor and Reviewer MUST have distinct participant identities for the same review cycle.
+A participant may be a human, an AI agent, a coding agent, a review agent, or an external review service. Requestor and Reviewer MUST have distinct participant identities for the same review cycle.
+
+In version 1 the roles are fixed as Section 3.11 states: the Requestor is an agent that the settings list, and the Reviewer is an agent, or an external review service, that the settings name, from a vendor different from the vendor of the Requestor. The settings record the vendor and the model of the Requestor, of the Reviewer, and of the fallback Reviewer. The fallback Reviewer comes from a vendor different from both.
 
 Examples (illustrative, non-normative):
 
-- Requestor: Human; Reviewer: Human
-- Requestor: Human; Reviewer: AI Agent (any vendor or product, for example Codex or Devin)
-- Requestor: AI Agent (for example Claude Code); Reviewer: AI Agent from a distinct vendor or product (for example Codex or Devin)
-- Requestor: AI Agent (any vendor or product, for example Claude Code); Reviewer: Human
-- Requestor: AI Agent (any vendor or product, for example Claude Code); Reviewer: External Review Service
+- Requestor: AI Agent (for example Claude Code); Reviewer: AI Agent from a distinct vendor (for example Codex or Devin); fallback Reviewer: AI Agent from a third vendor
+- Requestor: AI Agent (for example Claude Code); Reviewer: External Review Service
 
-Separate sessions of the same participant identity do not satisfy the independence rule unless the project explicitly defines and justifies them as independently controlled participants.
+A review action, which is the recording of findings or of a re-check result, that is performed under an identity with the prefix `human:` is declined, with the issue code `reviewer-not-agent`. A `review.md` whose Reviewer carries that prefix is not a review report, so that the approval of the review result is rejected (Section 23.4) and a done gate of the kind `review` is not satisfied (Section 23.3). The decision owner and the Approver are humans and are not Reviewers. See AE-322.
+
+When the Reviewer cannot report, because its tool cannot run or ends without a report, the implementation switches to the fallback Reviewer by itself. The switch is recorded in `review.md` with the reason, the status report shows it (Section 23.8), and the history records it with the approval of the review result. The fallback Reviewer is bound by the same rules as the Reviewer.
+
+Separate sessions of the same participant identity do not satisfy the independence rule unless the project explicitly defines and justifies them as independently controlled participants. A Reviewer from the same vendor as the Requestor is declined, with the issue code `reviewer-same-vendor`.
 
 Whether a participant is a human is a claim that is evidenced at an assurance level (Section 24.3).
+
+**AE-322 — A review performed by a human is declined**
+
+Given a `core` change with a required Pair Review whose Requestor is `agent:builder` (Anthropic) and whose Reviewer is `agent:devin` (Cognition), and a `review.md` that names `human:ada` as the Reviewer
+When the decision owner approves the review result with the approval target `review`
+Then the approval is rejected with the issue code `reviewer-not-agent`, and a done gate of the kind `review` stays unsatisfied
 
 ### 14.3 Review Cycle
 
@@ -535,7 +610,7 @@ A Pair Review cycle is bounded. It consists of one review round and at most one 
 6. record the disposition of each finding,
 7. preserve the final review result as evidence.
 
-In the **review round**, the Reviewer reports every finding that the scope and criteria cover. The decision owner is the person who owns the repository of the project, or the person that the review scope names as the decision owner; neither the Requestor nor the Reviewer is the decision owner of its own work. The decision owner then marks each finding `fix`, `defer`, or `reject`, with a reason. The Requestor applies the findings marked `fix`.
+In the **review round**, the Reviewer reports every finding that the scope and criteria cover. The decision owner is the human that the review scope names, one for the whole review; when the scope names none, it is the Approver of the change (Section 3.11). Neither the Requestor nor the Reviewer is the decision owner of its own work. The decision owner then marks each finding `fix`, `defer`, or `reject`, with a reason. The Requestor applies the findings marked `fix`.
 
 In the **re-check**, the Reviewer checks only the findings marked `fix` and reports each as `verified` or `open`. The re-check MUST NOT raise a finding about text that the review round covered. It MAY raise a finding about a defect that a fix itself introduced.
 
@@ -773,7 +848,7 @@ The change definition MUST contain these fields:
 - `id`: the identifier of the change, which follows the syntax of Section 4.3 and is unique among the changes of the project;
 - `method_profile`: the method profile of the change, which is `core` (Section 5.6);
 - `compliance_profile`: the compliance profile of the change (Section 5.1), which Section 5.6 requires to equal the active compliance profile of the project;
-- `author` and `owner`: the participant that wrote the change and the participant responsible for it;
+- `author` and `owner`: the human that wrote the change (the Author) and the human responsible for it (the Change owner), as Section 3.11 states; and OPTIONALLY `approver`, the human who approves the change (Section 3.11);
 - `goal`: with `problem`, `done_when`, and `non_goals`, as Section 3.1 requires;
 - `scope`: with `allow`, the list of path patterns the change MAY touch (Section 24.5);
 - `requirements`: the requirements of the change, each with text, examples, the `done_when` sentences it covers, and evidence commands (Section 24.9);
@@ -854,7 +929,7 @@ A condition that holds none of these members, that holds two or more of them, th
 
 A `core` fail gate holds an `id`, a `severity`, and a condition. It states no required response, no permitted preservation actions, and no documentation: the response to an active fail gate is fixed by Section 24.7, a closure as failed for the severity `hard` and a wait for a human disposition for the severity `soft`, and the preservation of the history and the evidence is the work of Sections 24.4 and 24.9.
 
-Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3); or `review`, satisfied by a complete review report. A done gate of the kind `review` is satisfied only when all of these hold: `review.md` exists in the change directory and follows the layout of Section 14.5; the history records its content hash; every finding of the severity `blocking` or `critical` has a decision of the decision owner; and every finding marked `fix` is `verified`, or is `open` and dispositioned `accepted` or `deferred`. The gate is not satisfied otherwise, and the record names what is missing. The gate reads the file at the closure and checks its content hash against the one that the approval with the target `review` recorded; a `review.md` edited after that approval does not satisfy the gate until the decision owner approves it again. The read-only action `review` (Section 23.4) is not a kind of gate. A change definition with a duplicate gate identifier, a done gate without a kind, a done gate with more than one kind, a done gate of another kind, or a fail gate without a severity MUST be rejected. See AE-016, AE-316.
+Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3); or `review`, satisfied by a complete review report. A done gate of the kind `review` is satisfied only when all of these hold: `review.md` exists in the change directory, follows the layout of Section 14.5, and names a Reviewer that is not a human (Section 14.2); the history records its content hash; every finding of the severity `blocking` or `critical` has a decision of the decision owner; and every finding marked `fix` is `verified`, or is `open` and dispositioned `accepted` or `deferred`. The gate is not satisfied otherwise, and the record names what is missing. The gate reads the file at the closure and checks its content hash against the one that the approval with the target `review` recorded; a `review.md` edited after that approval does not satisfy the gate until the decision owner approves it again. The read-only action `review` (Section 23.4) is not a kind of gate. A change definition with a duplicate gate identifier, a done gate without a kind, a done gate with more than one kind, a done gate of another kind, or a fail gate without a severity MUST be rejected. See AE-016, AE-316.
 
 **AE-016 — A done gate of an unknown kind is rejected**
 
@@ -887,9 +962,11 @@ A `core` change changes state only through the actions of the table below. An ac
 | `supersede` | Any state except `closed` | The preconditions of `cancel` hold, including that differing gate definitions do not prevent the action (Section 24.1), and `replaced_by` names a different change that exists and is not `closed`. The action is performed by a human and records a reason. | As `cancel`, with `replaced_by` recorded in the closed change. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-028. |
 | `conflict` | `active` | Two documents are named and a text is given (Section 13.1). The owner of the question is the owner of the change. | The state `waiting`, with a wait record of kind `question`, and an unanswered question that names the two documents. See AE-314. |
+| `handover` | Any state except `closed` | The actor is the Owner or the current Change owner, a new Change owner who is an approved human is named, and a reason is given. | The state and the outcome do not change, the field `owner` of the change definition is updated by the action, and the history records the handover. See AE-325. |
+| `reassign` | Any state except `closed` | The actor is the Change owner or the Owner, the question or the wait is named, a new owner who is an approved human is named (never an agent), and a reason is given. | The state and the outcome do not change, and the history records the new owner and the reason. |
 | `repair` | Any state | The history is not consistent, or is truncated or rewritten (Section 24.4). The actor is the owner of the project and gives a written reason. | The state and the outcome do not change as a result of the repair itself, and the history continues with a `repaired` entry (Section 24.4). See AE-317. |
 
-The actions `approve`, `fail`, `cancel`, `supersede`, `adopt`, and `repair` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-020.
+The actions `approve`, `fail`, `cancel`, `supersede`, `adopt`, `repair`, `handover`, and `reassign` MUST be performed by a human participant. The actions `new`, `start`, `ask`, `wait`, `conflict`, `resume`, and `close` that an agent performs MUST be performed by an agent that the settings list as a Requestor; an agent that is not listed is declined with the issue code `requestor-not-approved` (Section 3.11). An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-020.
 
 The actions `check`, `review`, `guard`, and `check-scope` (Section 22.4) are read-only. The action `check-scope` reports at any time, without changing anything, whether the paths changed since the base revision lie inside the allowed path list (Section 24.5), so that an agent or a hook finds a scope violation early. The status report shows the same early warning (Section 23.8), and the failure is still decided by the action that evaluates the gates. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table.
 
@@ -914,6 +991,8 @@ A `follows` field is a reference and not a state transition: it never changes th
 | `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or names a change that is `closed`. | Never. |
 | `adopt` | The history already has an anchor. | Never. |
 | `conflict` | The state is not `active`, or fewer than two documents or no text is given. | Never. |
+| `handover` | The state is `closed`, the actor is neither the Owner nor the current Change owner, the new owner is not an approved human, or no reason is given. | Never. |
+| `reassign` | The state is `closed`, the actor is neither the Change owner nor the Owner, the question or the wait does not exist, the new owner is an agent or not an approved human, or no reason is given. | Never. |
 | `repair` | The history is consistent and complete, or the actor is not the owner of the project, or no reason is given. | Never. |
 
 A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-017.
@@ -1116,6 +1195,8 @@ The report MUST show these warnings where they apply, and no warning blocks anyt
 - a wait of the kind `external` whose cause may be gone: `ready to resume` (Section 23.5), and a wait whose question was answered by someone who may not resume: `ready to resume`, naming who can resume (Section 23.4);
 - no anchor is set, so that the history protects against accident and partial tampering only (Section 24.4);
 - no list of approved humans is set (Section 24.3);
+- a fallback was used for a role: the Approver, the Decision owner, the Change owner, the Author, the owner of a question or wait, or the Reviewer (Section 3.11);
+- `team_mode` is `solo`, or no deputy exists (Section 3.11);
 - a sign-off that is stale because the gate definitions changed since the sign-off (Section 24.3);
 - a path outside the allowed path list that has changed already (Section 23.4, `check-scope`);
 - a baseline entry whose review date has passed (Section 24.6);
@@ -1178,7 +1259,7 @@ Every state-changing operation MUST first compute the hash of the current gate d
 
 Three operations are exempt from the comparison and MUST NOT be stopped by it: `cancel`, `supersede`, and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` and `supersede` ensures that a change whose definitions were altered can always be ended, and `supersede` behaves exactly like `cancel`: it is performed by a human and records a reason. The approval that replaces the approved hash is the re-approval; without its exemption, no change could leave this state.
 
-The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. The human is the owner of the project or an approved deputy (Section 24.3). It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash, and holds a short before and after of the changed gates and of the changed lines of the specification. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7).
+The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. The human is the Approver of the change, the Owner of the project, or a deputy (Sections 3.11 and 24.3). It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash, and holds a short before and after of the changed gates and of the changed lines of the specification. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7).
 
 **Approval summary.** Before an approval is recorded, the implementation shows the human a summary, and the approval is recorded only after the human has seen it. The summary shows: what changed since the last approval, or `first approval` when there is none; for every fail gate its severity `hard` or `soft`, flagging a gate whose severity is softer than the default severity of fail gates (Section 24.7); the retry limits and the default retry limit (Section 24.7); which rules the implementation enforces and which are conduct only (Section 19.1); whether an anchor is set (Section 24.4); and, for a re-approval, any override that would lapse with the number of attempts that are left, and any sign-off that would become stale. See AE-319.
 
@@ -1288,7 +1369,7 @@ For the kinds of action that an approval record covers, which are the approval o
 
 These actions MUST be performed by a human: every approval, the sign-off of a gate, an override, an answer to a question whose owner is a human, `cancel`, `supersede`, `fail`, and `adopt`. The identity of a human is written with the prefix `human:`. An identity without that prefix is not a human, and an action that requires a human MUST be rejected when the identity that performs it does not carry the prefix. The prefix is part of the claim: at A0 it is self-declared, and at A1 or A2 it is as well verified as the claim is. See AE-040, AE-108.
 
-**Approved humans.** The project configuration holds the list of approved humans: the owner of the project and the named deputies, each with the identity written with the prefix `human:` and the account of the hosting service (a GitHub user) that belongs to it. When the list is absent, every identity with the prefix `human:` is accepted as before, and the status report warns that no list is set (Section 23.8). When the list is present, an action that requires a human MUST be rejected, with the issue code `human-not-approved`, when the identity is not on the list. Only the owner of the project changes the list. A deputy MAY give the re-approval of gate definitions (Section 24.1) and any other human-only action, but MAY NOT change the list. The history records, with every human-only action, the typed identity and the real account that the implementation reads from version control or from the hosting service, so that a difference between them is visible afterwards. The list is a file of the repository and this specification does not protect it, in the same way as the project configuration above. The Signing Extension remains optional. See AE-320.
+**Approved humans.** The project configuration holds the list of approved humans: the owner of the project and the named deputies, each with the identity written with the prefix `human:` and the account of the hosting service (a GitHub user) that belongs to it. When the list is absent, every identity with the prefix `human:` is accepted as before, and the status report warns that no list is set (Section 23.8). When the list is present, an action that requires a human MUST be rejected, with the issue code `human-not-approved`, when the identity is not on the list. Only the owner of the project changes the list. A deputy MAY give the re-approval of gate definitions (Section 24.1), and MAY stand in for an Approver or a Change owner whom the Owner has recorded as unavailable (Section 3.11). A deputy MUST NOT use `repair`, change the lists, or change the Owner. The history records, with every human-only action, the typed identity and the real account that the implementation reads from version control or from the hosting service, so that a difference between them is visible afterwards. The list is a file of the repository and this specification does not protect it, in the same way as the project configuration above. The Signing Extension remains optional. See AE-320.
 
 **Resuming.** The identity that answered a question may resume the change when it is on the list of approved humans or when it is the owner of the wait record; otherwise the status report says `ready to resume` and names who can resume (Section 23.8).
 
