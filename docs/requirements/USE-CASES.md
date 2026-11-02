@@ -279,4 +279,4 @@ Action names in `code font` are the commands of the method: `new`, `approve`, `s
 
 **Spec:** 3.11, 4.2, 23.4, 23.8. **Needs:** UR-21.
 
-**Decision:** proposed.
+**Decision:** keep, as decided in UR-21 (the examples are checked by the tool and each has a "how to read this example" page).

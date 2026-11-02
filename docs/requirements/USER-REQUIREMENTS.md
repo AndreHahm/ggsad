@@ -310,4 +310,4 @@ Words used: a **change** is one piece of work with its own folder. A **gate** is
 
 **Spec:** 4.2, 3.11, 23. **Replaces:** nothing (the legacy CHG-002 draft was discarded).
 
-**Decision:** proposed. (Keep, change, or defer? Suggested changes: 1 = the examples are checked by the tool, so a wrong example fails the repository checks; 2 = as 1, plus one short "how to read this example" page per folder.)
+**Decision:** keep, with two additions: (1) the tool checks the examples: the repository checks fail when an example no longer follows the specification (every example change definition is validated against the rules of Section 23); (2) each example folder gets a short "how to read this example" page that tells the story in plain words. The end-to-end run of the examples through the tool (suggested change 3) is not part of this decision.
