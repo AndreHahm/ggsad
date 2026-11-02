@@ -1303,7 +1303,7 @@ Every evaluation of a gate ends in exactly one of three results:
 
 A done gate is met when its result is `satisfied`. A fail gate and a wait gate are active when their result is `satisfied`, that is, when the condition they describe holds. Every result is recorded in the history together with the gate it belongs to. A record of a result whose name is in another letter case, or is any other name than the three results, is not a result and MUST be rejected. The marker `not_applicable` is not a result, and it is the one other value that a record of an evaluation holds in place of a result (Section 25.1). See AE-075.
 
-A gate cannot be evaluated when any of these holds. Without the list `required_tools`, no program is approved, so a command that cannot start is `not_satisfied`. A command that cannot start for a reason other than the missing approved program of the first item, including a program that is not on the list `required_tools` of the change (Section 23.1), is not a case of `not_evaluable`: its result is `not_satisfied`, and the record names the cause.
+A gate cannot be evaluated when any of these holds:
 
 - the command of the gate cannot start because a program that the list `required_tools` approves is missing;
 - the command exceeds the time limit that the gate declares and is stopped;
@@ -1312,6 +1312,17 @@ A gate cannot be evaluated when any of these holds. Without the list `required_t
 - version control is unavailable to a gate that needs it;
 - the gate needs the base revision and the change has started without one (Section 24.5);
 - any other exception occurs during the evaluation.
+
+The kind of gate decides what a command that cannot start means, so that no condition passes unchecked:
+
+- A done gate and an evidence command (Section 24.9) whose command cannot start for any reason other than the missing approved program of the first item above have the result `not_satisfied`, and the record names the cause. This covers a project that has no list `required_tools` (no program is approved then), a program that is not on the list `required_tools` of the change (Section 23.1), and a program that exists and fails to start, for example because the permission to run it is denied. The result blocks the closure, so that the check cannot be passed by not running it.
+- A fail gate and a wait gate whose command cannot start for any reason have the result `not_evaluable`, and the change waits as Section 24.2 states below. The result `not_satisfied` would make the gate inactive (the gate is active when its result is `satisfied`), so that a condition which was not checked would let the change start or close. See AE-327.
+
+**AE-327 — A fail gate whose program cannot start makes the change wait, and a done gate fails**
+
+Given two `active` `core` changes whose `required_tools` does not list `lintx`: the first has the hard fail gate `no-secrets`, whose command needs the program `scan` that is missing, and the second has the `check` done gate `lint`, whose program is `lintx`  
+When the `close` action is requested for each change  
+Then the first change is `waiting` with a wait record of kind `external` and does not close, because the result of `no-secrets` is `not_evaluable`, and the second change does not close, because the result of `lint` is `not_satisfied` and the record names the cause
 
 A gate that is `not_evaluable` is not a failure. Its result MUST NOT be recorded as `not_satisfied`, it MUST NOT make a fail gate active, and it MUST NOT count toward any retry limit. The record of the result MUST name the gate and the cause. See AE-038.
 
