@@ -3,6 +3,7 @@
 **Version:** 2.0 (draft)
 **Status:** Draft, pending owner approval and independent review  
 **Revision:** 2026-10-31 — Restructured around the `core` method profile. The `full` method profile, the automation contract, the state document with its hashing and schema versions, and the signature verification moved to their own documents (Section 1.1). Pair Review is bounded to one round and one re-check (Section 14.3). The acceptance examples were reduced from 326 to a representative set and renumbered in order.  
+**Revision:** 2026-11-02 — Applied the owner decisions of the requirements interview (`docs/requirements/`): combination mode and layer 5 moved to "future"; approved-human list; `review` gate; follow-up change; `repair`, `conflict`, `check-scope`; status report (Section 23.8); human close; default retry limit; baseline reasons; required tools. New examples are numbered from AE-313.  
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
 
 ---
@@ -22,10 +23,9 @@ GG-SAD defines:
 
 GG-SAD does not require epics, sprints, story points, role models, or ceremonies. The primary unit of work is a **goal-bound change**.
 
-GG-SAD MUST be usable in two operating modes:
+GG-SAD MUST be usable in **stand-alone mode**, where GG-SAD provides the governing method and execution flow, and it MUST NOT depend on a specific agent, IDE, or framework.
 
-- **stand-alone mode**, where GG-SAD provides the governing method and execution flow;
-- **combination mode**, where GG-SAD governs goals, gates, evidence, state, and precedence while another method, framework, tool, or agent platform supplies planning, execution, review, context engineering, or automation capabilities.
+**Combination mode**, where GG-SAD governs goals, gates, evidence, state, and precedence while another method, framework, tool, or agent platform supplies planning, execution, review, context engineering, or automation capabilities, is described in Sections 3.8 and 17 but is a future capability. It is described and not built. An implementation MUST refuse to start when the project configuration asks for combination mode, and its message MUST say that combination mode is not supported.
 
 ### 1.1 Document Scope and Moved Sections
 
@@ -41,7 +41,7 @@ This specification contains the `core` method. Three further documents in `docs/
 | `GG-SAD_signing_extension.md` | 24.3 as extended (assurance levels A1 and A2, signed approval) | Optional extension |
 | `GG-SAD_full_profile_deferred.md` | 4.1, 5.5, 6 to 10, 16.1 to 16.4, the flow diagram of old Section 21, and the examples of the `full` method profile | Deferred, not normative |
 
-A reference in this document to a section of one of these documents names that document. A bare reference to Section 22 or 25, or to a subsection of them, names `GG-SAD_implementation_contract.md`. An `AE-nnn` reference names the document that defines the example: `AE-001` to `AE-066` are in this document, `AE-067` to `AE-103` in `GG-SAD_implementation_contract.md`, and `AE-104` to `AE-109` in `GG-SAD_signing_extension.md`.
+A reference in this document to a section of one of these documents names that document. A bare reference to Section 22 or 25, or to a subsection of them, names `GG-SAD_implementation_contract.md`. An `AE-nnn` reference names the document that defines the example: `AE-001` to `AE-066` are in this document, `AE-067` to `AE-103` in `GG-SAD_implementation_contract.md`, and `AE-104` to `AE-109` in `GG-SAD_signing_extension.md`. The examples that follow the 2026-11-02 decisions are numbered `AE-313` onward and are in this document unless a section of another document says otherwise.
 
 ---
 
@@ -117,7 +117,7 @@ Tailoring MUST NOT remove the invariant core:
 
 GG-SAD MUST remain independent from a specific planning framework, coding agent, IDE, issue tracker, or delivery platform.
 
-In combination mode:
+Combination mode is a future capability (Section 1). When it is built, these rules will apply to it:
 
 - GG-SAD owns governance semantics, state, gates, precedence, and closure;
 - the integrated method or tool MAY own subordinate planning or execution artifacts;
@@ -125,7 +125,7 @@ In combination mode:
 - external workflows MUST NOT bypass GG-SAD gates or weaken the active compliance profile;
 - conflicts MUST be resolved according to the GG-SAD document hierarchy.
 
-An integration mapping for an external framework or tool is the fifth layer of the resolution in Section 5.3, and it MUST NOT weaken a higher layer.
+An integration mapping for an external framework or tool will be a fifth layer of the resolution in Section 5.3. That layer is not active today (Section 5.3).
 
 ---
 
@@ -175,6 +175,21 @@ In case of conflict between project documents, the following priority applies:
 
 A change MUST NOT silently override a higher-ranking document.
 
+When a requirement of a change is set aside because it contradicts a higher-ranking document, the implementation or the agent MUST tell the owner openly, in this form: `requirement <id> was not applied, because it needs an approved change in <higher-ranking document>`. The message is recorded in the history of the change.
+
+Two guards make an override of a higher-ranking document visible:
+
+1. **Fingerprint of the higher documents.** When the specification of a change is approved, the implementation records the content hash (Section 25.2) of each document that ranks above the specification (items 1 to 4 above). While any of these hashes differs from the recorded one, every state-changing operation except `cancel` and the approval of the edit MUST be rejected with the issue code `higher-documents-changed`, whose message names the documents. A human approves the edit with the approval target `documents`, which replaces the recorded hashes and is recorded as an amendment.
+2. **Conflict line.** `spec.md` carries the line `Conflicts with higher documents: none` or `Conflicts with higher documents: <list>`. A human confirms the line when approving the specification. The implementation checks only that the line exists: the approval of a specification without the line MUST be rejected with the issue code `conflict-line-missing`. It does not judge whether the line is true.
+
+See AE-313.
+
+**AE-313 — An edit of a higher-ranking document stops the change until a human approves it**
+
+Given an `active` `core` change whose specification was approved, and `docs/architecture.md` edited afterwards  
+When the `close` action is requested  
+Then the result is `rejected` with `changed` false and the issue code `higher-documents-changed` that names `docs/architecture.md`, and the change can continue after a human approves the target `documents`
+
 ### 4.2 Project-Wide Documents
 
 ```text
@@ -196,6 +211,15 @@ The files under `docs/definitions/` contain the project-wide standard gates. Loc
 
 Existing accepted ADRs take precedence over new requirements and plans.
 
+The documents that a project MUST have depend on its compliance profile (Section 5.1):
+
+| Compliance profile | Required documents | Optional documents |
+|---|---|---|
+| `lean` | `docs/project-brief.md`, `docs/constitution.md` | `docs/architecture.md`, `docs/roadmap.md`, `docs/definitions/`, `docs/adr/` |
+| `standard`, `governed`, `regulated` | `docs/project-brief.md`, `docs/constitution.md`, `docs/architecture.md`, `docs/roadmap.md` | `docs/definitions/`, `docs/adr/` |
+
+When the specification or the gate definitions of a change are approved and a required document is missing, the implementation MUST warn and MUST NOT block the approval. Each fact has one home (Section 3.5): a document names a fact of another document by reference.
+
 ### 4.3 Change-Specific Documents
 
 A change keeps its documents in this layout:
@@ -208,7 +232,7 @@ specs/<change-id>/
 └── review.md
 ```
 
-`change.yaml`, `spec.md`, and `state.json` are the three documents of a change (Section 23.1). `review.md` and other review files are conditional, they are not documents of the change, and the scope check of Section 24.5 measures them like any other file that is not a record file.
+`change.yaml`, `spec.md`, and `state.json` are the three documents of a change (Section 23.1). `review.md` is conditional. It is the single place where the result of a Pair Review is kept (Section 14.5) and the file that a done gate of the kind `review` reads (Section 23.3). It is not a document of the change, and the scope check of Section 24.5 does not measure it. Other review files are not documents of the change, and the scope check measures them like any other file that is not a record file.
 
 The identifier of a change, which is the `id` of the change definition (Section 23.1), names the directory `specs/<change-id>/` of the change. The whole identifier MUST match `[A-Za-z0-9][A-Za-z0-9._-]*`, so that it holds no path separator. It MUST NOT end with the character `.`. The part of the identifier before its first dot, which is the whole identifier when it holds no dot, MUST NOT be `con`, `prn`, `aux`, `nul`, `com1` to `com9`, or `lpt1` to `lpt9`, compared after the ASCII upper case letters are folded to lower case. Two identifiers that are equal after that folding name the same directory on a file system that ignores letter case, so an identifier MUST also be unique among the changes of the project after the folding: an identifier that differs from the identifier of an existing change only in the case of ASCII letters is not unique. The same syntax applies to the values of `follows` and `replaced_by`, which name a change by its identifier. A definition with an identifier that does not follow these rules is rejected, and nothing is written. See AE-001.
 
@@ -239,6 +263,19 @@ GG-SAD defines the following default compliance profiles:
 | `governed` | Enterprise or high-impact delivery | Strong traceability, explicit approvals, security and architecture review, controlled release evidence |
 | `regulated` | Regulated, safety-critical, or externally audited work | Segregation of duties, immutable or retained evidence, formal approvals, compliance mappings, audit-ready history |
 
+The core rules of this specification are the same for all four profiles. The profiles differ only in these respects:
+
+| Compliance profile | What it changes in the rules of this specification |
+|---|---|
+| `lean` | A human who requested the work MAY approve it (Section 5.4). Pair Review MAY be omitted (Section 14.1). Fewer project documents are required (Section 4.2). |
+| `standard` | Pair Review is applied where practical. The four project documents of Section 4.2 are required. |
+| `governed` | As `standard`, and Pair Review SHOULD be required for relevant high-impact changes (Section 14.1). |
+| `regulated` | As `governed`, and the project SHOULD require three distinct participants for Requestor, Reviewer, and Approver (Section 3.10). |
+
+A compliance profile reaches an assurance level only through a gate or the project configuration (Section 24.3).
+
+The profile in `.ggsad/config.yaml` and the profile in `docs/project-brief.md` MUST be equal. An implementation MUST report a difference, and it MUST NOT create a change while they differ. An implementation MAY offer an `init` operation that takes the profile once and creates the configuration, the brief, and the template documents that the profile requires (Section 4.2); it MUST NOT overwrite an existing file (Section 22.1).
+
 Projects MAY define additional compliance profiles. Custom compliance profiles MUST inherit from a default compliance profile or explicitly document every invariant and deviation.
 
 ### 5.2 Tailoring Dimensions
@@ -252,10 +289,9 @@ A compliance profile MAY tailor:
 - evidence retention and provenance,
 - human approval requirements,
 - Pair Review activation, reviewer independence, review scope, and finding severity rules,
-- enabled practice profiles and combination recipes,
+- enabled practice profiles,
 - agent permissions and autonomy,
-- release, rollback, and monitoring requirements,
-- integration mappings to external methods and tools.
+- release, rollback, and monitoring requirements.
 
 A compliance profile of lower compliance MAY reduce optional controls. It MUST NOT disable the invariant core defined in Section 3.7.
 
@@ -268,18 +304,17 @@ The effective workflow MUST be resolved in this order:
 1. GG-SAD invariant core,
 2. selected method profile and compliance profile, resolved together,
 3. project-specific configuration,
-4. local strengthening in the change definition,
-5. integration mappings for external frameworks and tools.
+4. local strengthening in the change definition.
 
 A lower layer MUST NOT weaken a higher layer.
 
-Layer 2 is one layer that holds two things. The method profile (Section 5.6) and the compliance profile (Section 5.1) of a change are resolved together, and neither ranks above the other. The number of layers is five, and no layer is added.
+Layer 2 is one layer that holds two things. The method profile (Section 5.6) and the compliance profile (Section 5.1) of a change are resolved together, and neither ranks above the other. Four layers are active. A fifth layer, integration mappings for external frameworks and tools, is a future capability that moves with combination mode (Sections 3.8 and 17). Until it is built, no layer is added and no integration mapping affects the resolution.
 
 A lower layer weakens a higher layer when it does any of these things to a gate that the higher layer defines: it removes the gate, that is, it states that the gate does not apply or it leaves the gate out of a definition that replaces the gates of the higher layer; it alters the condition of the gate, including its kind and every other declaration that Section 24.1 fixes; it lowers its severity (Section 24.7); or it lowers the assurance level that the gate or the action requires (Section 24.3), where a lower statement of an assurance level is neutralized and is not rejected (see below). A lower layer strengthens a higher layer when it adds a gate with an identifier of its own, or when the project configuration raises a required assurance level. Strengthening is permitted at every layer. A lower layer MUST NOT strengthen by redefining a gate of a higher layer: it adds a gate of its own instead. The result of the resolution MUST NOT depend on the order in which layers or their entries are listed, and an entry that is listed later never overrides an entry of a higher layer. See AE-002, AE-004.
 
 The required assurance level of an action is the higher of the levels that the layers state (Section 24.3). A lower layer that states a lower level than a higher layer requires for the same kind of action therefore does not lower it: the statement is neutralized, that is, it is accepted, it has no effect, and it is not a cause of rejection. See AE-003.
 
-A `core` change implements layers 1 to 4. Layer 1 is the invariant core of Section 3.7 with the protections of Section 24. Layer 2 supplies the base gates of Section 23.7 together with the rules of the compliance profile. Layer 3 is the project configuration, for example the minimum assurance levels of Section 24.3. Layer 4 is the gates and the scope of the change definition (Section 23.1). Layer 5 gives a `core` change no gate, because a `core` change does not use integration mappings: its gates are the base gates of Section 23.7 and the gates of its change definition, and a mapping adds none. The combination mode of Sections 3.8 and 17 is optional integration guidance, and the reference implementation does not build it. Where layer 5 applies, it MUST NOT weaken a higher layer, and no external workflow bypasses a gate (Section 3.8). The layers are never renumbered.
+A `core` change implements layers 1 to 4. Layer 1 is the invariant core of Section 3.7 with the protections of Section 24. Layer 2 supplies the base gates of Section 23.7 together with the rules of the compliance profile. Layer 3 is the project configuration, for example the minimum assurance levels of Section 24.3. Layer 4 is the gates and the scope of the change definition (Section 23.1). A `core` change does not use integration mappings: its gates are the base gates of Section 23.7 and the gates of its change definition. The combination mode of Sections 3.8 and 17 is a future capability, and the reference implementation does not build it. When the fifth layer is built, it MUST NOT weaken a higher layer, and no external workflow bypasses a gate (Section 3.8). The layers are never renumbered.
 
 An implementation MUST check that a change does not weaken a higher layer when the change is created, and again before the gate definitions of the change are approved (Section 24.1), because a definition can be edited after the change is created. For a `core` change the check compares the change definition with the base gates of Section 23.7. A change definition that states that a base gate does not apply, or that lists a gate with the identifier of a base gate, redefines that base gate. It MUST be rejected with the result `rejected` and `changed` false (Section 22.2), and nothing is written. The stable issue code is `gate-weakened` when the definition states that the base gate does not apply, or when the listed gate differs from the base gate in its kind, its condition, or its severity. The message names the gate and the manner of the weakening: removed, altered, or severity lowered. A listed gate that does not differ from the base gate is rejected as a duplicate identifier (Section 23.3). See AE-002, AE-005.
 
@@ -374,6 +409,8 @@ Every wait state MUST include:
 
 The fields are `reason`, `outstanding` (the outstanding information or decision), `owner` (the responsible person or source), and `resume_when`. Section 23.5 defines the wait record, and the state document records it in the field `wait` (Section 25.1).
 
+An overdue wait (Section 23.5) is shown as a warning in every status report and names the owner who must act (Section 23.8). Nothing happens automatically.
+
 ### 11.3 AI Agent Behavior in a Wait State
 
 An AI agent MUST:
@@ -426,6 +463,14 @@ When a requirement conflicts with an ADR, the agent MUST:
 5. communicate and reference the decision.
 
 An existing ADR MUST only be changed or replaced through an explicitly approved change flow. See AE-009.
+
+An implementation SHOULD offer the `conflict` action (Section 23.4) for steps 1 to 4: the agent names the two documents that disagree and gives a text, and the implementation records an unanswered question for the owner of the change, puts the change into the state `waiting` with a wait record of kind `question`, and names the two documents in the question. The change cannot close while the question is unanswered (Section 24.8). An agent that does not use the action is still bound by the steps above; the action makes the stop visible and does not replace the duty. See AE-314.
+
+**AE-314 — The conflict action stops the change and names both documents**
+
+Given an `active` change whose requirement R2 conflicts with the accepted ADR `ADR-004`  
+When the agent requests the `conflict` action with the documents `spec.md` and `docs/adr/ADR-004.md` and the text `R2 conflicts with ADR-004`  
+Then the change is `waiting` with a wait record of kind `question`, the question Q1 names both documents, and a `close` request answers `blocked` while Q1 is unanswered
 
 **AE-009 — An agent stops on a conflict with an accepted ADR and returns the requirement**
 
@@ -532,7 +577,9 @@ Then the unresolved blocking finding blocks the completion of the first change, 
 
 ### 14.5 Review Artifacts
 
-Pair Review evidence MAY be recorded in the history of the change or in `review.md`. A separate `review.md` is conditional and SHOULD be required only when review complexity, retention, auditability, or compliance justifies it.
+The result of a Pair Review is kept in one place: `review.md` in the change directory, and the history of the change records the content hash of `review.md` (Section 25.2) at each review action. `review.md` is conditional: a change without a required Pair Review has none.
+
+`review.md` has a fixed layout so that a done gate of the kind `review` (Section 23.3) can read it. It holds the eight-field evidence record below and, for each finding, a row with these columns: finding ID, severity, decision of the decision owner (`fix`, `defer`, or `reject`), reason, and status (`verified`, `open`, `accepted`, or `deferred`). A `review.md` that does not follow this layout is not a review report.
 
 Review findings are not requirements and do not override higher-ranking artifacts. A finding that requires a requirement or architecture change MUST trigger the appropriate specification or ADR workflow.
 
@@ -573,7 +620,9 @@ The form of `spec.md` and `change.yaml` of a `core` change is Section 23.1. The 
 
 ## 17. Combination Contracts
 
-Each external integration MUST define a mapping contract containing:
+This section describes a future capability (Section 1). It is described and not built, and an implementation refuses to start in combination mode (Section 1).
+
+Each external integration will have to define a mapping contract containing:
 
 - integration name and version,
 - purpose and owned capabilities,
@@ -586,7 +635,7 @@ Each external integration MUST define a mapping contract containing:
 
 GG-SAD MAY be combined with methods such as GSD, OpenSpec, Spec Kit, or BMAD and with tools such as Hermes or Kiro. These names are examples, not normative dependencies.
 
-An integration mapping is layer 5 of the resolution of Section 5.3. It MUST NOT weaken a higher layer, and it adds no gate to a `core` change.
+An integration mapping will be layer 5 of the resolution of Section 5.3, which is not active today. It MUST NOT weaken a higher layer, and it adds no gate to a `core` change.
 
 ## 18. GG-SAD Memory Model
 
@@ -600,7 +649,9 @@ The memory MUST support at least these record types:
 - **Definition** — glossary terms, domain language, abbreviations, and canonical meanings;
 - **External Source** — referenced external information with provenance, retrieval date, relevance, and trust metadata.
 
-Architecture decisions MUST remain ADRs. A memory decision MUST NOT be used to avoid the ADR process.
+Architecture decisions MUST remain ADRs. A memory decision MUST NOT be used to avoid the ADR process. When a memory record and an accepted ADR disagree, the ADR governs and the memory record MUST be marked `outdated`.
+
+Each record type has a small template with these fields: date, title, one sentence, and a link to the source. A record MAY carry more fields (below); these four are the minimum.
 
 Memory records MUST include stable IDs, scope, provenance, status, timestamps, and links to related artifacts. Retrieval MUST respect project permissions and the active compliance profile.
 
@@ -609,7 +660,7 @@ Memory records MUST include stable IDs, scope, provenance, status, timestamps, a
 An AI agent MUST use the following process for every active change:
 
 ```text
-1. Load the project brief, project-wide rules, relevant ADRs, architecture, active compliance profile, integration mappings, and applicable memory records.
+1. Load the project brief, project-wide rules, relevant ADRs, architecture, active compliance profile, and applicable memory records.
 2. Determine the state, goal, and scope of the change.
 3. Evaluate the fail gates, then the wait gates, then the done gates (Section 23.6).
 4. If the change may close, preserve the evidence and close it.
@@ -644,6 +695,10 @@ An AI agent MUST NOT:
 - conceal errors or reinterpret them as successful deviations,
 - work beyond the approved scope.
 
+Most of these prohibitions are conduct and not checks. The implementation enforces only these: the scope (Section 24.5), the gates (Sections 23.6 and 24.2), the human-only actions (Section 24.3), the frozen gate definitions (Section 24.1), the history (Section 24.4), the open questions (Section 24.8), and the executable evidence (Section 24.9). The approval summary (Section 24.1) lists which rules the implementation enforces and which are conduct only, so that the owner knows what the approval relies on.
+
+When an agent closes a change, it MUST hand in an agent report with the closing request: the errors it saw, the decisions it returned to the owner, and the exceptions it recorded. The history records the report. A closing request from an agent without it MUST be rejected with the issue code `agent-report-missing`. When a human closes a change, the report is optional, and the status report shows `no agent report` where there is none (Section 23.8).
+
 ---
 
 ## 20. Completion Criteria for a Change
@@ -656,7 +711,8 @@ A change is closed with the outcome `done`, representing successful completion, 
 - no open question is unanswered (Section 24.8),
 - all done gates are satisfied,
 - the executable evidence of every requirement is complete (Section 24.9),
-- required Pair Review cycles are complete and blocking findings are resolved or formally dispositioned,
+- required Pair Review cycles are complete and blocking findings are resolved or formally dispositioned, which a done gate of the kind `review` checks (Section 23.3),
+- a human performs the closing, unless the change definition declares `agent_may_close` (Section 23.1),
 - the final outcome is documented traceably.
 
 Each of these conditions has a counterpart in Section 23. An active fail condition is a fail gate that decides, an active wait condition is a wait gate that decides or a gate that cannot be evaluated, and a soft failure that awaits a human disposition is a fail gate of the severity `soft` (Section 23.6). An unanswered question is the unanswered question gate, and the executable evidence is the incomplete evidence gate (Section 23.7). The final outcome is the outcome of the change (Section 23.2). The change is completed by the `close` action of Section 23.4, which ends it in the state `closed` with the outcome `done`. See AE-012.
@@ -720,10 +776,20 @@ The change definition MUST contain these fields:
 - `author` and `owner`: the participant that wrote the change and the participant responsible for it;
 - `goal`: with `problem`, `done_when`, and `non_goals`, as Section 3.1 requires;
 - `scope`: with `allow`, the list of path patterns the change MAY touch (Section 24.5);
-- `requirements`: the requirements of the change, each with text, examples, and evidence commands (Section 24.9);
+- `requirements`: the requirements of the change, each with text, examples, the `done_when` sentences it covers, and evidence commands (Section 24.9);
 - `gates`: with the three lists `fail`, `wait`, and `done` (Section 23.3).
 
-The change definition MAY contain `follows`, the identifier of one earlier change that this change continues, which follows the syntax of Section 4.3. The change named in `follows` MUST exist and MUST be in the state `closed`. The field is a reference only: it never changes the state or the outcome of the named change.
+The change definition MAY contain `required_tools`, the approved list of programs that its commands need (Section 24.2), and `agent_may_close`, which is `true` when an agent MAY close the change as `done` (Section 23.4). Both are part of the gate definitions and are fixed with them (Section 24.1). A change definition without `agent_may_close` means that only a human closes the change as `done`.
+
+Each sentence of `done_when` MUST be covered by at least one requirement, and each requirement MUST list the `done_when` sentences that it covers. The approval of the gate definitions MUST be rejected with the issue code `done-when-uncovered`, whose message names the sentences, while a `done_when` sentence is not covered by a requirement that has at least one evidence command or a human check (Section 24.9). The check is structural: the implementation cannot judge whether the command proves the sentence, and the human who approves reviews that. See AE-315.
+
+**AE-315 — A done-when sentence without an evidence command refuses the approval**
+
+Given a change whose `done_when` holds the sentences S1 and S2, where S1 is covered by the requirement R1 with one evidence command and S2 is covered by no requirement  
+When a human approves the target `gates`  
+Then the approval is rejected with the issue code `done-when-uncovered` that names S2, and no approved hash is recorded
+
+The change definition MAY contain `follows`, the identifier of one earlier change that this change continues, which follows the syntax of Section 4.3. The change named in `follows` MUST exist and MUST be in the state `closed`. The field is a reference only: it never changes the state or the outcome of the named change. A **follow-up** is a new change that an implementation creates with `follows` set to a closed change and with the goal and the scope pre-filled from the closed change. It is an ordinary change in every other respect: it has its own identifier, its own approval, and its own history.
 
 The invariant core of Section 3.7 applies to a `core` change: the goal is `goal`, the specification anchor is `spec.md`, gate evaluation is Section 23.6, evidence is the requirement evidence of Section 24.9, controlled wait and fail behavior are Sections 23.5 and 24.7, and the traceable final status is the outcome of Section 23.2.
 
@@ -788,13 +854,19 @@ A condition that holds none of these members, that holds two or more of them, th
 
 A `core` fail gate holds an `id`, a `severity`, and a condition. It states no required response, no permitted preservation actions, and no documentation: the response to an active fail gate is fixed by Section 24.7, a closure as failed for the severity `hard` and a wait for a human disposition for the severity `soft`, and the preservation of the history and the evidence is the work of Sections 24.4 and 24.9.
 
-Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; or `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3). A done gate of the kind `review` is invalid and MUST be rejected, because no action records a review result that a gate could evaluate. A review before the closure of a change is a gate of the kind `sign-off`, which a human approves, or a gate of the kind `check`, whose command reports the result of the review. The review records of Section 14.5 are evidence that no gate evaluates, and the read-only action `review` (Section 23.4) is not a kind of gate. A change definition with a duplicate gate identifier, a done gate without a kind, a done gate with more than one kind, a done gate of another kind, or a fail gate without a severity MUST be rejected. See AE-016.
+Every gate has an `id` that is unique within the change, including the base gates of Section 23.7. A fail gate has a `severity`, which is `hard` or `soft` (Section 24.7), and a fail gate without a severity is invalid. A done gate has exactly one kind: `check`, a command evaluated as Section 24.2 defines; `sign-off`, satisfied by an approval of that gate recorded by a human (Section 24.3); or `review`, satisfied by a complete review report. A done gate of the kind `review` is satisfied only when all of these hold: `review.md` exists in the change directory and follows the layout of Section 14.5; the history records its content hash; every finding of the severity `blocking` or `critical` has a decision of the decision owner; and every finding marked `fix` is `verified`, or is `open` and dispositioned `accepted` or `deferred`. The gate is not satisfied otherwise, and the record names what is missing. The gate reads the file at the closure and checks its content hash against the one recorded. The read-only action `review` (Section 23.4) is not a kind of gate. A change definition with a duplicate gate identifier, a done gate without a kind, a done gate with more than one kind, a done gate of another kind, or a fail gate without a severity MUST be rejected. See AE-016, AE-316.
 
-**AE-016 — A done gate of the kind review is rejected**
+**AE-016 — A done gate of an unknown kind is rejected**
 
-Given a change definition with the done gate `code-review` of the kind `review`, and a second change definition with the done gates `tests-pass` of the kind `check` and `legal-ok` of the kind `sign-off`
+Given a change definition with the done gate `code-review` of the kind `peer`, and a second change definition with the done gates `tests-pass` of the kind `check`, `legal-ok` of the kind `sign-off`, and `code-review` of the kind `review`
 When the `new` action receives each of them
-Then the first definition is rejected, because a done gate of the kind `review` is invalid, and no change is created, and the second definition is accepted
+Then the first definition is rejected, because a done gate of the kind `peer` is not a kind of this specification, and no change is created, and the second definition is accepted
+
+**AE-316 — A review gate needs a complete review report**
+
+Given an `active` change with the done gate `code-review` of the kind `review`, and a `review.md` in which the finding `F-1` of the severity `blocking` has no decision of the decision owner  
+When the `close` action is requested  
+Then the gate is not satisfied, the record names `F-1` as missing a decision, and the change does not close
 
 ### 23.4 Actions and Transition Table
 
@@ -803,21 +875,23 @@ A `core` change changes state only through the actions of the table below. An ac
 | Action | Legal From | Precondition | Resulting State |
 |---|---|---|---|
 | `new` | No change with the given identifier exists | The change definition is valid under Sections 23.1 and 23.3, its method profile is selected under Section 5.6, its identifier follows the syntax of Section 4.3 and is unique, and `follows`, when present, names a closed change. | The state `open` with the outcome `null` and the initial record of Section 23.2, and the anchor at position 1 where an anchor is kept or required (Section 24.4). |
-| `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8). For `gates`, the gate definitions are valid under Section 23.3. For `all`, both conditions hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-018, AE-019, AE-020. |
-| `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), and none of the steps 1 to 4 of Section 23.6 would decide, so that a fail gate that is active, a gate that cannot be evaluated, or a wait gate that is active prevents the start. | The state `active`, with the base revision recorded. See AE-021. |
+| `approve` | Any state except `closed` | The approval has one target. For `spec`, no question is unanswered (Section 24.8) and `spec.md` carries the conflict line (Section 4). For `gates`, the gate definitions are valid under Section 23.3 and every `done_when` sentence is covered (Section 23.1). For `documents`, the recorded hashes of the higher-ranking documents differ from the current ones (Section 4). For `all`, the conditions of `spec` and `gates` hold. For `override`, a soft fail condition awaits disposition (Section 24.7), and the approval gives a reason and at least one further attempt. For a named gate, the gate is a `sign-off` done gate of the change. Section 24.1 governs the re-approval of changed gate definitions. | The state and the outcome do not change, and the approval is recorded. See AE-018, AE-019, AE-020. |
+| `start` | `open` | The gate definitions are approved and unchanged since approval (Section 24.1), the specification is approved when the compliance profile or the project configuration requires it, the revision from which the change starts can be recorded (Section 24.5), the working copy holds no uncommitted work other than the record files of the change (Section 24.5), and none of the steps 1 to 4 of Section 23.6 would decide, so that a fail gate that is active, a gate that cannot be evaluated, or a wait gate that is active prevents the start. | The state `active`, with the base revision recorded. See AE-021. |
 | `wait` | `active` | A reason, an owner, and a resume condition are given, or an unanswered question is named. A named question exists and is unanswered, and the action never creates a question. When a question is named, the owner of the wait is the owner of the question and a different owner is rejected, and the reason and the resume condition default to awaiting the answer to the question (Section 24.8). | The state `waiting`, with a wait record of kind `manual`, or of kind `question` when the action names a question (Section 23.5). See AE-022. |
 | `ask` | `open`, `active`, `waiting` | The question has a text and an owner, which defaults to the owner of the change. A structured question has at least two distinct options. | The state does not change, and an unanswered question with the next identifier is recorded (Section 24.8). In the state `waiting`, the wait record does not change, and the change cannot resume until the question is answered (Section 23.7). |
-| `answer` | Any state except `closed` | The question exists and is unanswered. The answer comes from the owner of the question. A structured question receives one of its options, and a free-text question receives a text. | The state does not change, and the question is recorded as answered. An answer does not resume a waiting change. See AE-023. |
-| `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. |
-| `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-024, AE-025. |
+| `answer` | Any state except `closed` | The question exists and is unanswered. The answer comes from the owner of the question. A structured question receives one of its options, and a free-text question receives a text. | The state does not change, and the question is recorded as answered. An answer does not resume a waiting change by itself. The request MAY carry `and_resume`: when the answerer is allowed to resume (Section 24.3) and the change waits for this question, the answer and the `resume` are one step, and both are recorded. Otherwise the status report says `ready to resume` and names who can resume (Section 23.8). See AE-023. |
+| `resume` | `waiting` | The resume condition of the wait record is satisfied (Section 23.5). For a wait record of kind `manual`, the request carries a note of one sentence that says what happened, and the history records it; a request without the note is rejected. | The state `active`, when the evaluation of Section 23.6 finds no gate that decides otherwise. Otherwise the change remains `waiting`, or becomes `closed` with the outcome `failed`, as Section 23.6 decides. |
+| `close` | `active` | The evaluation of Section 23.6 finds no fail gate and no wait gate active, and every done gate is satisfied. A closing that would end in `done` is performed by a human, unless the change definition declares `agent_may_close` (Section 23.1). A closing by an agent carries the agent report (Section 19.1). | The state `closed` with the outcome `done`. When the evaluation finds otherwise, the change does not close: it remains `active` when a wait gate is active or a done gate is not satisfied, becomes `waiting` when Section 23.6 requires a wait, and becomes `closed` with the outcome `failed` when a hard fail condition is active. See AE-024, AE-025. |
 | `fail` | `waiting`, with a wait record of kind `fail-gate` | A soft fail condition awaits disposition (Section 24.7), and a reason text is given. | The state `closed` with the outcome `failed` and the reason recorded. See AE-026. |
 | `cancel` | Any state except `closed` | An active wait does not prevent the action, and differing gate definitions do not prevent it (Section 24.1). A gate that cannot be evaluated determines no failure and does not prevent it (Section 24.2). | The state `closed` with the outcome `cancelled`, or the outcome `failed` when a hard fail condition is active or when the change awaits the disposition of a soft fail condition, that is, when it is `waiting` with a wait record of kind `fail-gate` (Section 24.7). The actor MAY give a reason text with the action. When the outcome is `failed` because of a soft fail condition, the reason text of the outcome is the reason that the actor gave or, when the actor gave none, a text that names that soft fail condition (Section 25.1). See AE-027. |
-| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, except that differing gate definitions prevent the action (Section 24.1), and `replaced_by` names a different change that exists and is not `closed`. | As `cancel`, with `replaced_by` recorded in the closed change. |
+| `supersede` | Any state except `closed` | The preconditions of `cancel` hold, including that differing gate definitions do not prevent the action (Section 24.1), and `replaced_by` names a different change that exists and is not `closed`. The action is performed by a human and records a reason. | As `cancel`, with `replaced_by` recorded in the closed change. |
 | `adopt` | Any state | The history of the change has no anchor (Section 24.4). | The state and the outcome do not change, and the anchor is created from the history as it is. See AE-028. |
+| `conflict` | `active` | Two documents are named and a text is given (Section 13.1). The owner of the question is the owner of the change. | The state `waiting`, with a wait record of kind `question`, and an unanswered question that names the two documents. See AE-314. |
+| `repair` | Any state | The history is not consistent, or is truncated or rewritten (Section 24.4). The actor is the owner of the project and gives a written reason. | The state and the outcome do not change as a result of the repair itself, and the history continues with a `repaired` entry (Section 24.4). See AE-317. |
 
-The actions `approve`, `fail`, `cancel`, `supersede`, and `adopt` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-020.
+The actions `approve`, `fail`, `cancel`, `supersede`, `adopt`, and `repair` MUST be performed by a human participant. An `answer` to a question whose owner is a human MUST also be given by a human (Section 24.3). See AE-020.
 
-The actions `check`, `review`, and `guard` (Section 22.4) are read-only. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table.
+The actions `check`, `review`, `guard`, and `check-scope` (Section 22.4) are read-only. The action `check-scope` reports at any time, without changing anything, whether the paths changed since the base revision lie inside the allowed path list (Section 24.5), so that an agent or a hook finds a scope violation early. The status report shows the same early warning (Section 23.8), and the failure is still decided by the action that evaluates the gates. They report on a change, they never change its state or its history, and they are legal from every state. They are not rows of the table.
 
 The method profile `core` has no `reopen` action. A change in the state `closed` is final, and follow-up work is a new change that names the closed change in `follows` (Section 23.1).
 
@@ -829,16 +903,18 @@ A `follows` field is a reference and not a state transition: it never changes th
 |---|---|---|
 | `new` | The change definition is invalid, the identifier does not follow the syntax of Section 4.3 or is not unique, `follows` does not name a closed change, or no method profile is selected. | Never. |
 | `approve` | The target is invalid or its preconditions are not met, the approver is not a human where Section 24.3 requires one, or the gate definitions differ from the approved ones and the target is not the gate definitions (Section 24.1). | Never. |
-| `start` | The state is not `open`, or a precondition is not met, including a fail gate, a wait gate, or a gate that cannot be evaluated that would decide against the start (issue code `start-blocked`). | Never. |
+| `start` | The state is not `open`, or a precondition is not met, including a fail gate, a wait gate, or a gate that cannot be evaluated that would decide against the start (issue code `start-blocked`), or uncommitted work other than the record files of the change (issue code `working-copy-unclean`, whose message lists the paths). | Never. |
 | `wait` | The state is not `active`; or the reason, the owner, or the resume condition is missing and no question is named; or the named question does not exist, is already answered, or has another owner than the owner given. | Never. |
 | `ask` | The state is not `open`, `active`, or `waiting`, or the question is not valid. | Never. |
 | `answer` | The state is `closed`, the question does not exist or is already answered, or the answer is not valid or not given by the owner of the question. | Never. |
 | `resume` | The state is not `waiting`, or the resume condition of the wait record is not satisfied. | The evaluation of Section 23.6 finds a gate that keeps the change waiting. |
-| `close` | The state is not `active`. | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
+| `close` | The state is not `active`; or an agent requests a closing that would end in `done` and the change definition does not declare `agent_may_close` (issue code `human-close-required`); or an agent requests the closing without the agent report (issue code `agent-report-missing`). | The evaluation of Section 23.6 finds a wait gate active, a done gate not satisfied, a soft failure, or a gate that cannot be evaluated, so that the change does not close. |
 | `fail` | The state is not `waiting` with a wait record of kind `fail-gate`, or no reason is given. | Never. |
 | `cancel` | The state is `closed`. | Never. |
-| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or names a change that is `closed`, or the gate definitions differ from the approved ones (issue code `gates-changed`, Section 24.1). | Never. |
+| `supersede` | The state is `closed`, or `replaced_by` is missing, names the change itself, or names a change that does not exist, or names a change that is `closed`. | Never. |
 | `adopt` | The history already has an anchor. | Never. |
+| `conflict` | The state is not `active`, or fewer than two documents or no text is given. | Never. |
+| `repair` | The history is consistent and complete, or the actor is not the owner of the project, or no reason is given. | Never. |
 
 A `close` or a `resume` whose evaluation finds a fail gate of the severity `hard` active answers `success` with the state `closed` and the outcome `failed` (Section 24.7). An action answers `blocked` only where this table lists a case. See AE-017.
 
@@ -958,13 +1034,15 @@ The kind of a wait record depends on how it came to exist:
 
 A wait record that the evaluation creates has these values. The `owner` is the owner of the change. For the kind `fail-gate`, `resume_when` is the text `a human recorded an override of <id>`, where `<id>` is the identifier of the fail gate. For the kind `external`, `resume_when` is the text `gate <id> can be evaluated`, where `<id>` is the identifier of the gate that could not be evaluated. The `reason` names the gate and the cause. See AE-029.
 
-The resume condition is satisfied as follows. For the kind `question`, the awaited question is answered. For the kind `fail-gate`, a human has recorded an override for the soft fail condition. For the kind `external`, the gate can be evaluated. For the kind `manual`, the owner of the wait states in the `resume` action that the condition holds.
+The resume condition is satisfied as follows. For the kind `question`, the awaited question is answered. For the kind `fail-gate`, a human has recorded an override for the soft fail condition. For the kind `external`, the gate can be evaluated. For the kind `manual`, the owner of the wait states in the `resume` action that the condition holds, with the one-sentence note of Section 23.4.
 
-An overdue wait remains a wait until the change leaves the state `waiting`.
+A wait of the kind `external` ends when the cause is gone. The status report re-tests the missing approved program and shows `the cause may be gone, ready to resume` when it exists, and the `resume` action itself checks that the gate can be evaluated and is rejected with a clear message when it still cannot. Nothing resumes by itself (Section 23.8).
+
+An overdue wait remains a wait until the change leaves the state `waiting`. It is shown as a warning in every status report, and the warning names the owner of the wait (Section 23.8).
 
 **AE-029 — A wait record that the evaluation creates names its owner, gate, and resume condition**
 
-Given two `active` `core` changes owned by `human:ada`, the first with a soft fail gate `flaky` that is active and the second with a `check` done gate `docs-built` whose program is missing
+Given two `active` `core` changes owned by `human:ada`, the first with a soft fail gate `flaky` that is active and the second with a `check` done gate `docs-built` whose approved program (listed in `required_tools`) is missing
 When the `close` action is requested for each change
 Then the first change is `waiting` with a wait record of kind `fail-gate`, the owner `human:ada`, the resume condition `a human recorded an override of flaky`, and a reason that names `flaky`, and the second change is `waiting` with a wait record of kind `external`, the owner `human:ada`, the resume condition `gate docs-built can be evaluated`, and a reason that names `docs-built` and the missing program
 
@@ -988,7 +1066,7 @@ Then the state is `closed` and the outcome is `failed`, not `done`
 
 **AE-031 — A condition that cannot be evaluated is a wait, not a failure**
 
-Given an `active` change with a `check` done gate whose command cannot start because its program is missing  
+Given an `active` change with a `check` done gate whose command cannot start because its approved program (listed in `required_tools`) is missing  
 When the `close` action is requested  
 Then the change is `waiting` with a wait record of kind `external`, and no failure is recorded
 
@@ -1021,6 +1099,38 @@ Given an `active` change whose `spec.md` was approved and then edited
 When the `close` action is requested  
 Then the change does not close, because the stale specification approval gate is active, and it can close after a human approves `spec` again
 
+### 23.8 Status Report
+
+The read-only actions `check`, `review`, and `guard` (Section 22.4) report on a change. The report writes nothing and records no failure. It starts with one line for the owner, which is one of `needs you`, `waiting on others`, or `all fine`, followed by the facts below. `needs you` is shown when a decision, an approval, a sign-off, or a disposition of the owner or of an approved human is due.
+
+The report MUST show:
+
+- the state, the outcome, and the results of the gates;
+- who must act, for every pending item (a question, a wait, a soft failure, an approval);
+- for a change that is `closed`: the reason of a cancellation and the changes that follow it (`follows`) or replace it (`replaced_by`);
+- that the gates are not enforced, when the gate definitions differ from the approved ones (Section 24.1).
+
+The report MUST show these warnings where they apply, and no warning blocks anything:
+
+- an overdue wait, naming the owner (Section 23.5);
+- a wait of the kind `external` whose cause may be gone: `ready to resume` (Section 23.5), and a wait whose question was answered by someone who may not resume: `ready to resume`, naming who can resume (Section 23.4);
+- no anchor is set, so that the history protects against accident and partial tampering only (Section 24.4);
+- no list of approved humans is set (Section 24.3);
+- a sign-off that is stale because the gate definitions changed since the sign-off (Section 24.3);
+- a path outside the allowed path list that has changed already (Section 23.4, `check-scope`);
+- a baseline entry whose review date has passed (Section 24.6);
+- a required project document that is missing (Section 4.2);
+- an override that would lapse (Section 24.1);
+- no agent report, where an agent closed the change (Section 19.1).
+
+The `guard` action keeps the five verifications and the issue codes of Section 22.4. See AE-318.
+
+**AE-318 — The report starts with one line for the owner**
+
+Given an `active` `core` change that waits for the answer of the owner `human:ada` to the question Q1, whose wait is overdue  
+When the `check` action is requested  
+Then the report starts with `needs you`, names `human:ada` as the owner who must act, shows the overdue wait as a warning, and writes nothing
+
 ---
 
 ## 24. Protections
@@ -1048,7 +1158,7 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 |---|---|---|
 | Frozen gate definitions | 24.1 | The three gate lists, the scope, and the requirement evidence commands of the change definition |
 | Three-valued gate results | 24.2 | Every fail, wait, and done gate; a gate that cannot be evaluated puts the change in a wait of kind `external` |
-| Identity and human-only actions | 24.3 | The approvals, sign-offs, overrides, answers, and the actions `fail`, `cancel`, `supersede`, and `adopt` of Section 23.4 |
+| Identity and human-only actions | 24.3 | The approvals, sign-offs, overrides, answers, and the actions `fail`, `cancel`, `supersede`, `adopt`, and `repair` of Section 23.4, and the list of approved humans |
 | History consistency and completeness | 24.4 | `state.json` |
 | Scope and isolation | 24.5 | `scope.allow` of the change definition, and the base revision recorded when `start` succeeds |
 | Known-failure baselines | 24.6 | A baseline on a `check` done gate |
@@ -1060,15 +1170,23 @@ Every protection of Sections 24.1 to 24.10, and the result `blocked` of Section 
 
 ### 24.1 Frozen Gate Definitions
 
-The gate definitions of a change are fixed when the change is approved. They are the gates of the change definition, that is, its three gate lists (Section 23.3), together with everything those gates declare (conditions, severities, retry limits, commands, exit maps, time limits, extraction rules, and baselines) and the scope of the change (Section 24.5). The purpose is that no participant can change the gates that judge a change without a human approving the change again. Before the first approval of the gate definitions nothing is fixed, and this section stops no operation.
+The gate definitions of a change are fixed when the change is approved. They are the gates of the change definition, that is, its three gate lists (Section 23.3), together with everything those gates declare (conditions, severities, retry limits, commands, exit maps, time limits, extraction rules, and baselines), the list `required_tools` and the declaration `agent_may_close` (Section 23.1), and the scope of the change (Section 24.5). The purpose is that no participant can change the gates that judge a change without a human approving the change again. Before the first approval of the gate definitions nothing is fixed, and this section stops no operation.
 
 The identity of the fixed definitions is the content hash (Section 25.2) of the parsed gate definitions, computed over the parsed values and not over the text of the file. A comment, the layout, the order of keys in a mapping, and the quoting of a value that parses to the same value therefore do not change the identity. The order of the elements of a list does change it, because that order is part of the parsed value. The hash computed at the approval is the approved hash and is recorded in the history. See AE-036.
 
 Every state-changing operation MUST first compute the hash of the current gate definitions and compare it with the approved hash. When the two differ, the operation MUST write nothing, and its result MUST be `rejected` with `changed` false (Section 22.2) and the stable issue code `gates-changed`, whose message states that the gate definitions differ from the approved ones and that a human has to approve them again. See AE-035.
 
-Two operations are exempt from the comparison and MUST NOT be stopped by it: `cancel` and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` ensures that a change whose definitions were altered can always be ended. The action `supersede` is not exempt: while the hashes differ, it is rejected with `changed` false and the issue code `gates-changed`, and it can go ahead only after a human has approved the gate definitions again. The approval that replaces the approved hash is the re-approval; without its exemption, no change could leave this state.
+Three operations are exempt from the comparison and MUST NOT be stopped by it: `cancel`, `supersede`, and the approval of the gate definitions that replaces the approved hash. The exemption of `cancel` and `supersede` ensures that a change whose definitions were altered can always be ended, and `supersede` behaves exactly like `cancel`: it is performed by a human and records a reason. The approval that replaces the approved hash is the re-approval; without its exemption, no change could leave this state.
 
-The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7).
+The re-approval MUST be performed by a human at the assurance level that Section 24.3 requires for the approval of gates. The human is the owner of the project or an approved deputy (Section 24.3). It is recorded in the history as an amendment, not as an approval, and the record names the approved hash that it replaces and the new approved hash, and holds a short before and after of the changed gates and of the changed lines of the specification. After the re-approval the new hash is the approved hash, and an override of a soft failure that is bound to the earlier hash lapses (Section 24.7).
+
+**Approval summary.** Before an approval is recorded, the implementation shows the human a summary, and the approval is recorded only after the human has seen it. The summary shows: what changed since the last approval, or `first approval` when there is none; for every fail gate its severity `hard` or `soft`, flagging a gate that the author set softer than the project default; the retry limits and the default retry limit (Section 24.7); which rules the implementation enforces and which are conduct only (Section 19.1); whether an anchor is set (Section 24.4); and, for a re-approval, any override that would lapse with the number of attempts that are left, and any sign-off that would become stale. See AE-319.
+
+**AE-319 — A re-approval says first that an override lapses**
+
+Given an `active` `core` change with an override of the soft failure of `tests-pass` with one attempt left, and gate definitions that were edited after the approval  
+When `human:ada` starts the re-approval of the target `gates`  
+Then the summary says that the override lapses with one attempt left and that the change would pause again, and the re-approval is recorded only after `human:ada` has seen it
 
 A read-only operation does not write. While the hashes differ, it answers `rejected` with `changed` false and the issue code `gates-changed`, and it states in its report that the gates are not enforced. It never closes the change and never records a failure.
 
@@ -1104,9 +1222,9 @@ Every evaluation of a gate ends in exactly one of three results:
 
 A done gate is met when its result is `satisfied`. A fail gate and a wait gate are active when their result is `satisfied`, that is, when the condition they describe holds. Every result is recorded in the history together with the gate it belongs to. A record of a result whose name is in another letter case, or is any other name than the three results, is not a result and MUST be rejected. The marker `not_applicable` is not a result, and it is the one other value that a record of an evaluation holds in place of a result (Section 25.1). See AE-075.
 
-A gate cannot be evaluated when any of these holds:
+A gate cannot be evaluated when any of these holds. A command that cannot start for a reason other than the missing approved program of the first item, including a program that is not on the list `required_tools` of the change (Section 23.1), is not a case of `not_evaluable`: its result is `not_satisfied`, and the record names the cause.
 
-- the command of the gate cannot start, for example because its program is missing;
+- the command of the gate cannot start because a program that the list `required_tools` approves is missing;
 - the command exceeds the time limit that the gate declares and is stopped;
 - the command ends without an exit status, or with an exit status that the exit map of the gate does not map;
 - the command reports that a module, tool, or dependency it needs is missing, either through an exit status that the exit map maps to `not_evaluable` or through output that the gate declares for that purpose;
@@ -1149,12 +1267,12 @@ A `command` condition of a fail gate or a wait gate (Section 23.3) is evaluated 
 **AE-038 — A missing program is not a failure and consumes no attempt**
 
 Given the `check` done gate `tests-pass`, a soft fail gate that is active when `tests-pass` has three `not_satisfied` results, and a history with two `not_satisfied` results of `tests-pass`  
-When the `close` action is requested and the program of the command of `tests-pass` is missing  
+When the `close` action is requested and the approved program of the command of `tests-pass` is missing  
 Then the result of `tests-pass` is `not_evaluable`, the count remains two, the fail gate is not active, and the change is `waiting` with a wait record of kind `external`
 
 **AE-039 — A hard failure is decided before a gate that cannot be evaluated**
 
-Given an `active` `core` change with a fail gate of the severity `hard` that is active and a `check` done gate whose command cannot start  
+Given an `active` `core` change with a fail gate of the severity `hard` that is active and a `check` done gate whose command cannot start because its approved program is missing  
 When the `close` action is requested  
 Then the state is `closed` and the outcome is `failed`, and no wait record is created
 
@@ -1169,6 +1287,18 @@ The required level of an action is the higher of two minimums: the minimum that 
 For the kinds of action that an approval record covers, which are the approval of the specification, the approval and the re-approval of gate definitions, the sign-off of a gate, and an override, the required level is never below the highest required level that the history of the change records in `required_level` for that kind of action. A project configuration that is lowered after an approval at a higher level therefore does not lower the level that the next action of that kind in the same change requires. The project configuration is a file of the repository, and this specification does not protect it: a participant that can change the configuration can lower a minimum for a change whose history records no earlier approval of that kind. See AE-042.
 
 These actions MUST be performed by a human: every approval, the sign-off of a gate, an override, an answer to a question whose owner is a human, `cancel`, `supersede`, `fail`, and `adopt`. The identity of a human is written with the prefix `human:`. An identity without that prefix is not a human, and an action that requires a human MUST be rejected when the identity that performs it does not carry the prefix. The prefix is part of the claim: at A0 it is self-declared, and at A1 or A2 it is as well verified as the claim is. See AE-040, AE-108.
+
+**Approved humans.** The project configuration holds the list of approved humans: the owner of the project and the named deputies, each with the identity written with the prefix `human:` and the account of the hosting service (a GitHub user) that belongs to it. When the list is absent, every identity with the prefix `human:` is accepted as before, and the status report warns that no list is set (Section 23.8). When the list is present, an action that requires a human MUST be rejected, with the issue code `human-not-approved`, when the identity is not on the list. Only the owner of the project changes the list. A deputy MAY give the re-approval of gate definitions (Section 24.1) and any other human-only action, but MAY NOT change the list. The history records, with every human-only action, the typed identity and the real account that the implementation reads from version control or from the hosting service, so that a difference between them is visible afterwards. The list is a file of the repository and this specification does not protect it, in the same way as the project configuration above. The Signing Extension remains optional. See AE-320.
+
+**Resuming.** The identity that answered a question may resume the change when it is on the list of approved humans or when it is the owner of the wait record; otherwise the status report says `ready to resume` and names who can resume (Section 23.8).
+
+**Stale sign-off.** When a re-approval of the gate definitions makes the sign-off of a gate stale, because the sign-off is bound to the earlier hash, the implementation records an unanswered question for the owner of the gate, which asks for the new sign-off. The next sign-off of that gate answers the question in the same entry. The status report shows the stale sign-off (Section 23.8), and the change cannot close while the gate is not satisfied.
+
+**AE-320 — A human name that is not on the list is rejected**
+
+Given a project whose list of approved humans holds `human:ada` and `human:bo`, and an `open` `core` change  
+When the participant `human:eve` approves the target `spec`  
+Then the approval is rejected with the issue code `human-not-approved`, and the approval of `human:ada` is recorded together with her typed identity and her real account
 
 An approval binds the exact content that is approved, and that content is identified by its content hash (Section 25.2). For the approval of the specification, the approved content is the specification of the change. For the approval of gate definitions, it is the gate definitions (Section 24.1). For the sign-off of a gate and for an override, it is the gate definitions together with the identifier of the gate or of the fail condition. The history records, for every action, the identity and the verified level, and for an approval also the content hash that was approved and the `required_level`, which is the required level that applied when the approval was accepted. The approval of the specification is stale only if the specification was approved at least once and the content hash of the current specification differs from the content hash that was approved last, and the stale specification approval gate of Section 23.7 is active in that case and in no other. See AE-104, AE-105.
 
@@ -1219,11 +1349,19 @@ With an anchor, the verifier compares the history with it:
 
 An implementation MUST NOT act on a history that is truncated or rewritten, and its message MUST say which of the two it found. See AE-043.
 
-An existing anchor MUST NOT be replaced. It is only advanced, after a successful append, to the position and the hash of a later entry of the same chain. No action sets an anchor to an earlier position or to a different hash.
+An existing anchor MUST NOT be replaced. It is only advanced, after a successful append, to the position and the hash of a later entry of the same chain. No action sets an anchor to an earlier position or to a different hash, except the `repair` action, which does so openly: it records the old anchor in the `repaired` entry before it sets the new one.
 
 The `adopt` action creates the anchor from the history as it is, at the position and the hash of its latest entry (Section 23.4). It MUST be performed by a human at the level that Section 24.3 requires for `adopt`, and it is rejected when an anchor exists and when the history is not consistent. A human who adopts a history takes responsibility for its completeness at that moment: adoption cannot show whether entries were lost before it. See AE-044, AE-045.
 
-An anchor is only as strong as the location that holds it. An actor that can write both the history and the anchor can rewrite both, and every check of this section then passes. The anchor protects against an actor that can write the history and cannot write the anchor, and against accident. It does not protect against an actor that can write both.
+**Repair.** A history that is not consistent, or that is truncated or rewritten, stops every action (above). The `repair` action (Section 23.4) is the way out. It is performed by the owner of the project with a written reason, also when an anchor exists. The implementation first shows exactly which entries are missing or wrong. It then keeps the damaged `state.json` unchanged at a location outside the change directory, which it names in the entry, replaces the history by its longest consistent prefix, and appends a `repaired` entry that records the damage found, the number of entries lost, the old anchor (position and hash), and the reason. The new anchor is set at the `repaired` entry where an anchor is kept or required. The repair never hides the loss: it records it. Adoption of an unanchored history remains the `adopt` action. See AE-317.
+
+**AE-317 — A repair records what was lost and keeps the damaged file**
+
+Given a `core` change with an anchor at position 8 and a history of 5 consistent entries, because the last three entries were lost  
+When the owner `human:ada` performs the `repair` action with the reason `disk fault` after the implementation showed the missing entries  
+Then the history continues with a `repaired` entry at position 6 that records the 3 lost entries, the old anchor at position 8, and the reason, the damaged file is kept outside the change directory, and the new anchor holds the position and the hash of the `repaired` entry
+
+An anchor is only as strong as the location that holds it. An actor that can write both the history and the anchor can rewrite both, and every check of this section then passes. The anchor protects against an actor that can write the history and cannot write the anchor, and against accident. It does not protect against an actor that can write both. The anchor stays optional where no configuration requires approvals at the level A2. The approval summary (Section 24.1) and the status report (Section 23.8) say plainly when no anchor is set, so that the owner knows the protection is weak.
 
 **AE-043 — A rewritten entry is detected through the anchor**
 
@@ -1253,7 +1391,7 @@ The base revision is the revision from which the change started. It is recorded 
 
 The paths changed since the base revision are the paths whose content differs from the base revision according to version control, whether the difference is committed, staged, or unstaged, and the files that version control does not track and that no ignore file inside the repository, as it was at the base revision, tells it to ignore. A path changed since the base revision that no pattern of the allowed path list matches is a scope violation. A scope violation is a hard failure (Section 24.7): the change is closed as failed without human action, and the record names the paths outside the scope. See AE-046, AE-047.
 
-The record files of the change itself are exempt from the measurement. They are the change definition, the specification, and the state document (Section 23.1). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). Exactly two further names in the change directory are exempt: the in-progress file `state.json.tmp` and the lock object `state.json.lock` that the writer of the state document uses (Section 25.1), so that a file left behind by an interrupted write is never a scope violation. Every other file in the change directory is measured, including a file with a similar name such as `state.json.bak`. See AE-050, AE-051.
+The record files of the change itself are exempt from the measurement. They are the change definition, the specification, and the state document (Section 23.1). Other means detect their alteration: the hash of the gate definitions (Section 24.1), the approval of the specification (Section 24.3), and the chain of the history (Section 24.4). Exactly three further names in the change directory are exempt: the in-progress file `state.json.tmp` and the lock object `state.json.lock` that the writer of the state document uses (Section 25.1), so that a file left behind by an interrupted write is never a scope violation, and the review report `review.md` (Section 14.5), whose content hash the history records. Every other file in the change directory is measured, including a file with a similar name such as `state.json.bak`. See AE-050, AE-051.
 
 Before the change has started there is no base revision, and the scope is not evaluated: the record shows `not_applicable` (Section 24.2). After the change has started, a scope that cannot be measured is `not_evaluable` (Section 24.2). That is the case when version control is unavailable, when no base revision was recorded, and when the allowed path list is absent. It is never recorded as `satisfied`, and it is never recorded as a scope violation.
 
@@ -1261,7 +1399,7 @@ An allowed path list that is present and empty allows no path: every path change
 
 A file that an ignore file inside the repository tells version control to ignore is invisible to the measurement, when that ignore file was in place at the base revision and, as it was then, tells version control to ignore the file. A change can create or alter such an ignored file without a scope violation, so the allowed path list does not limit what happens in ignored locations. Only ignore files inside the repository count, and only as they were at the base revision: an ignore file that the change creates or alters hides nothing, so a path that only the created or altered ignore file hides is measured like any other path. An ignore file is an ordinary file of the working tree, such as a `.gitignore` file, so that creating or changing one is a changed path, and it is a scope violation when no pattern of the allowed path list matches it. An ignore setting kept anywhere else, such as the exclude file in the metadata directory of version control or an excludes file of the user, is not applied: a file that only such a setting hides is counted like any other file that version control does not track. The consequence for the code that gate commands run is stated in Section 24.10. See AE-048, AE-049.
 
-Work that is uncommitted when the change starts and that does not belong to the change is a changed path like any other. The measurement counts it, and it is a scope violation when no pattern matches it. A change therefore MUST run isolated: in a working copy that is separate from other work and whose content at the start equals the base revision, apart from the record files of the change. An implementation SHOULD warn when it finds other uncommitted work at the start, and it MUST NOT exclude that work from the measurement.
+Work that is uncommitted when the change starts and that does not belong to the change is a changed path like any other. The measurement counts it, and it is a scope violation when no pattern matches it. A change therefore MUST run isolated: in a working copy that is separate from other work and whose content at the start equals the base revision, apart from the record files of the change. The `start` action therefore MUST be rejected when the working copy holds uncommitted work other than the record files of the change, with the issue code `working-copy-unclean`, whose message lists the paths (Section 23.4). An implementation MUST NOT exclude such work from the measurement, and no list of paths that are known before the start exists. Ignored files stay invisible to the measurement, as above, and that gap is accepted.
 
 **AE-046 — A changed path that a pattern matches is in scope**
 
@@ -1303,6 +1441,8 @@ Then no scope violation is found for `c-1`, because the two names are exempt, an
 
 A check-command gate (Section 24.2) MAY carry a baseline: the list of failure identifiers that were already failing before the change started and that the change is not required to fix. A baseline is valid only on a check-command gate. A baseline on any other gate is invalid and MUST be rejected when the gate definitions are approved. The baseline is part of the gate definition and is fixed with it (Section 24.1): changing it requires a new approval by a human, so that a baseline cannot be used to hide a new failure. See AE-053.
 
+Each entry of a baseline carries a written reason and a review date (`review_by`). An entry without a reason or without a review date is invalid and MUST be rejected when the gate definitions are approved. Past its review date an entry still applies, and the status report shows a warning that names the owner of the change (Section 23.8); nothing blocks. The comparison below uses the failure identifiers of the entries.
+
 A failure identifier is a string that identifies one failure in a way that is stable across runs, for example the identifier of a failing test. The gate declares how failure identifiers are extracted from the output of its command (Section 24.2). Failure identifiers are compared as Section 24 states. The extracted identifiers form a set: an identifier that appears more than once counts once.
 
 When the command of a gate with a baseline ends with an exit status that the exit map maps to `satisfied`, the result is `satisfied`. When it ends with an exit status that the exit map maps to `not_satisfied`, the implementation extracts the failure identifiers from the output and compares them with the baseline:
@@ -1341,6 +1481,8 @@ The `fail` action is valid only while a soft failure awaits disposition. See AE-
 A `cancel` or `supersede` of a change that is `waiting` with a wait record of kind `fail-gate` therefore closes the change as failed and not as cancelled, in the same way as an active hard failure does. The reason text of the outcome is the reason that the actor gave with the action or, when the actor gave none, a text that names the soft fail condition that awaited disposition (Section 25.1).
 
 When a retry limit is reached, the change waits as it does for a soft failure, and the human closes the change as failed or records an override. Nothing ends the change automatically.
+
+The default number of tries is 3. It applies to every done gate of the kind `check` that has no retry limit of its own, as an implicit retry limit of the severity `soft`. The project configuration MAY set a lower default, and a retry limit in a change definition MAY be lower than the default. A retry limit or a default above 3 is invalid and MUST be rejected when the gate definitions are approved: authors may lower the number of tries and never raise it. The approval summary flags a fail gate that the author set softer than the project default (Section 24.1).
 
 An override is recorded by a human as an approval with the target `override` (Section 23.4). It MUST name the soft fail condition that it applies to, MUST give a reason, and MUST give a number N of further attempts. N MUST be an integer greater than or equal to 1. This specification defines no default for N: a request that gives no number, a number below 1, or a number that is not an integer MUST be rejected, and so MUST a request that gives no reason. An override is valid only for a fail condition of the severity `soft` that awaits disposition. An override for any other fail condition MUST be rejected.
 
@@ -1421,12 +1563,20 @@ The evidence for a requirement is executable and is bound to that requirement. A
 The evidence of a change is complete only when all of these hold:
 
 - the change declares at least one requirement;
-- every requirement has at least one evidence command that is bound to it;
+- every requirement has at least one evidence command that is bound to it, or a human check as described below;
 - when the evidence commands are run at closure, each of them has the result `satisfied`.
+
+A requirement that cannot be checked by a machine MAY declare a **human check** instead of evidence commands: a written reason why no command can check it, and the identifier of a done gate of the kind `sign-off` that covers it. The evidence of such a requirement is complete when that gate is satisfied, and the record shows the requirement as `human-checked`. The reason is part of the gate definitions (Section 24.1). For changes to documents, an implementation SHOULD offer ready-made standard checks, for example a link check and a format check. They support the human who verifies a documentation change before the sign-off, and they do not replace the sign-off. See AE-321.
+
+**AE-321 — A requirement that no command can check is closed by a sign-off with a reason**
+
+Given an `active` change with the requirement R1 `the new page reads well`, which declares a human check with the reason `no command can judge readability` and the sign-off gate `page-ok`  
+When `human:ada` signs off `page-ok` and the `close` action is requested with every other done gate satisfied  
+Then the evidence of R1 is complete, the record shows R1 as `human-checked`, and the change closes
 
 Closure is the evaluation that decides whether the change completes: the `close` action (Section 23.4). The incomplete evidence gate (Section 23.7) is satisfied only when the evidence is complete. See AE-061.
 
-A change with no requirements has no complete evidence: its evidence is not complete, and the record states that no requirements are declared. A requirement without an evidence command makes the evidence not complete, and the record names the requirement. An evidence command with the result `not_satisfied` makes the evidence not complete. An evidence command that cannot run has the result `not_evaluable` (Section 24.2): that is not a failure, it does not count toward a retry limit, the change waits as Section 24.2 states, and the evidence is not complete until the command has run and is `satisfied`. See AE-062, AE-063.
+A change with no requirements has no complete evidence: its evidence is not complete, and the record states that no requirements are declared. A requirement without an evidence command and without a human check makes the evidence not complete, and the record names the requirement. An evidence command with the result `not_satisfied` makes the evidence not complete. An evidence command that cannot run has the result `not_evaluable` (Section 24.2): that is not a failure, it does not count toward a retry limit, the change waits as Section 24.2 states, and the evidence is not complete until the command has run and is `satisfied`. See AE-062, AE-063.
 
 The other records that Section 15 names, for example reviews, logs, screenshots, measurements, and references to commits, MAY be kept. They supplement the executable check and never replace it. A requirement whose only evidence is such a record has no evidence command, and its evidence is not complete.
 
@@ -1465,6 +1615,8 @@ The interpreter is the program that runs the code a command points at, for examp
 The interpreter that the project configuration names is not part of the gate definitions and is not frozen (Section 24.1), so a change of the configuration changes which program runs without a difference of the gate definitions. The record shows which program ran: the `gate_detail` of the result of a command whose first element is the token `@interpreter` names the program that the token stood for in that evaluation (Section 25.1). See AE-066.
 
 An implementation SHOULD warn when the interpreter that the token stands for lives inside the repository of the project.
+
+Because no shell runs a command, a check that needs a pipe or a redirection is wrapped in a script of the project, and the command runs the script. For example, the command `@interpreter`, `scripts/run_tests.py` runs the script `scripts/run_tests.py`, and the script runs the tests and writes their output to a file with its own code. The guide of the implementation SHOULD give a ready-made example of such a wrapper script. A script that a command runs is code of the project: when it lies in a location that the scope check does not see (below), a change can alter it unnoticed.
 
 Code in a location that an ignore file inside the repository tells version control to ignore is invisible to the scope check (Section 24.5). When a command runs code from such a location, including an interpreter or a library that is installed there, a change can alter that code, and so the result of the gate, without a scope violation. The scope check therefore does not show that the code behind a gate is unchanged, and the result of a gate is worth only as much as the protection of the code that its command runs.
 
