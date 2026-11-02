@@ -84,7 +84,7 @@ A valid operation whose evaluation says that the requested transition does not o
 
 For every operation, an implementation MUST emit both an actionable human-readable message and the structured result envelope. It MUST record transition history and relevant evidence under the transition table of Section 23.4 and Section 15 Evidence Model.
 
-### 22.4 The `guard` Action
+### 22.4 The `guard` and `check-scope` Actions
 
 The action `check-scope` is read-only and legal from every state: it measures the paths changed since the base revision (Section 24.5) and reports those outside the allowed path list, without changing the state or the history and without running any command. It reports `not_evaluable` where the scope cannot be measured. The result is `success` with `changed` false when no path is outside the scope, and otherwise `rejected` with `changed` false and the issue code `scope-violation`.
 
