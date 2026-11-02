@@ -429,3 +429,105 @@ def test_an_anchor_is_kept_for_a_valid_change_identifier_only(tmp_path: Path) ->
         anchors.read("../escape")
     with pytest.raises(StateError):
         anchors.write("a/b", Anchor(1, ZERO_HASH))
+
+
+# --- anchor failures (Codex findings on PR 15) ---
+
+
+def test_a_required_anchor_without_an_anchor_store_is_refused_before_anything_is_written(
+    tmp_path: Path,
+) -> None:
+    with pytest.raises(StateError) as caught:
+        StateStore(tmp_path / "c-1", require_anchor=True)
+
+    assert caught.value.code == "anchor-required"
+    assert not (tmp_path / "c-1").exists()
+
+
+def test_an_unwritable_anchor_location_is_refused_before_the_state_document_is_written(
+    tmp_path: Path,
+) -> None:
+    (tmp_path / "anchors").write_text("a regular file, not a directory", encoding="utf-8")
+    store = StateStore(tmp_path / "c-1", anchors=FileAnchorStore(tmp_path / "anchors"))
+
+    with pytest.raises(StateError) as created:
+        store.append(body("new"), read_version=0)
+    assert created.value.code == "anchor-write-failed"
+    assert store.read() is None
+
+    (tmp_path / "anchors").unlink()
+    store.append(body("new"), read_version=0)
+    (tmp_path / "anchors" / "c-1.anchor.json").unlink()
+    (tmp_path / "anchors").rename(tmp_path / "anchors-moved")
+    (tmp_path / "anchors").write_text("a regular file again", encoding="utf-8")
+    with pytest.raises(StateError) as appended:
+        store.append(body(), read_version=1)
+    assert appended.value.code == "anchor-write-failed"
+    document = store.read()
+    assert document is not None
+    assert len(document.entries) == 1
+
+
+def failing_write(self: FileAnchorStore, change_id: str, anchor: Anchor) -> None:
+    raise StateError("anchor-write-failed", "disk full")
+
+
+def test_an_anchor_that_fails_after_the_write_reports_that_the_entry_was_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    anchors = FileAnchorStore(tmp_path / "anchors")
+    store = StateStore(tmp_path / "c-1", anchors=anchors)
+    store.append(body("new"), read_version=0)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(FileAnchorStore, "write", failing_write)
+        with pytest.raises(StateError) as caught:
+            store.append(body(), read_version=1)
+
+    assert caught.value.code == "anchor-lagging"
+    assert "entry 2 was recorded" in caught.value.message
+    document = store.read()
+    assert document is not None
+    assert len(document.entries) == 2  # the error does not claim that nothing was written
+
+
+def test_a_lagging_anchor_is_recovered_by_the_next_append(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    anchors = FileAnchorStore(tmp_path / "anchors")
+    store = StateStore(tmp_path / "c-1", anchors=anchors)
+    store.append(body("new"), read_version=0)
+    with monkeypatch.context() as patch:
+        patch.setattr(FileAnchorStore, "write", failing_write)
+        with pytest.raises(StateError):
+            store.append(body(), read_version=1)
+    stale = store.read()
+    assert stale is not None
+    assert anchors.read("c-1") == Anchor(1, stale.entries[0].hash)
+
+    store.verify(stale)  # a history longer than its anchor still agrees with it
+    third = store.append(body(), read_version=2)
+
+    assert anchors.read("c-1") == Anchor(3, third.hash)
+
+
+def test_a_first_entry_whose_anchor_failed_is_recovered_by_adoption(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    anchors = FileAnchorStore(tmp_path / "anchors")
+    store = StateStore(tmp_path / "c-1", anchors=anchors, require_anchor=True)
+    with monkeypatch.context() as patch:
+        patch.setattr(FileAnchorStore, "write", failing_write)
+        with pytest.raises(StateError) as lagging:
+            store.append(body("new"), read_version=0)
+    assert lagging.value.code == "anchor-lagging"
+    with pytest.raises(StateError) as refused:
+        store.append(body(), read_version=1)
+    assert refused.value.code == "anchor-missing"
+
+    document = store.read()
+    assert document is not None
+    adopt_anchor(anchors, "c-1", document.entries)
+
+    store.append(body(), read_version=1)
+    assert anchors.read("c-1") is not None

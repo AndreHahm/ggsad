@@ -34,6 +34,10 @@ class AnchorStore(Protocol):
         """Store the anchor of a change. Callers use `advance_anchor` or `adopt_anchor`."""
         ...
 
+    def prepare(self, change_id: str) -> None:
+        """Raise StateError unless an anchor can be written now, so a write can be refused early."""
+        ...
+
 
 class FileAnchorStore:
     """Anchors as small JSON files in a directory outside the project."""
@@ -64,6 +68,17 @@ class FileAnchorStore:
                 "anchor-invalid", "the anchor file does not hold a position and a hash"
             )
         return Anchor(position, digest)
+
+    def prepare(self, change_id: str) -> None:
+        """Check that the anchor location exists and is writable, without leaving a trace."""
+        probe = self._path(change_id).with_suffix(".probe")
+        try:
+            self._root.mkdir(parents=True, exist_ok=True)
+            probe.write_bytes(b"")
+            probe.unlink()
+        except OSError as error:
+            message = f"the anchor location is not writable: {error}"
+            raise StateError("anchor-write-failed", message) from error
 
     def write(self, change_id: str, anchor: Anchor) -> None:
         """Replace the anchor file atomically."""

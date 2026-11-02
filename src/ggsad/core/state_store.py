@@ -125,6 +125,10 @@ class StateStore:
         require_anchor: bool = False,
         change_id: str | None = None,
     ) -> None:
+        if require_anchor and anchors is None:
+            raise StateError(
+                "anchor-required", "a required anchor needs an anchor store; none was given"
+            )
         self._dir = change_dir
         self._anchors = anchors
         self._require_anchor = require_anchor
@@ -176,6 +180,9 @@ class StateStore:
             if document is not None:
                 self.verify(document)
             entry = self._build_entry(document, body)
+            if self._anchors is not None:
+                # Refuse before writing: after the replacement the entry cannot be taken back.
+                self._anchors.prepare(self._change_id)
             entries = (*(document.entries if document else ()), entry)
             version = document.schema_version if document else SUPPORTED_SCHEMA_VERSIONS[-1]
             self._replace(StateDocument(version, entries))
@@ -204,8 +211,15 @@ class StateStore:
         """After a successful append: create the anchor with the first entry, then advance it."""
         if self._anchors is None:
             return
-        if len(entries) == 1 or self._anchors.read(self._change_id) is not None:
-            advance_anchor(self._anchors, self._change_id, entries)
+        try:
+            if len(entries) == 1 or self._anchors.read(self._change_id) is not None:
+                advance_anchor(self._anchors, self._change_id, entries)
+        except StateError as error:
+            raise StateError(
+                "anchor-lagging",
+                f"entry {entries[-1].n} was recorded, but the anchor was not advanced "
+                f"({error.message}); repeat the advance or adopt the history",
+            ) from error
 
 
 def _check_schema_version(document: StateDocument) -> None:
