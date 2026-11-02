@@ -263,3 +263,20 @@ Action names in `code font` are the commands of the method: `new`, `approve`, `s
 **Spec:** 3.8, 17. **Needs:** UR-18.
 
 **Decision:** change: moves to "future", same as UR-18 (the tool refuses to start in combination mode; the spec and guide mark it "described, not built").
+
+
+## UC-17 Start from a worked example
+
+**Story:**
+1. Ada opens `examples/governed-enterprise/` because her team needs a stricter profile.
+2. She reads the settings: the Requestor agent list, the Reviewer and the fallback Reviewer, the Approver, `team_mode: team`.
+3. She follows one finished change from the first approval to `closed` as `done`, one change that waits for a missing tool, and one that fails by leaving its scope.
+4. She copies the folder into a new repository, replaces the names, and runs the status report.
+
+**What you see:** the status report of the copied project starts with `all fine` or names exactly what she must still fill in.
+
+**Missing or risky today:** the example folders are empty. Without a check, an example can show behaviour the specification no longer allows.
+
+**Spec:** 3.11, 4.2, 23.4, 23.8. **Needs:** UR-21.
+
+**Decision:** proposed.

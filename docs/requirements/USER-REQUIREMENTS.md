@@ -296,3 +296,18 @@ Words used: a **change** is one piece of work with its own folder. A **gate** is
 **Spec:** 18. **Replaces:** UR-028.
 
 **Decision:** keep (optional, stays in the core spec), with two additions: (1) when a note and an ADR disagree, the ADR wins and the note must be marked "outdated"; (2) each of the five record types gets a tiny template (date, title, one sentence, link to source). No tool is built.
+
+
+## UR-21 Worked examples show how a project of each kind uses the method
+
+**In one sentence:** the repository ships three small, complete example projects, so a newcomer can copy one and see every document and every step of a real change.
+
+**Example:** Ada runs a solo side project. She opens `examples/solo-developer/`, sees the project documents she needs under `lean` (brief and constitution), one finished change from `change.yaml` to `closed`, and one change that is waiting. She copies the folder and changes the names.
+
+**What the method does:** `examples/lean-startup/`, `examples/solo-developer/` and `examples/governed-enterprise/` each hold the required project documents of their compliance profile (Section 4.2), one change that ends as `done`, one that waits (with owner and resume condition), one that fails, and the role settings (Section 3.11: Requestor list, Reviewer, Approver, `team_mode`). Every example is labelled "example, not a real project", and uses the same file layout as a real project.
+
+**Missing or risky today:** the three folders exist and are empty. Examples can drift away from the specification when the specification changes, and nothing checks them. Human Reviewers do not exist in version 1, so the examples show agent Reviewers only.
+
+**Spec:** 4.2, 3.11, 23. **Replaces:** nothing (the legacy CHG-002 draft was discarded).
+
+**Decision:** proposed. (Keep, change, or defer? Suggested changes: 1 = the examples are checked by the tool, so a wrong example fails the repository checks; 2 = as 1, plus one short "how to read this example" page per folder.)
