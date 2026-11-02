@@ -233,9 +233,9 @@ Then both documents give the same entry hashes, and both histories are consisten
 
 - Covers: Section 25.1
 
-Given an `ask` action that evaluates no gate, concerns no file, and gives no note  
+Given an `ask` action that evaluates no gate, concerns no file, gives no note, and is performed by an actor whose account cannot be read  
 When the entry is written  
-Then the body holds the ten fields `action`, `actor`, `assurance`, `at`, `result`, `gate_results`, `gate_detail`, `files`, `note`, and `after`, and `gate_results`, `gate_detail`, `files`, and `note` are `null`
+Then the body holds the eleven fields `action`, `actor`, `account`, `assurance`, `at`, `result`, `gate_results`, `gate_detail`, `files`, `note`, and `after`, and `account`, `gate_results`, `gate_detail`, `files`, and `note` are `null`
 
 **AE-080 — The second of two writers with the same version fails when a change is created**
 
