@@ -1,0 +1,4 @@
+---
+# Mirror the bandit settings of pyproject.toml: tests use assert by design (B101).
+exclude_paths:
+  - "tests/**"

@@ -34,6 +34,11 @@ WAIT_PREDICATES: Final = frozenset({"unanswered-question", "stale-spec-approval"
 DEFAULT_RETRY_LIMIT: Final = 3
 
 
+def _is_member(value: object, allowed: frozenset[str]) -> bool:
+    """True when the value is a string in the set; a list or mapping never raises."""
+    return isinstance(value, str) and value in allowed
+
+
 @dataclass(frozen=True)
 class BaseGate:
     """A base gate of Section 23.7, as the definition may not redefine it."""
@@ -85,7 +90,8 @@ def check_gates(
         return GateIndex()
     for key in sorted(set(gates) - {*LIST_NAMES, "not_applicable"}):
         rb.error("field-unknown", f"unknown field {key!r} in gates", f"gates.{key}")
-    _check_not_applicable(gates.get("not_applicable"), ctx)
+    if "not_applicable" in gates:
+        _check_not_applicable(gates["not_applicable"], ctx)
     for list_name in LIST_NAMES:
         _check_list(list_name, gates.get(list_name), ctx)
     _check_retry_refs(ctx)
@@ -93,8 +99,6 @@ def check_gates(
 
 
 def _check_not_applicable(value: object, ctx: _Context) -> None:
-    if value is None:
-        return
     ids = text_list(value)
     if ids is None:
         ctx.rb.error(
@@ -191,7 +195,7 @@ def _check_keys(
 def _check_fail_gate(gate: Mapping[str, object], path: str, ctx: _Context) -> None:
     _check_keys(gate, frozenset({"id", "description", "severity", "condition"}), path, ctx)
     severity = gate.get("severity")
-    if severity not in SEVERITIES:
+    if not _is_member(severity, SEVERITIES):
         ctx.rb.error(
             "severity-invalid",
             "a fail gate needs the severity 'hard' or 'soft' in exact lowercase",
@@ -213,7 +217,7 @@ def _check_wait_gate(gate: Mapping[str, object], path: str, ctx: _Context) -> No
 
 def _check_done_gate(gate_id: str, gate: Mapping[str, object], path: str, ctx: _Context) -> None:
     kind = gate.get("kind")
-    if not isinstance(kind, str) or kind not in DONE_KINDS:
+    if not _is_member(kind, DONE_KINDS) or not isinstance(kind, str):
         ctx.rb.error(
             "done-gate-kind-invalid",
             "a done gate has exactly one kind: 'check', 'sign-off', or 'review'",
@@ -233,7 +237,8 @@ def _check_done_gate(gate_id: str, gate: Mapping[str, object], path: str, ctx: _
     elif kind == "sign-off":
         ctx.sign_off_ids.add(gate_id)
         _check_keys(gate, frozenset(common | {"minimum_level", "baseline"}), path, ctx)
-        _check_minimum_level(gate.get("minimum_level"), f"{path}.minimum_level", ctx)
+        if "minimum_level" in gate:
+            _check_minimum_level(gate["minimum_level"], f"{path}.minimum_level", ctx)
     else:
         _check_keys(gate, frozenset(common | {"baseline"}), path, ctx)
     if ctx.approval:
@@ -241,60 +246,59 @@ def _check_done_gate(gate_id: str, gate: Mapping[str, object], path: str, ctx: _
 
 
 def _check_minimum_level(value: object, path: str, ctx: _Context) -> None:
-    if value is not None and value not in ASSURANCE_LEVELS:
+    if not _is_member(value, ASSURANCE_LEVELS):
         ctx.rb.error("level-invalid", "a minimum level is 'A0', 'A1', or 'A2'", path)
+
+
+def _condition_member(cond: Mapping[str, object]) -> str | None:
+    """The one member that a well-formed condition holds, or None."""
+    members = [name for name in CONDITION_MEMBERS if name in cond]
+    extras = set(cond) - {*CONDITION_MEMBERS, "exit_map", "time_limit"}
+    command_only = {"exit_map", "time_limit"} & set(cond)
+    if len(members) != 1 or extras or (command_only and members != ["command"]):
+        return None
+    return members[0]
 
 
 def _check_condition(value: object, gate_kind: str, path: str, ctx: _Context) -> str | None:
     """Check the condition of a fail or wait gate and return the member it holds."""
     cond = as_mapping(value)
-    if cond is None:
-        ctx.rb.error("condition-invalid", "a condition must be a mapping", path)
-        return None
-    members = [name for name in CONDITION_MEMBERS if name in cond]
-    extras = set(cond) - {*CONDITION_MEMBERS, "exit_map", "time_limit"}
-    command_only = {"exit_map", "time_limit"} & set(cond)
-    if len(members) != 1 or extras or (command_only and members != ["command"]):
+    member = _condition_member(cond) if cond is not None else None
+    if cond is None or member is None:
         ctx.rb.error(
             "condition-invalid",
-            "a condition holds exactly one of command, retry_limit, and predicate "
-            "(command may add exit_map and time_limit)",
+            "a condition is a mapping that holds exactly one of command, retry_limit, and "
+            "predicate (command may add exit_map and time_limit)",
             path,
         )
         return None
-    member = members[0]
     if member == "command":
         check_command_fields(cond, path, ctx.rb, required=ctx.approval)
     elif member == "retry_limit":
         _check_retry_limit(cond["retry_limit"], gate_kind, f"{path}.retry_limit", ctx)
     else:
-        allowed = FAIL_PREDICATES if gate_kind == "fail" else WAIT_PREDICATES
-        if cond["predicate"] not in allowed:
-            ctx.rb.error(
-                "condition-invalid",
-                f"a {gate_kind} gate may name only the predicates {sorted(allowed)}",
-                f"{path}.predicate",
-            )
+        _check_predicate(cond["predicate"], gate_kind, f"{path}.predicate", ctx)
     return member
+
+
+def _check_predicate(value: object, gate_kind: str, path: str, ctx: _Context) -> None:
+    allowed = FAIL_PREDICATES if gate_kind == "fail" else WAIT_PREDICATES
+    if not _is_member(value, allowed):
+        ctx.rb.error(
+            "condition-invalid",
+            f"a {gate_kind} gate may name only the predicates {sorted(allowed)}",
+            path,
+        )
 
 
 def check_command_fields(
     holder: Mapping[str, object], path: str, rb: ReportBuilder, *, required: bool
 ) -> None:
     """Check command, exit_map, and time_limit of a check command (Section 24.2)."""
-    command = holder.get("command")
-    if command is None:
-        if required:
-            rb.error("command-missing", "a check command needs a command", f"{path}.command")
-    elif text_list(command) is None or not command:
-        rb.error(
-            "command-invalid",
-            "a command is a non-empty argument list of non-empty strings",
-            f"{path}.command",
-        )
+    _check_command(holder, path, rb, required=required)
     if "exit_map" in holder:
         _check_exit_map(holder["exit_map"], f"{path}.exit_map", rb)
-    elif required and command is not None:
+    elif required and "command" in holder:
         rb.error("exit-map-invalid", "a check command needs an exit map", f"{path}.exit_map")
     if "time_limit" in holder:
         seconds = as_int(holder["time_limit"])
@@ -304,30 +308,50 @@ def check_command_fields(
             )
 
 
+def _check_command(
+    holder: Mapping[str, object], path: str, rb: ReportBuilder, *, required: bool
+) -> None:
+    if "command" not in holder:
+        if required:
+            rb.error("command-missing", "a check command needs a command", f"{path}.command")
+    elif not text_list(holder["command"]):
+        rb.error(
+            "command-invalid",
+            "a command is a non-empty argument list of non-empty strings",
+            f"{path}.command",
+        )
+
+
 def _check_exit_map(value: object, path: str, rb: ReportBuilder) -> None:
     exit_map = as_mapping(value)
     if exit_map is None:
         rb.error("exit-map-invalid", "an exit map must be a mapping", path)
         return
-    seen: set[int] = set()
     for key in sorted(set(exit_map) - set(EXIT_RESULTS)):
         rb.error("exit-map-invalid", f"unknown result {key!r} in an exit map", path)
+    seen: set[int] = set()
     for result in EXIT_RESULTS:
-        statuses = as_list(exit_map.get(result)) if result in exit_map else None
-        if statuses is None:
-            if result != "not_evaluable":
-                rb.error("exit-map-invalid", f"an exit map needs the list {result!r}", path)
-            continue
-        for status in statuses:
-            number = as_int(status)
-            if number is None or number < 0 or number in seen:
-                rb.error(
-                    "exit-map-invalid",
-                    f"exit status {status!r} must be a non-negative integer that appears once",
-                    path,
-                )
-            else:
-                seen.add(number)
+        _check_exit_statuses(result, exit_map, seen, path, rb)
+
+
+def _check_exit_statuses(
+    result: str, exit_map: Mapping[str, object], seen: set[int], path: str, rb: ReportBuilder
+) -> None:
+    statuses = as_list(exit_map.get(result))
+    if statuses is None:
+        if result != "not_evaluable":
+            rb.error("exit-map-invalid", f"an exit map needs the list {result!r}", path)
+        return
+    for status in statuses:
+        number = as_int(status)
+        if number is None or number < 0 or number in seen:
+            rb.error(
+                "exit-map-invalid",
+                f"exit status {status!r} must be a non-negative integer that appears once",
+                path,
+            )
+        else:
+            seen.add(number)
 
 
 def _check_retry_limit(value: object, gate_kind: str, path: str, ctx: _Context) -> None:
@@ -345,18 +369,20 @@ def _check_retry_limit(value: object, gate_kind: str, path: str, ctx: _Context) 
     else:
         ctx.retry_refs.append((target, path))
     if ctx.approval:
-        limit = as_int(spec["limit"])
-        if limit is None or limit < 0:
-            ctx.rb.error(
-                "retry-limit-invalid", "a retry limit is a non-negative integer", f"{path}.limit"
-            )
-        elif limit > ctx.default_retry_limit:
-            ctx.rb.error(
-                "retry-limit-invalid",
-                f"a retry limit may be lower than the default {ctx.default_retry_limit} "
-                "and never higher",
-                f"{path}.limit",
-            )
+        _check_retry_value(spec["limit"], f"{path}.limit", ctx)
+
+
+def _check_retry_value(value: object, path: str, ctx: _Context) -> None:
+    limit = as_int(value)
+    if limit is None or limit < 0:
+        ctx.rb.error("retry-limit-invalid", "a retry limit is a non-negative integer", path)
+    elif limit > ctx.default_retry_limit:
+        ctx.rb.error(
+            "retry-limit-invalid",
+            f"a retry limit may be lower than the default {ctx.default_retry_limit} "
+            "and never higher",
+            path,
+        )
 
 
 def _check_retry_refs(ctx: _Context) -> None:

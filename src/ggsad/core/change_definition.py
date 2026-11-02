@@ -74,16 +74,25 @@ def _validate(definition: object, context: ProjectContext, *, approval: bool) ->
     if not _check_schema_version(root, rb):
         return rb.build()
     _check_fields(root, rb)
-    _check_identity(root, context, rb, approval=approval)
+    _check_id(root, context, rb, approval=approval)
+    _check_profiles(root, context, rb)
     _check_roles(root, context, rb)
     _check_follows(root, context, rb)
-    sentences = _check_goal(root.get("goal"), rb)
-    index = _check_gates_and_scope(root, rb, context, approval=approval)
-    covered = _Requirements(sentences, index, rb, approval).check(root.get("requirements"))
-    if approval and sentences is not None:
-        _check_coverage(sentences, covered, rb)
+    _check_body(root, context, rb, approval=approval)
     _check_options(root, rb)
     return rb.build()
+
+
+def _check_body(
+    root: Mapping[str, object], context: ProjectContext, rb: ReportBuilder, *, approval: bool
+) -> None:
+    """Goal, gates, scope, and requirements. A field that is present is never skipped."""
+    sentences = _check_goal(root["goal"], rb) if "goal" in root else None
+    index = _check_gates_and_scope(root, rb, context, approval=approval)
+    requirements = _Requirements(sentences, index, rb, approval)
+    covered = requirements.check(root["requirements"]) if "requirements" in root else set()
+    if approval and sentences is not None:
+        _check_coverage(sentences, covered, rb)
 
 
 def _check_schema_version(root: Mapping[str, object], rb: ReportBuilder) -> bool:
@@ -108,7 +117,7 @@ def _check_fields(root: Mapping[str, object], rb: ReportBuilder) -> None:
         rb.error("field-unknown", f"unknown field {name!r}", name)
 
 
-def _check_identity(
+def _check_id(
     root: Mapping[str, object], context: ProjectContext, rb: ReportBuilder, *, approval: bool
 ) -> None:
     if "id" not in root:
@@ -123,6 +132,9 @@ def _check_identity(
         existing = [e for e in existing if ascii_lower(e) != ascii_lower(identifier)]
     for issue in check_identifier(identifier, existing=existing):
         rb.error(issue.code, issue.message, issue.path)
+
+
+def _check_profiles(root: Mapping[str, object], context: ProjectContext, rb: ReportBuilder) -> None:
     method = root.get("method_profile")
     if "method_profile" in root and method != METHOD_PROFILE:
         rb.error(
@@ -142,19 +154,29 @@ def _check_identity(
 
 def _check_roles(root: Mapping[str, object], context: ProjectContext, rb: ReportBuilder) -> None:
     """Section 3.11: author, owner, and approver are humans; the first two must be approved."""
-    approved = context.approved_humans
     for name in ("author", "owner"):
-        if name not in root:
-            continue
-        value = root[name]
-        if not isinstance(value, str) or not value.startswith(HUMAN_PREFIX):
-            rb.error("role-not-human", f"{name} must be a human identity (human:<name>)", name)
-        elif approved is not None and value not in approved:
-            rb.error("human-not-approved", f"{value!r} is not an approved human", name)
-    approver = root.get("approver")
+        if name in root:
+            _check_person(name, root[name], context.approved_humans, rb)
+    _check_approver(root, context.approved_humans, rb)
+
+
+def _check_person(
+    name: str, value: object, approved: Collection[str] | None, rb: ReportBuilder
+) -> None:
+    if not isinstance(value, str) or not value.startswith(HUMAN_PREFIX):
+        rb.error("role-not-human", f"{name} must be a human identity (human:<name>)", name)
+    elif approved is not None and value not in approved:
+        rb.error("human-not-approved", f"{value!r} is not an approved human", name)
+
+
+def _check_approver(
+    root: Mapping[str, object], approved: Collection[str] | None, rb: ReportBuilder
+) -> None:
     if "approver" not in root:
         rb.warn("approver-fallback", "no approver is named; the Change owner approves", "approver")
-    elif not isinstance(approver, str) or not approver.startswith(HUMAN_PREFIX):
+        return
+    approver = root["approver"]
+    if not isinstance(approver, str) or not approver.startswith(HUMAN_PREFIX):
         rb.error("role-not-human", "approver must be a human identity (human:<name>)", "approver")
     elif approved is not None and approver not in approved:
         rb.warn(
@@ -180,12 +202,15 @@ def _check_follows(root: Mapping[str, object], context: ProjectContext, rb: Repo
 
 def _check_goal(value: object, rb: ReportBuilder) -> list[str] | None:
     """Check the goal (Section 3.1) and return its done_when sentences, None when unreadable."""
-    if value is None:
-        return None
     goal = as_mapping(value)
     if goal is None:
         rb.error("field-type-invalid", "goal must be a mapping", "goal")
         return None
+    _check_goal_members(goal, rb)
+    return _goal_sentences(goal, rb)
+
+
+def _check_goal_members(goal: Mapping[str, object], rb: ReportBuilder) -> None:
     for name in ("problem", "done_when", "non_goals"):
         if name not in goal:
             rb.error("field-missing", f"goal.{name} is required", f"goal.{name}")
@@ -195,6 +220,9 @@ def _check_goal(value: object, rb: ReportBuilder) -> list[str] | None:
         rb.error("field-type-invalid", "goal.problem must be a non-empty text", "goal.problem")
     if "non_goals" in goal and as_list(goal["non_goals"]) is None:
         rb.error("field-type-invalid", "goal.non_goals must be a list", "goal.non_goals")
+
+
+def _goal_sentences(goal: Mapping[str, object], rb: ReportBuilder) -> list[str] | None:
     if "done_when" not in goal:
         return None
     sentences = text_list(goal["done_when"])
@@ -225,10 +253,16 @@ def _check_gates_and_scope(
     return index
 
 
-def _check_scope(value: object, rb: ReportBuilder, *, approval: bool) -> None:
+def _scope_allow(value: object) -> list[object] | None:
     scope = as_mapping(value)
-    allow = as_list(scope.get("allow")) if scope is not None and "allow" in scope else None
-    if scope is None or allow is None or set(scope) != {"allow"}:
+    if scope is None or set(scope) != {"allow"}:
+        return None
+    return as_list(scope["allow"])
+
+
+def _check_scope(value: object, rb: ReportBuilder, *, approval: bool) -> None:
+    allow = _scope_allow(value)
+    if allow is None:
         rb.error("field-type-invalid", "scope holds exactly the list allow", "scope")
         return
     if not approval:
@@ -264,8 +298,6 @@ class _Requirements:
 
     def check(self, value: object) -> set[str]:
         """Check the requirements and return the done_when sentences with evidence behind them."""
-        if value is None:
-            return self.covered
         items = as_list(value)
         if items is None:
             self.rb.error("field-type-invalid", "requirements must be a list", "requirements")
@@ -288,7 +320,9 @@ class _Requirements:
         self._check_identity(requirement, path)
         self._check_sentences(requirement.get("done_when", []), f"{path}.done_when")
         commands = self._check_evidence(requirement.get("evidence", []), f"{path}.evidence")
-        human = self._check_human_check(requirement.get("human_check"), f"{path}.human_check")
+        human = "human_check" in requirement and self._check_human_check(
+            requirement["human_check"], f"{path}.human_check"
+        )
         return commands > 0 or human
 
     def _check_identity(self, requirement: Mapping[str, object], path: str) -> None:
@@ -333,8 +367,6 @@ class _Requirements:
 
     def _check_human_check(self, value: object, path: str) -> bool:
         """A human check names a reason and a sign-off gate (Section 24.9)."""
-        if value is None:
-            return False
         check = as_mapping(value)
         if (
             check is None
