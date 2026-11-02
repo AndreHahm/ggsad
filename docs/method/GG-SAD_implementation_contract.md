@@ -10,14 +10,17 @@
 
 A GG-SAD automation contract MUST support these technology-neutral operations:
 
-- initialize a stand-alone GG-SAD project;
+- initialize a stand-alone GG-SAD project, as the operation `init`: it takes the compliance profile once, creates the configuration, the brief, and the template documents that the profile requires (Section 4.2 of the normative specification), never overwrites an existing file, and reports a difference between the profile of the configuration and the profile of the brief;
 - create a goal-bound change;
 - validate governing configuration, artifacts, references, and state;
 - record a human decision (an approval, a sign-off, an override, or an answer) in the history of a change;
 - migrate a schema-governed file to a newer schema version, as an explicit operation whose steps are recorded (Section 25.3);
 - record a question of a change (Section 24.8);
 - adopt the history of a change (Section 24.4);
-- report on a change, as the read-only actions `check`, `review`, and `guard` (Section 22.4) do;
+- repair a damaged history of a change, as the owner of the project (Section 24.4);
+- record a conflict between two documents as a question and a wait (Section 13.1);
+- create a follow-up change that is pre-filled from a closed change (Section 23.1);
+- report on a change, as the read-only actions `check`, `review`, `guard`, and `check-scope` (Section 22.4) do, with the status report of Section 23.8;
 - evaluate and execute one controlled state transition under the transition table of Section 23.4. See AE-067.
 
 The contract specifies observable behavior and compatibility requirements only. It does not prescribe a programming language, module structure, or vendor-specific agent interface.
@@ -83,6 +86,8 @@ For every operation, an implementation MUST emit both an actionable human-readab
 
 ### 22.4 The `guard` Action
 
+The action `check-scope` is read-only and legal from every state: it measures the paths changed since the base revision (Section 24.5) and reports those outside the allowed path list, without changing the state or the history and without running any command. It reports `not_evaluable` where the scope cannot be measured. The result is `success` with `changed` false when no path is outside the scope, and otherwise `rejected` with `changed` false and the issue code `scope-violation`.
+
 The action `guard` is the verify-only action. It is read-only: it never changes the state or the history of a change, it is legal from every state, and it is not a row of the table of Section 23.4.
 
 The action performs five verifications and reports the result of each:
@@ -137,8 +142,9 @@ The state document is a JSON object with two fields. `schema_version` holds the 
 
 The `body` of an entry holds exactly these fields:
 
-- `action`: the name of the operation that the entry records, which is `new`, `approve`, `ask`, `answer`, `adopt`, or `migrate` (Section 25.3), or an action of the transition table of Section 23.4. The set of names is closed, and an entry with another name is not valid;
+- `action`: the name of the operation that the entry records, which is `new`, `approve`, `ask`, `answer`, `adopt`, `repair`, `conflict`, or `migrate` (Section 25.3), or an action of the transition table of Section 23.4. The set of names is closed, and an entry with another name is not valid;
 - `actor`: the identity of the participant that performed the action (Section 24.3);
+- `account`: the real account of the actor that the implementation reads from version control or from the hosting service, next to the typed identity in `actor`, or `null` when none can be read (Section 24.3);
 - `assurance`: the verified assurance level of the claim of the actor, which is `A0`, `A1`, or `A2` (Section 24.3);
 - `at`: the instant at which the entry was written, as a string in UTC that is written `YYYY-MM-DDThh:mm:ssZ`;
 - `result`: the result of the action, which is `success` or `blocked` (Section 22.2), because an action that is `rejected` or ends in `error` writes no entry;
@@ -148,7 +154,7 @@ The `body` of an entry holds exactly these fields:
 - `note`: the text that the actor gave, or `null`;
 - `after`: the record of the state of the change after the action.
 
-A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. The first entry of a change that the `new` action created is `new` (the first entry of a state document that was converted from a YAML state document is the `migrate` entry of Section 25.3), the entry of an approval is `approve`, and an entry with a name outside the closed set of `action` is not valid. See AE-079, AE-075, AE-083, AE-084.
+A field that does not apply to an action is present with the value `null`. The body holds no other field, except that an action MAY be defined to add fields for itself, and Section 25.3 defines such fields for `migrate`. The `close` action of an agent adds `agent_report` (Section 19.1 of the normative specification: the errors seen, the decisions returned to the owner, and the exceptions recorded). The `repair` action adds `repaired` (Section 24.4 of the normative specification: the damage found, the number of entries lost, the old anchor, the location of the damaged file, and the reason). The first entry of a change that the `new` action created is `new` (the first entry of a state document that was converted from a YAML state document is the `migrate` entry of Section 25.3), the entry of an approval is `approve`, and an entry with a name outside the closed set of `action` is not valid. See AE-079, AE-075, AE-083, AE-084.
 
 The `after` record holds the whole state of the change after the action, and not only what the action changed, so that the state of the change is the `after` record of the last entry (Section 24.4). In `core`, it holds these fields:
 
