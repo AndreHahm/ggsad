@@ -9,6 +9,8 @@ from datetime import date
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from ggsad.core.change_definition import (
     ProjectContext,
@@ -712,3 +714,130 @@ def test_goal_details_are_checked() -> None:
     data["goal"] = {"problem": "p", "non_goals": "none"}
 
     assert set(new(data).codes) == {"field-missing", "field-type-invalid"}
+
+
+# --- an explicit null is never "absent" (Codex finding on goal: null) ---
+
+
+@pytest.mark.parametrize("field", ["goal", "requirements", "gates", "scope"])
+def test_a_null_body_field_is_rejected_at_creation_and_at_approval(field: str) -> None:
+    data = definition()
+    data[field] = None
+
+    assert not new(data).ok
+    assert not approval(data).ok
+
+
+def test_a_null_goal_cannot_skip_the_done_when_coverage_check() -> None:
+    data = definition()
+    data["goal"] = None
+
+    assert new(data).codes == ("field-type-invalid",)
+    assert "field-type-invalid" in approval(data).codes
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda d: d["gates"].__setitem__("not_applicable", None),
+        lambda d: d["gates"].__setitem__("done", [{**check_gate(), "command": None}]),
+        lambda d: d["gates"].__setitem__(
+            "done", [{"id": "s", "kind": "sign-off", "minimum_level": None}]
+        ),
+        lambda d: d["requirements"][0].__setitem__("human_check", None),
+        lambda d: d["requirements"][0].__setitem__("evidence", None),
+        lambda d: d["requirements"][0].__setitem__("done_when", None),
+    ],
+)
+def test_an_explicit_null_in_an_optional_member_is_rejected(mutate: Any) -> None:
+    data = definition()
+    mutate(data)
+
+    assert not new(data).ok
+
+
+# --- list and mapping values never crash a membership test (Codex finding) ---
+
+
+@pytest.mark.parametrize("value", [[], {}, ["hard"], {"a": 1}, 3, None])
+def test_an_unhashable_or_non_string_enum_value_is_an_issue_not_an_exception(
+    value: object,
+) -> None:
+    data = definition()
+    data["gates"]["fail"] = [fail_gate({"predicate": "scope-violation"}, value)]
+    assert new(data).codes == ("severity-invalid",)
+
+    data = definition()
+    data["gates"]["fail"] = [fail_gate({"predicate": value})]
+    assert new(data).codes == ("condition-invalid",)
+
+    data = definition()
+    data["gates"]["wait"] = [{"id": "w", "condition": {"predicate": value}}]
+    assert new(data).codes == ("condition-invalid",)
+
+    data = definition()
+    data["gates"]["done"] = [{"id": "s", "kind": "sign-off", "minimum_level": value}]
+    assert new(data).codes == ("level-invalid",)
+
+    data = definition()
+    data["gates"]["done"] = [{"id": "g", "kind": value}]
+    assert new(data).codes == ("done-gate-kind-invalid",)
+
+
+# --- no input makes a validator raise ---
+
+_LEAF = (
+    st.none()
+    | st.booleans()
+    | st.integers(-5, 5)
+    | st.floats(allow_nan=False)
+    | st.text(max_size=6)
+)
+_VALUES = st.recursive(
+    _LEAF,
+    lambda inner: (
+        st.lists(inner, max_size=3) | st.dictionaries(st.text(max_size=5), inner, max_size=3)
+    ),
+    max_leaves=6,
+)
+_PATHS = [
+    ("goal",),
+    ("goal", "done_when"),
+    ("scope",),
+    ("scope", "allow"),
+    ("requirements",),
+    ("requirements", 0),
+    ("requirements", 0, "evidence"),
+    ("requirements", 0, "human_check"),
+    ("gates",),
+    ("gates", "fail"),
+    ("gates", "wait"),
+    ("gates", "done"),
+    ("gates", "not_applicable"),
+    ("follows",),
+    ("approver",),
+    ("required_tools",),
+    ("agent_may_close",),
+    ("id",),
+    ("author",),
+]
+
+
+def replace_at(data: dict[str, Any], path: tuple[object, ...], value: object) -> None:
+    target: Any = data
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+
+
+@given(path=st.sampled_from(_PATHS), value=_VALUES, gate=_VALUES)
+def test_no_input_makes_a_validator_raise(
+    path: tuple[object, ...], value: object, gate: object
+) -> None:
+    data = definition()
+    data["gates"]["fail"] = [gate]
+    data["gates"]["done"] = [gate]
+    replace_at(data, path, value)
+
+    assert isinstance(new(data).issues, tuple)
+    assert isinstance(approval(data).issues, tuple)
