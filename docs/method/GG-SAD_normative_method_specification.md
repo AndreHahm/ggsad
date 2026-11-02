@@ -1,7 +1,7 @@
 # GG-SAD — Normative Method Specification
 
 **Version:** 2.0 (draft)
-**Status:** Approved by the repository owner on 2026-11-02 at commit `afea430`, after the bounded Pair Review cycles in `docs/reviews/` (three cycles, each with one review round and one re-check). Version 2.0.  
+**Status:** Approved by the repository owner on 2026-11-02, with the correction of Sections 24.2 and 24.9 approved on 2026-11-02 after the Codex finding, at commit `e51f04c`, after the bounded Pair Review cycles in `docs/reviews/` (four cycles, each with one review round and one re-check). Version 2.0.
 **Revision:** 2026-10-31 — Restructured around the `core` method profile. The `full` method profile, the automation contract, the state document with its hashing and schema versions, and the signature verification moved to their own documents (Section 1.1). Pair Review is bounded to one round and one re-check (Section 14.3). The acceptance examples were reduced from 326 to a representative set and renumbered in order.  
 **Revision:** 2026-11-02 — Applied the owner decisions of the requirements interview (`docs/requirements/`): combination mode and layer 5 moved to "future"; approved-human list; `review` gate; follow-up change; `repair`, `conflict`, `check-scope`; status report (Section 23.8); human close; default retry limit; baseline reasons; required tools. New examples are numbered from AE-313.  
 **Target audience:** AI agents, workflow engines, automation systems, and technical project owners
