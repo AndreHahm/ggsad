@@ -19,7 +19,7 @@ import contextlib
 import io
 import json
 import shutil
-import subprocess
+import subprocess  # nosec B404 - the script must start git
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -138,11 +138,11 @@ class Scratch:
 
     def clock(self) -> str:
         self.step += 1
-        return (START + timedelta(minutes=5 * self.step)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        return (START + timedelta(minutes=5 * self.step)).isoformat().replace("+00:00", "Z")
 
     def git(self, *args: str) -> None:
-        subprocess.run(  # noqa: S603  # nosec B603
-            ["git", "-c", "commit.gpgsign=false", *args],  # noqa: S607  # nosec B607
+        subprocess.run(  # noqa: S603  # nosec B603 B607
+            ["git", "-c", "commit.gpgsign=false", *args],  # noqa: S607
             cwd=self.root,
             check=True,
             capture_output=True,
