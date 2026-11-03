@@ -93,13 +93,14 @@ def _check_actor(call: Call) -> None:
 
 def _finish(call: Call, step: Step) -> ActionResult:
     bodies = [_body(call, step)]
-    state, result = step.state, step.result
+    state, result, issues = step.state, step.result, step.issues
+    data = dict(step.data)
     if step.chained is not None:
         bodies.append(_body(call, step.chained))
         state, result = step.chained.state, step.chained.result
-    return ActionResult(
-        call.request.action, result, step.issues, state, tuple(bodies), dict(step.data)
-    )
+        issues = (*issues, *step.chained.issues)
+        data.update(step.chained.data)
+    return ActionResult(call.request.action, result, issues, state, tuple(bodies), data)
 
 
 def _body(call: Call, step: Step) -> dict[str, object]:
@@ -115,11 +116,16 @@ def _body(call: Call, step: Step) -> dict[str, object]:
         "gate_results": dict(evaluation.results) if evaluation else None,
         "gate_detail": (dict(evaluation.details) or None) if evaluation else None,
         "files": dict(files) if files else None,
-        "note": request.note if request.note is not None else request.reason,
+        "note": step.note or _note(request),
         "after": step.state.to_json(),
     }
     body.update(_extra_fields(request))
     return body
+
+
+def _note(request: Request) -> str | None:
+    text = request.note if request.note is not None else request.reason
+    return text if text is not None and text.strip() else None
 
 
 def _extra_fields(request: Request) -> dict[str, object]:
