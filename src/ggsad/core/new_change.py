@@ -85,8 +85,11 @@ def spec_text(change_id: str, fields: NewFields) -> str:
 
 def _safe_directory(root: Path, change_id: str) -> Path | None:
     """The folder of a change with links resolved, or None if it lies outside `specs/`."""
+    name = os.path.basename(change_id)  # noqa: PTH119 - a name, never a path
+    if not name or name != change_id:
+        return None
     base = os.path.realpath(root / "specs")
-    target = os.path.realpath(os.path.join(base, change_id))  # noqa: PTH118
+    target = os.path.realpath(os.path.join(base, name))  # noqa: PTH118
     return Path(target) if target.startswith(base + os.sep) else None
 
 
