@@ -135,6 +135,11 @@ class StateStore:
         self._change_id = change_id or change_dir.name
 
     @property
+    def anchors(self) -> AnchorStore | None:
+        """The anchor store of this change, None when none is kept."""
+        return self._anchors
+
+    @property
     def state_path(self) -> Path:
         """The state document."""
         return self._dir / STATE_FILE
