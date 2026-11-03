@@ -1,0 +1,15 @@
+schema_version: "1.0"
+project:
+  id: "solo-developer"
+  compliance_profile: "standard"
+  team_mode: "solo"
+roles:
+  owner: "human:sam"
+  approved_humans:
+    - {identity: "human:sam", account: sam-gh}
+  requestors:
+    - {identity: "agent:assistant"}
+defaults:
+  retry_limit: 3
+  fail_severity: hard
+minimum_levels: {}

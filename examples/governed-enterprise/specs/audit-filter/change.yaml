@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "audit-filter"
+method_profile: core
+compliance_profile: "governed"
+author: "human:ada"
+owner: "human:ada"
+approver: "human:grace"
+goal:
+  problem: "The list of changes of a record is too long to read."
+  done_when: ["A person can filter the list of changes by date."]
+  non_goals: []
+scope:
+  allow: ["src/filter/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "A person can filter the list of changes by date."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["A person can filter the list of changes by date."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/filter/audit_filter.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []

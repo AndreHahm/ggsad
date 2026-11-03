@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "audit-trail"
+method_profile: core
+compliance_profile: "governed"
+author: "human:ada"
+owner: "human:ada"
+approver: "human:grace"
+goal:
+  problem: "Support staff cannot see who changed a customer record, which audits require."
+  done_when: ["Every change of a customer record shows who made it and when."]
+  non_goals: []
+scope:
+  allow: ["src/audit/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "Every change of a customer record shows who made it and when."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["Every change of a customer record shows who made it and when."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/audit/audit_trail.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []

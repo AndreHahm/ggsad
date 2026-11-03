@@ -1,0 +1,169 @@
+{
+  "schema_version": "1.0",
+  "entries": [
+    {
+      "n": 1,
+      "prev": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "body": {
+        "action": "new",
+        "actor": "agent:assistant",
+        "account": null,
+        "assurance": "A0",
+        "at": "2026-01-12T09:25:00Z",
+        "result": "success",
+        "gate_results": null,
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "open",
+          "outcome": null,
+          "approvals": [],
+          "questions": [],
+          "wait": null,
+          "base_revision": null,
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:de452a36cd5b0d017752a1dd9c8801a616c9781159bc829c17c7c8cfcb4ff4db"
+    },
+    {
+      "n": 2,
+      "prev": "sha256:de452a36cd5b0d017752a1dd9c8801a616c9781159bc829c17c7c8cfcb4ff4db",
+      "body": {
+        "action": "approve",
+        "actor": "human:grace",
+        "account": "grace-gh",
+        "assurance": "A1",
+        "at": "2026-01-12T09:30:00Z",
+        "result": "success",
+        "gate_results": null,
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "open",
+          "outcome": null,
+          "approvals": [
+            {
+              "target": "spec",
+              "actor": "human:grace",
+              "assurance": "A1",
+              "required_level": "A1",
+              "content_hash": "sha256:09cabd8d0c8600a74b1ce44c8d585840db99f6cba7bec39f0b4eb49fb4948002",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": null,
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {
+                "docs/architecture.md": "sha256:c029e844a23e3a254cbb8b5fb24c81cebc7ce3d46f587e14bece8e56dd872df7",
+                "docs/constitution.md": "sha256:a2a19a592d6014fb5d3235b04500ce349277e14cf7a39abb8ad3d7c35deb479c",
+                "docs/project-brief.md": "sha256:d7388dcf4e3e1f7bf32acc54ac15188c27b221120ea4354000eddf2f32085624"
+              }
+            },
+            {
+              "target": "gates",
+              "actor": "human:grace",
+              "assurance": "A1",
+              "required_level": "A1",
+              "content_hash": "sha256:a27cb3045514245f1001c62d01467b115cc6a52e89f884e1ffa898f54afd27b5",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": "sha256:a27cb3045514245f1001c62d01467b115cc6a52e89f884e1ffa898f54afd27b5",
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {}
+            }
+          ],
+          "questions": [],
+          "wait": null,
+          "base_revision": null,
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:fdb65b06e6ca57b56021406ba9268c5bc2bdaf1b3055cd0b40dedcfb0d4c960d"
+    },
+    {
+      "n": 3,
+      "prev": "sha256:fdb65b06e6ca57b56021406ba9268c5bc2bdaf1b3055cd0b40dedcfb0d4c960d",
+      "body": {
+        "action": "ask",
+        "actor": "agent:assistant",
+        "account": null,
+        "assurance": "A0",
+        "at": "2026-01-12T09:35:00Z",
+        "result": "success",
+        "gate_results": null,
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "open",
+          "outcome": null,
+          "approvals": [
+            {
+              "target": "spec",
+              "actor": "human:grace",
+              "assurance": "A1",
+              "required_level": "A1",
+              "content_hash": "sha256:09cabd8d0c8600a74b1ce44c8d585840db99f6cba7bec39f0b4eb49fb4948002",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": null,
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {
+                "docs/architecture.md": "sha256:c029e844a23e3a254cbb8b5fb24c81cebc7ce3d46f587e14bece8e56dd872df7",
+                "docs/constitution.md": "sha256:a2a19a592d6014fb5d3235b04500ce349277e14cf7a39abb8ad3d7c35deb479c",
+                "docs/project-brief.md": "sha256:d7388dcf4e3e1f7bf32acc54ac15188c27b221120ea4354000eddf2f32085624"
+              }
+            },
+            {
+              "target": "gates",
+              "actor": "human:grace",
+              "assurance": "A1",
+              "required_level": "A1",
+              "content_hash": "sha256:a27cb3045514245f1001c62d01467b115cc6a52e89f884e1ffa898f54afd27b5",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": "sha256:a27cb3045514245f1001c62d01467b115cc6a52e89f884e1ffa898f54afd27b5",
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {}
+            }
+          ],
+          "questions": [
+            {
+              "id": "Q1",
+              "text": "Which of the two ways of doing this do you prefer?",
+              "owner": "human:ada",
+              "asker": "agent:assistant",
+              "options": null,
+              "answer": null,
+              "answerer": null
+            }
+          ],
+          "wait": null,
+          "base_revision": null,
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:4e00563600528c0e02fbe2c21576484c8687403f6e902e698ddca51320a6b430"
+    }
+  ]
+}

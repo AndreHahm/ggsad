@@ -1,0 +1,234 @@
+{
+  "schema_version": "1.0",
+  "entries": [
+    {
+      "n": 1,
+      "prev": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "body": {
+        "action": "new",
+        "actor": "agent:assistant",
+        "account": null,
+        "assurance": "A0",
+        "at": "2026-01-12T09:05:00Z",
+        "result": "success",
+        "gate_results": null,
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "open",
+          "outcome": null,
+          "approvals": [],
+          "questions": [],
+          "wait": null,
+          "base_revision": null,
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:c58afe462dca084bd3d3bb2a8fb6ee52f0670ae3296419ed177bf5f0c3b80925"
+    },
+    {
+      "n": 2,
+      "prev": "sha256:c58afe462dca084bd3d3bb2a8fb6ee52f0670ae3296419ed177bf5f0c3b80925",
+      "body": {
+        "action": "approve",
+        "actor": "human:sam",
+        "account": "sam-gh",
+        "assurance": "A1",
+        "at": "2026-01-12T09:10:00Z",
+        "result": "success",
+        "gate_results": null,
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "open",
+          "outcome": null,
+          "approvals": [
+            {
+              "target": "spec",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:816a0f508c1b1551ac5f4d451bb7fcf15d49c21a8e7bc9b7649f0227ed444cfa",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": null,
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {
+                "docs/architecture.md": "sha256:c029e844a23e3a254cbb8b5fb24c81cebc7ce3d46f587e14bece8e56dd872df7",
+                "docs/constitution.md": "sha256:a2a19a592d6014fb5d3235b04500ce349277e14cf7a39abb8ad3d7c35deb479c",
+                "docs/project-brief.md": "sha256:a777631a165b91bca3993597cb24dbecf35fe5ea17561b85997ad9fd2dcd5335"
+              }
+            },
+            {
+              "target": "gates",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {}
+            }
+          ],
+          "questions": [],
+          "wait": null,
+          "base_revision": null,
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:3fecc072ba0264e520084247bac7c4b212e51702cf9056475c59fbcbf9440821"
+    },
+    {
+      "n": 3,
+      "prev": "sha256:3fecc072ba0264e520084247bac7c4b212e51702cf9056475c59fbcbf9440821",
+      "body": {
+        "action": "start",
+        "actor": "agent:assistant",
+        "account": null,
+        "assurance": "A0",
+        "at": "2026-01-12T09:15:00Z",
+        "result": "success",
+        "gate_results": {
+          "scope-violation": "not_applicable",
+          "unanswered-question": "not_satisfied",
+          "stale-spec-approval": "not_satisfied",
+          "incomplete-evidence": "not_applicable"
+        },
+        "gate_detail": {
+          "scope-violation": "the change has not started"
+        },
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "active",
+          "outcome": null,
+          "approvals": [
+            {
+              "target": "spec",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:816a0f508c1b1551ac5f4d451bb7fcf15d49c21a8e7bc9b7649f0227ed444cfa",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": null,
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {
+                "docs/architecture.md": "sha256:c029e844a23e3a254cbb8b5fb24c81cebc7ce3d46f587e14bece8e56dd872df7",
+                "docs/constitution.md": "sha256:a2a19a592d6014fb5d3235b04500ce349277e14cf7a39abb8ad3d7c35deb479c",
+                "docs/project-brief.md": "sha256:a777631a165b91bca3993597cb24dbecf35fe5ea17561b85997ad9fd2dcd5335"
+              }
+            },
+            {
+              "target": "gates",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {}
+            }
+          ],
+          "questions": [],
+          "wait": null,
+          "base_revision": "7332369b48213eb0095565ce12656d322c073efd",
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:a498eb421dc492620fcde46a4d7d947a28caf6abcfe9899305393830e57a597e"
+    },
+    {
+      "n": 4,
+      "prev": "sha256:a498eb421dc492620fcde46a4d7d947a28caf6abcfe9899305393830e57a597e",
+      "body": {
+        "action": "close",
+        "actor": "human:sam",
+        "account": "sam-gh",
+        "assurance": "A1",
+        "at": "2026-01-12T09:20:00Z",
+        "result": "success",
+        "gate_results": {
+          "scope-violation": "not_satisfied",
+          "unanswered-question": "not_satisfied",
+          "stale-spec-approval": "not_satisfied",
+          "incomplete-evidence": "satisfied"
+        },
+        "gate_detail": null,
+        "files": null,
+        "note": null,
+        "after": {
+          "state": "closed",
+          "outcome": "done",
+          "approvals": [
+            {
+              "target": "spec",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:816a0f508c1b1551ac5f4d451bb7fcf15d49c21a8e7bc9b7649f0227ed444cfa",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": null,
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {
+                "docs/architecture.md": "sha256:c029e844a23e3a254cbb8b5fb24c81cebc7ce3d46f587e14bece8e56dd872df7",
+                "docs/constitution.md": "sha256:a2a19a592d6014fb5d3235b04500ce349277e14cf7a39abb8ad3d7c35deb479c",
+                "docs/project-brief.md": "sha256:a777631a165b91bca3993597cb24dbecf35fe5ea17561b85997ad9fd2dcd5335"
+              }
+            },
+            {
+              "target": "gates",
+              "actor": "human:sam",
+              "assurance": "A1",
+              "required_level": "A0",
+              "content_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "gate": null,
+              "reason": null,
+              "attempts": null,
+              "used": 0,
+              "definitions_hash": "sha256:a45a174f400dbceb5524ab2657578d3dadf53369ca0b52fe1d620f34b9b2e1b6",
+              "replaced_hash": null,
+              "summary": null,
+              "documents": {}
+            }
+          ],
+          "questions": [],
+          "wait": null,
+          "base_revision": "7332369b48213eb0095565ce12656d322c073efd",
+          "replaced_by": null,
+          "reason": null,
+          "schema_version": "1.0"
+        }
+      },
+      "hash": "sha256:3590bde41be8e558ab3603669de9cac0a641cb2d05a7f9dca050a299b82dd3d3"
+    }
+  ]
+}

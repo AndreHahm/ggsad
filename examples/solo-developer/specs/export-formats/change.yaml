@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "export-formats"
+method_profile: core
+compliance_profile: "standard"
+author: "human:sam"
+owner: "human:sam"
+approver: "human:sam"
+goal:
+  problem: "Some people want the export as a spreadsheet, not as text."
+  done_when: ["A user can choose a spreadsheet file for the export."]
+  non_goals: []
+scope:
+  allow: ["src/formats/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "A user can choose a spreadsheet file for the export."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["A user can choose a spreadsheet file for the export."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/formats/export_formats.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []
