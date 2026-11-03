@@ -82,6 +82,9 @@ class Approval:
     attempts: int | None = None
     used: int = 0
     definitions_hash: str | None = None
+    replaced_hash: str | None = None
+    summary: str | None = None
+    documents: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -176,7 +179,7 @@ _WAIT_KEYS: Final = frozenset({"kind", "reason", "owner", "resume_when", "expire
 _APPROVAL_KEYS: Final = frozenset(
     {
         "target", "actor", "assurance", "required_level", "content_hash", "gate", "reason",
-        "attempts", "used", "definitions_hash",
+        "attempts", "used", "definitions_hash", "replaced_hash", "summary", "documents",
     }
 )  # fmt: skip
 
@@ -271,6 +274,18 @@ def _read_approval(value: object) -> Approval:
         attempts=attempts,
         used=used,
         definitions_hash=_optional_text(record["definitions_hash"], "approval.definitions_hash"),
+        replaced_hash=_optional_text(record["replaced_hash"], "approval.replaced_hash"),
+        summary=_optional_text(record["summary"], "approval.summary"),
+        documents=_read_documents(record["documents"]),
+    )
+
+
+def _read_documents(value: object) -> tuple[tuple[str, str], ...]:
+    mapping = as_mapping(value)
+    if mapping is None:
+        raise _fail("approval.documents", "an object from path to hash")
+    return tuple(
+        sorted((path, _text(digest, "approval.documents")) for path, digest in mapping.items())
     )
 
 
@@ -286,6 +301,9 @@ def _approval_json(a: Approval) -> dict[str, object]:
         "attempts": a.attempts,
         "used": a.used,
         "definitions_hash": a.definitions_hash,
+        "replaced_hash": a.replaced_hash,
+        "summary": a.summary,
+        "documents": dict(a.documents),
     }
 
 

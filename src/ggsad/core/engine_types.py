@@ -70,7 +70,12 @@ class Context:
     requestors: frozenset[str] = frozenset()
     approved_humans: frozenset[str] | None = None
     agent_may_close: bool = False
-    required_level: str = "A0"
+    approver: str = ""
+    compliance_profile: str = "lean"
+    team_mode: str = "team"
+    deputies: frozenset[str] = frozenset()
+    unavailable_approvers: frozenset[str] = frozenset()
+    minimum_levels: Mapping[str, str] = field(default_factory=dict)
 
     def is_approved_human(self, identity: str | None) -> bool:
         """True for a `human:` identity that the list of approved humans allows."""
