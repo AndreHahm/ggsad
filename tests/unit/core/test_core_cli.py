@@ -183,3 +183,13 @@ def test_the_root_is_the_current_folder_when_no_project_is_found(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     assert find_root(None) == tmp_path.resolve()
+
+
+def test_init_without_a_root_uses_the_current_folder_even_inside_a_project(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    inner = root / "sub"
+    inner.mkdir()
+    monkeypatch.chdir(inner)
+    assert main(["init", "--profile", "lean", "--owner", "human:ada"], clock=lambda: AT) == 0
+    assert (inner / ".ggsad/config.yaml").is_file()

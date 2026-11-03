@@ -101,3 +101,12 @@ def test_prepare_fails_outside_a_repository(tmp_path: Path) -> None:
     with pytest.raises(StateError) as caught:
         GitAnchorStore(tmp_path / "missing").prepare("c-1")
     assert caught.value.code == "anchor-write-failed"
+
+
+@pytest.mark.parametrize("change_id", ["a..b", "x.lock"])
+def test_prepare_refuses_an_identifier_that_git_cannot_use_as_a_ref(
+    repo: Path, change_id: str
+) -> None:
+    with pytest.raises(StateError) as caught:
+        GitAnchorStore(repo).prepare(change_id)
+    assert caught.value.code == "anchor-write-failed"

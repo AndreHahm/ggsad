@@ -333,7 +333,8 @@ def main(
 ) -> int:
     """Run the command line and return the exit code."""
     args = build_parser().parse_args(argv)
-    envelope, actor = execute(args, find_root(args.root), clock, stdin or sys.stdin)
+    root = Path(args.root or ".").resolve() if args.command == "init" else find_root(args.root)
+    envelope, actor = execute(args, root, clock, stdin or sys.stdin)
     sys.stdout.write((render_json(envelope) if args.json else render_text(envelope, actor)) + "\n")
     return envelope.exit_code
 

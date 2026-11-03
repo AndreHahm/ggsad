@@ -75,7 +75,7 @@ def diagnose(text: str | None, anchor: Anchor | None) -> Damage | None:
     problems = verify_chain(entries)
     if not problems:
         return _anchor_damage(entries, anchor)
-    first = next(i for i, e in enumerate(entries) if verify_chain(entries[: i + 1]))
+    first = next((i for i in range(len(entries)) if verify_chain(entries[: i + 1])), 0)
     keep = entries[:first]
     lost = max(len(entries), anchor.position if anchor else 0) - len(keep)
     return Damage(keep, lost, tuple(p.message for p in problems), anchor)
@@ -187,6 +187,12 @@ def _repair_damaged(
     return _carry_out(root, salvaged, damage, request, anchors)
 
 
+def _issue_of(error: OSError | StateError) -> Issue:
+    if isinstance(error, StateError):
+        return error_issue(error)
+    return Issue("state-write-failed", str(error))
+
+
 def _carry_out(
     root: Path, loaded: LoadedChange, damage: Damage, request: Request, anchors: AnchorStore
 ) -> Envelope:
@@ -205,17 +211,14 @@ def _carry_out(
         return Envelope("repair", trial.result, False, trial.state.to_json(), trial.issues)
     kept = ""
     try:
+        if damage.old_anchor is not None or anchor_required(settings):
+            anchors.prepare(loaded.change_id)
         kept = _keep_damaged_file(root, loaded.store, loaded.change_id, request.at)
         body = {**trial.bodies[0], "repaired": {**repaired, "damaged_file": kept}}
         entry = _write_repair(root, loaded, damage, body, anchors)
     except (OSError, StateError) as error:
         if kept:
             (root / kept).unlink(missing_ok=True)
-        issue = (
-            error_issue(error)
-            if isinstance(error, StateError)
-            else Issue("state-write-failed", str(error))
-        )
-        return failure("repair", (issue,))
+        return failure("repair", (_issue_of(error),))
     data = {**_describe(damage), "damaged_file": kept, "entry": entry.n}
     return Envelope("repair", "success", True, trial.state.to_json(), data=data)

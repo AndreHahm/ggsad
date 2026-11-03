@@ -90,9 +90,18 @@ def _check(root: Path, settings: Settings, loaded: LoadedChange, now: str) -> En
 # ------------------------------------------------------------------ review
 
 
+def _read_review(path: Path) -> tuple[str | None, Issue | None]:
+    try:
+        return (path.read_text(encoding="utf-8") if path.is_file() else None), None
+    except (OSError, UnicodeDecodeError) as error:
+        return None, Issue("review-unreadable", f"review.md cannot be read: {error}")
+
+
 def _review(root: Path, loaded: LoadedChange) -> Envelope:
     path = root / loaded.change_dir / "review.md"
-    text = path.read_text(encoding="utf-8") if path.is_file() else None
+    text, unreadable = _read_review(path)
+    if unreadable is not None:
+        return Envelope("review", "error", False, issues=(unreadable,))
     problems = approval_issues(text) or [("review-incomplete", g) for g in completion_gaps(text)]
     state = loaded.state.to_json() if loaded.state is not None else None
     data = {"review_exists": text is not None, "gaps": [message for _, message in problems]}
