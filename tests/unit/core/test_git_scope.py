@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import ggsad.core.git_scope as module
 from ggsad.core.git_scope import (
     GitError,
     changed_paths,
@@ -150,3 +151,26 @@ def test_unclean_paths_ignore_the_record_files(repo: Path) -> None:
     write(repo, "lib/a.py", "dirty\n")
     write(repo, "new.txt")
     assert unclean_paths(repo, CHANGE) == ["lib/a.py", "new.txt"]
+
+
+def test_a_revision_that_could_be_read_as_an_option_is_refused(repo: Path) -> None:
+    for bad in ("--output=x", "-p", "HEAD~1", "main", ""):
+        check = measure_scope(repo, bad, ["lib/**"], CHANGE)
+        assert check.result == "not_evaluable" and "not a revision" in check.detail
+    assert not (repo / "x").exists()
+
+
+def test_the_ignore_set_is_computed_once_for_many_untracked_files(repo: Path, monkeypatch) -> None:
+    calls = []
+    original = module._hidden_at_base
+
+    def counting(*args):
+        calls.append(1)
+        return original(*args)
+
+    monkeypatch.setattr(module, "_hidden_at_base", counting)
+    base = head_revision(repo)
+    for index in range(20):
+        write(repo, f"lib/new{index}.py")
+    assert len(changed_paths(repo, base)) == 20
+    assert len(calls) == 1

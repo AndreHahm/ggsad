@@ -12,6 +12,7 @@ An exclude file in the metadata directory or an excludes file of the user is nev
 
 from __future__ import annotations
 
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -24,10 +25,18 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 IGNORE_FILE: Final = ".gitignore"
+_REVISION: Final = re.compile(r"[0-9a-f]{7,64}")
 
 
 class GitError(Exception):
     """Git is unavailable or could not answer."""
+
+
+class NotARevisionError(GitError):
+    """The text is not a commit hash, so it is never handed to Git."""
+
+    def __init__(self, text: str) -> None:
+        super().__init__(f"{text!r} is not a revision")
 
 
 def _git(repo: Path, *args: str, stdin: bytes | None = None, ok: Sequence[int] = (0,)) -> bytes:
@@ -82,13 +91,21 @@ def _hidden_at_base(repo: Path, base: str, paths: Sequence[str]) -> set[str]:
         return set(_split(out))
 
 
+def _check_revision(base: str) -> None:
+    """A revision is a commit hash or HEAD, so it can never be read by Git as an option."""
+    if base != "HEAD" and not _REVISION.fullmatch(base):
+        raise NotARevisionError(base)
+
+
 def changed_paths(repo: Path, base: str) -> list[str]:
     """The paths changed since the base revision, in code point order."""
+    _check_revision(base)
     tracked = _split(
         _git(repo, "diff", "--name-only", "--no-renames", "--no-ext-diff", "-z", base, "--")
     )
     untracked = _split(_git(repo, "ls-files", "--others", "-z"))
-    visible = [p for p in untracked if p not in _hidden_at_base(repo, base, untracked)]
+    hidden = _hidden_at_base(repo, base, untracked)
+    visible = [p for p in untracked if p not in hidden]
     return sorted({*tracked, *visible})
 
 

@@ -136,3 +136,12 @@ def test_build_context_takes_roles_from_the_change_definition() -> None:
 def test_read_settings_never_raises(value: object) -> None:
     settings, report = read_settings(value)
     assert (settings is None) == (not report.ok)
+
+
+def test_build_context_falls_back_to_the_change_owner_for_an_unapproved_approver() -> None:
+    settings, _ = read_settings(GOOD)
+    assert settings is not None
+    away = build_context(settings, {"owner": "human:bo", "approver": "human:eve"}, (), "C-1")
+    assert away.approver == "human:bo"
+    named = build_context(settings, {"owner": "human:bo", "approver": "human:ada"}, (), "C-1")
+    assert named.approver == "human:ada"

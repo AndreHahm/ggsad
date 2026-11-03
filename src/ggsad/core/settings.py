@@ -307,7 +307,9 @@ def build_context(
     """The context of one change: the settings plus the roles its change definition names."""
     owner = as_text(definition.get("owner")) or settings.owner
     author = as_text(definition.get("author")) or ""
-    approver = as_text(definition.get("approver")) or owner
+    named = as_text(definition.get("approver"))
+    listed = settings.approved_identities
+    approver = named if named and (listed is None or named in listed) else owner
     return Context(
         change_id=change_id,
         gates=gates,
