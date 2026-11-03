@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING, Final
 from ggsad.core.errors import StateError
 from ggsad.core.gate_eval import LEVEL_ORDER, NOT_EVALUABLE, SATISFIED
 from ggsad.core.git_anchor import GitAnchorStore
-from ggsad.core.guards import approved_hash, recorded_documents
+from ggsad.core.guards import KIND_OF_TARGET, approved_hash, recorded_documents
 from ggsad.core.issues import Issue
 from ggsad.core.loader import LoadedChange, load_change
 from ggsad.core.operations import Envelope, error_issue, failure, make_runner, open_project
@@ -140,11 +140,23 @@ def _history_issue(error: StateError) -> Issue:
     return Issue("history-inconsistent", error.message)
 
 
-def _level_issues(state: State) -> list[Issue]:
+def _current_minimum(approval: Approval, loaded: LoadedChange) -> int:
+    """The level the approval needs now: the recorded one, the settings, and the gate (24.3)."""
+    ranks = [LEVEL_ORDER.get(approval.required_level, 0)]
+    kind = KIND_OF_TARGET.get(approval.target)
+    if kind is not None:
+        ranks.append(LEVEL_ORDER.get(loaded.context.minimum_levels.get(kind, "A0"), 0))
+    if approval.target == "gate":
+        gate = next((g for g in loaded.context.gates if g.id == approval.gate), None)
+        ranks.append(LEVEL_ORDER.get(gate.minimum_level or "A0", 0) if gate else 0)
+    return max(ranks)
+
+
+def _level_issues(state: State, loaded: LoadedChange) -> list[Issue]:
     return [
-        _stale(f"the {a.target} approval is below its required level")
+        _stale(f"the {a.target} approval is below the level that is now required")
         for a in state.approvals
-        if LEVEL_ORDER.get(a.assurance, 0) < LEVEL_ORDER.get(a.required_level, 0)
+        if LEVEL_ORDER.get(a.assurance, 0) < _current_minimum(a, loaded)
     ]
 
 
@@ -153,11 +165,19 @@ def _latest(state: State, target: str) -> Approval | None:
     return found[-1] if found else None
 
 
+def _spec_issue(spec: Approval | None, facts: Facts) -> list[Issue]:
+    if spec is None:
+        return []
+    if facts.spec_hash is None:
+        return [_stale("spec.md is missing or cannot be read, so its approval cannot be checked")]
+    if spec.content_hash != facts.spec_hash:
+        return [_stale("spec.md changed after its approval")]
+    return []
+
+
 def _content_issues(state: State, facts: Facts) -> list[Issue]:
-    found: list[Issue] = []
-    spec, review = _latest(state, "spec"), _latest(state, "review")
-    if spec and facts.spec_hash is not None and spec.content_hash != facts.spec_hash:
-        found.append(_stale("spec.md changed after its approval"))
+    found = _spec_issue(_latest(state, "spec"), facts)
+    review = _latest(state, "review")
     if review and review.content_hash != facts.review_hash:
         found.append(_stale("review.md changed after the approval of the review result"))
     recorded = recorded_documents(state)
@@ -169,7 +189,7 @@ def _content_issues(state: State, facts: Facts) -> list[Issue]:
 def _approval_issues(loaded: LoadedChange) -> list[Issue]:
     if loaded.state is None:
         return []
-    return _level_issues(loaded.state) + _content_issues(loaded.state, loaded.facts)
+    return _level_issues(loaded.state, loaded) + _content_issues(loaded.state, loaded.facts)
 
 
 def _stale(message: str) -> Issue:

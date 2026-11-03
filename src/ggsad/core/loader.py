@@ -148,8 +148,7 @@ def _has_anchor(anchors: AnchorStore, change_id: str) -> bool:
 
 
 def _target_issues(
-    root: Path,
-    settings: Settings,
+    context: ProjectContext,
     definition: Mapping[str, object] | None,
     spec_text: str | None,
     review_text: str | None,
@@ -159,12 +158,6 @@ def _target_issues(
         "approve:spec": tuple(conflict_line_issues(spec_text)),
     }
     if definition is not None:
-        context = ProjectContext(
-            settings.compliance_profile,
-            existing_ids(root),
-            approved_humans=settings.approved_identities,
-            default_retry_limit=settings.retry_limit,
-        )
         report = validate_for_gate_approval(definition, context)
         found["approve:gates"] = tuple((i.code, i.message) for i in report.issues)
     found["approve:all"] = found["approve:spec"] + found.get("approve:gates", ())
@@ -200,8 +193,9 @@ def _spec_approved(settings: Settings, state: State | None) -> bool:
     return state is not None and any(a.target == "spec" for a in state.approvals)
 
 
-def _open_ids(root: Path, own: str) -> frozenset[str]:
-    found: set[str] = set()
+def _closed_flags(root: Path, own: str) -> dict[str, bool]:
+    """For every other change with a readable history: is it closed?"""
+    found: dict[str, bool] = {}
     for name in existing_ids(root):
         if name == own:
             continue
@@ -209,9 +203,31 @@ def _open_ids(root: Path, own: str) -> frozenset[str]:
             state, _ = _read_state(StateStore(change_path(root, name)))
         except StateError:
             continue
-        if state is not None and state.state != "closed":
-            found.add(name)
-    return frozenset(found)
+        if state is not None:
+            found[name] = state.closed
+    return found
+
+
+def _open_ids(root: Path, own: str) -> frozenset[str]:
+    return frozenset(name for name, closed in _closed_flags(root, own).items() if not closed)
+
+
+def _project_context(
+    root: Path, settings: Settings, definition: Mapping[str, object] | None, change_id: str
+) -> ProjectContext:
+    """What a definition is judged against. The closed changes are read only for `follows`."""
+    others = [name for name in existing_ids(root) if name != change_id]
+    wants_closed = definition is not None and "follows" in definition
+    closed = (
+        [n for n, done in _closed_flags(root, change_id).items() if done] if wants_closed else []
+    )
+    return ProjectContext(
+        settings.compliance_profile,
+        others,
+        closed,
+        approved_humans=settings.approved_identities,
+        default_retry_limit=settings.retry_limit,
+    )
 
 
 @dataclass(frozen=True)
@@ -273,8 +289,9 @@ def _build_facts(
     current = state if state is not None else State()
     hash_now = definitions_hash(definition) if definition is not None else None
     approved = approved_hash(current)
-    issues = _target_issues(root, settings, definition, files.spec_text, files.review_text)
-    issues["new"] = _new_issues(root, settings, definition, change_id)
+    context = _project_context(root, settings, definition, change_id)
+    issues = _target_issues(context, definition, files.spec_text, files.review_text)
+    issues["new"] = _new_issues(root, settings, definition, context)
     stale = None if files.spec_text is not None else Check(NOT_EVALUABLE, "spec.md is missing")
     return Facts(
         scope=_scope(root, definition, state, change_dir),
@@ -343,19 +360,12 @@ def load_change(
 
 
 def _new_issues(
-    root: Path, settings: Settings, definition: Mapping[str, object] | None, change_id: str
+    root: Path, settings: Settings, definition: Mapping[str, object] | None, context: ProjectContext
 ) -> tuple[Problem, ...]:
     found: list[Problem] = []
     mismatch = profile_issue(root, settings)
     if mismatch is not None:
         found.append((mismatch.code, mismatch.message))
     if definition is not None:
-        others = [name for name in existing_ids(root) if name != change_id]
-        context = ProjectContext(
-            settings.compliance_profile,
-            others,
-            approved_humans=settings.approved_identities,
-            default_retry_limit=settings.retry_limit,
-        )
         found.extend((i.code, i.message) for i in validate_for_new(definition, context).issues)
     return tuple(found)

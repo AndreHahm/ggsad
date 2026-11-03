@@ -255,3 +255,29 @@ def test_set_owner_refuses_a_file_that_is_not_a_mapping(tmp_path: Path) -> None:
     path.write_text("a: [unclosed\n", encoding="utf-8")
     with pytest.raises(DefinitionUpdateError):
         set_owner(path, "human:cy")
+
+
+FOLLOW_UP = FULL.replace("id: c-1", "id: c-2") + "follows: c-0\n"
+
+
+def closed_change(root: Path) -> None:
+    write(root, "specs/c-0/change.yaml", FULL.replace("id: c-1", "id: c-0"))
+    assert create_change(root, "c-0", req("new"), FIELDS).result == "success"
+    assert run_action(root, "c-0", req("cancel", ADA, reason="done with it")).result == "success"
+
+
+def test_a_follow_up_of_a_closed_change_can_be_created_and_approved(root: Path) -> None:
+    closed_change(root)
+    write(root, "specs/c-2/change.yaml", FOLLOW_UP)
+    done = create_change(root, "c-2", req("new"), FIELDS)
+    assert done.result == "success", done.issues
+    approved = run_action(root, "c-2", req("approve", ADA, target="gates"))
+    assert approved.result == "success", approved.issues
+
+
+def test_a_follow_up_of_a_change_that_is_not_closed_is_rejected(root: Path) -> None:
+    write(root, "specs/c-0/change.yaml", FULL.replace("id: c-1", "id: c-0"))
+    create_change(root, "c-0", req("new"), FIELDS)
+    write(root, "specs/c-2/change.yaml", FOLLOW_UP)
+    done = create_change(root, "c-2", req("new"), FIELDS)
+    assert done.result == "rejected" and "follows-invalid" in codes(done)

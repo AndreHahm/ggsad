@@ -219,3 +219,20 @@ def test_approve_all_applies_the_checks_of_the_spec_and_of_the_gates(root: Path)
     )
     again = run_action(root, "c-1", req("approve", ADA, target="all"))
     assert again.result == "rejected" and "scope-pattern-invalid" in [i.code for i in again.issues]
+
+
+def test_a_guard_rejects_an_approved_spec_that_is_no_longer_there(root: Path) -> None:
+    active_change(root)
+    (root / "specs/c-1/spec.md").unlink()
+    done = read(root, "guard")
+    assert done.result == "rejected" and "approval-stale" in [i.code for i in done.issues]
+
+
+def test_a_guard_checks_approvals_against_the_current_minimum_level(root: Path) -> None:
+    active_change(root)
+    assert read(root, "guard").result == "success"
+    config = (root / ".ggsad/config.yaml").read_text(encoding="utf-8")
+    write(root, ".ggsad/config.yaml", config + "minimum_levels: {spec_approval: A2}\n")
+    done = read(root, "guard")
+    assert done.result == "rejected"
+    assert any("spec" in i.message and "level" in i.message for i in done.issues)
