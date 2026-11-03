@@ -193,3 +193,29 @@ def test_an_unreadable_review_is_an_error_not_a_traceback(root: Path) -> None:
     done = read(root, "review")
     assert done.result == "error" and done.exit_code == 2
     assert [i.code for i in done.issues] == ["review-unreadable"]
+
+
+def test_a_review_approval_is_bound_to_the_hash_of_review_md(root: Path) -> None:
+    active_change(root)
+    write(root, "specs/c-1/review.md", HEAD)
+    done = run_action(root, "c-1", req("approve", ADA, target="review"))
+    assert done.result == "success", done.issues
+    assert run_read_only(root, "c-1", "guard", NOW).result == "success"
+    write(root, "specs/c-1/review.md", HEAD + "\nNote after the table.\n")
+    assert "approval-stale" in [i.code for i in read(root, "guard").issues]
+
+
+def test_approve_all_applies_the_checks_of_the_spec_and_of_the_gates(root: Path) -> None:
+    make_change(root)
+    settle(root)
+    write(root, "specs/c-1/spec.md", "# Spec without the conflict line\n")
+    done = run_action(root, "c-1", req("approve", ADA, target="all"))
+    assert done.result == "rejected" and [i.code for i in done.issues] == ["conflict-line-missing"]
+    write(root, "specs/c-1/spec.md", "Conflicts with higher documents: none\n")
+    write(
+        root,
+        "specs/c-1/change.yaml",
+        FULL.replace('scope:\n  allow: ["lib/**"]\n', 'scope:\n  allow: ["/bad"]\n'),
+    )
+    again = run_action(root, "c-1", req("approve", ADA, target="all"))
+    assert again.result == "rejected" and "scope-pattern-invalid" in [i.code for i in again.issues]

@@ -125,13 +125,18 @@ def _keep_damaged_file(root: Path, store: StateStore, change_id: str, at: str) -
 
 def _write_repair(
     root: Path, loaded: LoadedChange, damage: Damage, body: dict[str, object], anchors: AnchorStore
-) -> Entry:
-    """Replace the history by its prefix, append the `repaired` entry, and set the anchor."""
+) -> tuple[Entry, StateError | None]:
+    """Replace the history by its prefix and append the `repaired` entry (committed), then try to
+    set the anchor. A failure of the anchor is returned, not raised: the repair is on disk."""
     version = loaded.state.schema_version if loaded.state is not None else "1.0"
     entry = loaded.store.replace_history(damage.prefix, version, body, expected_text=damage.source)
-    if damage.old_anchor is not None or anchor_required_for(root):
+    if damage.old_anchor is None and not anchor_required_for(root):
+        return entry, None
+    try:
         anchors.write(loaded.change_id, Anchor(entry.n, entry.hash))
-    return entry
+    except StateError as error:
+        return entry, error
+    return entry, None
 
 
 def anchor_required_for(root: Path) -> bool:
@@ -215,10 +220,22 @@ def _carry_out(
             anchors.prepare(loaded.change_id)
         kept = _keep_damaged_file(root, loaded.store, loaded.change_id, request.at)
         body = {**trial.bodies[0], "repaired": {**repaired, "damaged_file": kept}}
-        entry = _write_repair(root, loaded, damage, body, anchors)
+        entry, anchor_error = _write_repair(root, loaded, damage, body, anchors)
     except (OSError, StateError) as error:
         if kept:
             (root / kept).unlink(missing_ok=True)
         return failure("repair", (_issue_of(error),))
     data = {**_describe(damage), "damaged_file": kept, "entry": entry.n}
-    return Envelope("repair", "success", True, trial.state.to_json(), data=data)
+    return _outcome(trial.state.to_json(), entry, anchor_error, data)
+
+
+def _outcome(
+    state: dict[str, object], entry: Entry, anchor_error: StateError | None, data: dict[str, object]
+) -> Envelope:
+    if anchor_error is None:
+        return Envelope("repair", "success", True, state, data=data)
+    text = (
+        f"the repaired entry {entry.n} was recorded, but the anchor was not set "
+        f"({anchor_error.message}); adopt the history or repeat the anchor"
+    )
+    return Envelope("repair", "error", True, issues=(Issue("anchor-lagging", text),), data=data)
