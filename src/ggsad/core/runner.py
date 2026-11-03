@@ -58,6 +58,12 @@ class CommandRunner:
             )
         return shutil.which(program)
 
+    def program_exists(self, program: str) -> bool:
+        """True when the program can be found; the token stands for the interpreter."""
+        if program == INTERPRETER_MARK:
+            program = self.interpreter_program()
+        return self._lookup(program) is not None
+
     def _exists_unexecutable(self, program: str) -> bool:
         """True when a file of that name exists but is not an executable program."""
         if os.sep in program or "/" in program:

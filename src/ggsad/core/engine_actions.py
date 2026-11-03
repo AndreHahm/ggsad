@@ -48,7 +48,7 @@ def _blocked(ev: Evaluation, code: str, state: State) -> Step:
     return Step(state, "blocked", (Issue(code, message),), evaluation=ev)
 
 
-def _wait_gate(wait: Wait) -> str:
+def wait_gate(wait: Wait) -> str:
     """The identifier of the gate that a wait of the kind `fail-gate` or `external` names."""
     text = wait.resume_when
     if text.startswith(OVERRIDE_PREFIX):
@@ -244,7 +244,7 @@ def _gate_approval(call: Call) -> Approval:
 
 def _override_approval(call: Call) -> Approval:
     request, wait = call.request, call.state.wait
-    waiting_for = _wait_gate(wait) if wait is not None and wait.kind == "fail-gate" else None
+    waiting_for = wait_gate(wait) if wait is not None and wait.kind == "fail-gate" else None
     if waiting_for is None or request.gate != waiting_for:
         raise Rejected(
             "override-invalid",
@@ -425,7 +425,7 @@ def _resume_allowed(call: Call, wait: Wait) -> None:
         if question is None or not question.answered:
             raise Rejected("resume-condition-unmet", "the awaited question is not answered")
     elif wait.kind == "fail-gate":
-        if override_in_force(state, _wait_gate(wait), call.facts) is None:
+        if override_in_force(state, wait_gate(wait), call.facts) is None:
             raise Rejected("resume-condition-unmet", "no override of the soft failure is in force")
     elif wait.kind == "manual":
         call.need(call.request.note, "note-missing", "a manual wait needs a note of one sentence")
@@ -435,7 +435,7 @@ def _resume_allowed(call: Call, wait: Wait) -> None:
 
 def _check_evaluable(call: Call, wait: Wait) -> None:
     """A wait of the kind `external` ends when the gate can be evaluated again."""
-    outcome = probe(_wait_gate(wait), call.context.gates, call.state, call.facts, call.runner)
+    outcome = probe(wait_gate(wait), call.context.gates, call.state, call.facts, call.runner)
     if outcome.result == NOT_EVALUABLE:
         raise Rejected("resume-condition-unmet", f"still cannot be evaluated: {outcome.detail}")
 
@@ -458,7 +458,7 @@ def _resume(call: Call) -> Step:
     if (
         kind == "external"
         and wait.kind == "external"
-        and ev.decision.gate_ids[0] == _wait_gate(wait)
+        and ev.decision.gate_ids[0] == wait_gate(wait)
     ):
         raise Rejected("resume-condition-unmet", f"still cannot be evaluated: {ev.decision.detail}")
     return _with_wait(call, ev, state)
@@ -510,7 +510,7 @@ def _end(call: Call, replaced_by: str | None = None) -> Step:
         closed = _closed(state, "failed", _failed_by(ev.decision))
     elif state.wait is not None and state.wait.kind == "fail-gate":
         reason = (
-            request.reason or f"soft fail condition {_wait_gate(state.wait)} awaited disposition"
+            request.reason or f"soft fail condition {wait_gate(state.wait)} awaited disposition"
         )
         closed = _closed(state, "failed", reason)
     else:
