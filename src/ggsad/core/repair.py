@@ -27,7 +27,7 @@ from ggsad.core.issues import Issue
 from ggsad.core.loader import LoadedChange, anchor_required, load_change
 from ggsad.core.operations import Envelope, error_issue, failure, make_runner, open_project
 from ggsad.core.state import State, StateRecordError
-from ggsad.core.state_store import StateDocument, StateStore, parse_state_document
+from ggsad.core.state_store import StateStore, parse_state_document
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -46,6 +46,7 @@ class Damage:
     lost: int
     messages: tuple[str, ...]
     old_anchor: Anchor | None
+    source: str | None = None
 
 
 def _entries(text: str | None) -> tuple[tuple[Entry, ...], str | None]:
@@ -126,13 +127,8 @@ def _write_repair(
     root: Path, loaded: LoadedChange, damage: Damage, body: dict[str, object], anchors: AnchorStore
 ) -> Entry:
     """Replace the history by its prefix, append the `repaired` entry, and set the anchor."""
-    store = loaded.store
     version = loaded.state.schema_version if loaded.state is not None else "1.0"
-    prefix = StateDocument(version, damage.prefix)
-    plain = StateStore(store.state_path.parent, change_id=loaded.change_id)
-    plain.state_path.parent.mkdir(parents=True, exist_ok=True)
-    plain.state_path.write_text(prefix.to_text(), encoding="utf-8", newline="\n")
-    entry = plain.append(body, read_version=len(damage.prefix))
+    entry = loaded.store.replace_history(damage.prefix, version, body, expected_text=damage.source)
     if damage.old_anchor is not None or anchor_required_for(root):
         anchors.write(loaded.change_id, Anchor(entry.n, entry.hash))
     return entry
@@ -175,7 +171,10 @@ def _repair_damaged(
         anchor = anchors.read(loaded.change_id)
     except StateError as error:
         return failure("repair", (error_issue(error),))
-    damage = diagnose(_read_text(loaded.store), anchor)
+    text = _read_text(loaded.store)
+    damage = diagnose(text, anchor)
+    if damage is not None:
+        damage = replace(damage, source=text)
     if damage is None:
         return failure(
             "repair", (error_issue(loaded.history_error),) if loaded.history_error else ()
@@ -204,11 +203,14 @@ def _carry_out(
     )
     if not trial.bodies:
         return Envelope("repair", trial.result, False, trial.state.to_json(), trial.issues)
+    kept = ""
     try:
         kept = _keep_damaged_file(root, loaded.store, loaded.change_id, request.at)
         body = {**trial.bodies[0], "repaired": {**repaired, "damaged_file": kept}}
         entry = _write_repair(root, loaded, damage, body, anchors)
     except (OSError, StateError) as error:
+        if kept:
+            (root / kept).unlink(missing_ok=True)
         issue = (
             error_issue(error)
             if isinstance(error, StateError)
