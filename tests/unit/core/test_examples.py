@@ -15,6 +15,15 @@ import pytest
 from ggsad.core.cli import main
 
 EXAMPLES = Path(__file__).resolve().parents[3] / "examples"
+QUESTION = "Which of the two ways of doing this do you prefer?"
+EXPECTED = {
+    "reset-mail-text": ("open", QUESTION),
+    "reset-password": ("closed", None),
+    "export-formats": ("open", QUESTION),
+    "export-notes": ("closed", None),
+    "audit-filter": ("open", QUESTION),
+    "audit-trail": ("closed", None),
+}
 NAMES = ("lean-startup", "solo-developer", "governed-enterprise")
 
 
@@ -55,4 +64,8 @@ def test_check_reads_every_change_of_example(
         code = main(["check", folder, "--root", str(root)])
         output = capsys.readouterr().out
         assert code == 0, output
-        assert "needs you" in output or "state: closed" in output
+        state, question = EXPECTED[folder]
+        assert f"state: {state}" in output
+        if question:
+            assert "needs you" in output
+            assert question in output
