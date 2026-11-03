@@ -144,3 +144,24 @@ def test_a_repair_stops_when_the_document_changed_after_it_was_examined(truncate
     with pytest.raises(StateError) as caught:
         store.replace_history(kept, "1.0", {}, expected_text="not the current text")
     assert caught.value.code == "state-conflict"
+
+
+def test_an_empty_history_cannot_be_repaired_and_does_not_raise(root: Path) -> None:
+    history(root, 2)
+    (root / STATE).write_text('{"schema_version": "1.0", "entries": []}', encoding="utf-8")
+    done = repair(root)
+    assert done.result == "rejected" and [i.code for i in done.issues] == ["repair-impossible"]
+
+
+def test_a_repair_prepares_the_anchor_before_it_writes_anything(
+    truncated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(self: GitAnchorStore, change_id: str) -> None:
+        raise StateError("anchor-write-failed", "not writable")
+
+    monkeypatch.setattr(GitAnchorStore, "prepare", refuse)
+    before = (truncated / STATE).read_bytes()
+    done = repair(truncated)
+    assert done.result == "error" and [i.code for i in done.issues] == ["anchor-write-failed"]
+    assert (truncated / STATE).read_bytes() == before
+    assert not (truncated / REPAIRS_DIRECTORY).exists()

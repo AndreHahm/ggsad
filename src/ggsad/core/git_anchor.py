@@ -55,8 +55,9 @@ class GitAnchorStore:
 
     def prepare(self, change_id: str) -> None:
         """Check that a ref can be written now, without leaving a trace."""
-        self._ref(change_id)
+        ref = self._ref(change_id)
         try:
+            run_git(self._repo, "check-ref-format", ref)
             blob = run_git(self._repo, "hash-object", "-w", "--stdin", stdin=b"{}").decode().strip()
             run_git(self._repo, "update-ref", PROBE_REF, blob)
             run_git(self._repo, "update-ref", "-d", PROBE_REF)

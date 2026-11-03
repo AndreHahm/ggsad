@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from functools import partial
 from typing import TYPE_CHECKING, Final
 
 from ggsad.core.git_anchor import GitAnchorStore
@@ -39,7 +40,7 @@ class NewFields:
 
 def definition_text(change_id: str, profile: str, fields: NewFields) -> str:
     """The text of a new `change.yaml`. Strings are written as JSON, which YAML reads as is."""
-    quote = json.dumps
+    quote = partial(json.dumps, ensure_ascii=False)
     done = ", ".join(quote(sentence) for sentence in fields.done_when)
     return (
         'schema_version: "1.0"\n'
@@ -66,7 +67,7 @@ def definition_text(change_id: str, profile: str, fields: NewFields) -> str:
 
 
 def _requirements(sentences: Sequence[str]) -> str:
-    quote = json.dumps
+    quote = partial(json.dumps, ensure_ascii=False)
     return "".join(
         f"  - id: R{number}\n"
         f"    text: {quote(sentence)}\n"
@@ -102,6 +103,16 @@ def _undo(created: list[Path], directory: Path, *, made_directory: bool) -> None
             directory.parent.rmdir()
 
 
+def _refusal(root: Path, change_id: str, directory: Path) -> Envelope | None:
+    invalid = check_identifier(change_id)
+    if invalid:
+        return failure("new", tuple(invalid))
+    if not _inside(root, directory):
+        text = f"the folder of {change_id!r} leads outside the project"
+        return failure("new", (Issue("path-outside-project", text),))
+    return None
+
+
 def create_change(
     root: Path,
     change_id: str,
@@ -113,28 +124,29 @@ def create_change(
     settings, issues = open_project(root)
     if settings is None:
         return failure("new", issues)
-    invalid = check_identifier(change_id)
-    if invalid:
-        return failure("new", tuple(invalid))
     directory = change_path(root, change_id)
-    if not _inside(root, directory):
-        text = f"the folder of {change_id!r} leads outside the project"
-        return failure("new", (Issue("path-outside-project", text),))
+    refusal = _refusal(root, change_id, directory)
+    if refusal is not None:
+        return refusal
     if (directory / "state.json").exists():
         return run_action(root, change_id, request, anchors)
     made_directory = not directory.exists()
     created: list[Path] = []
     try:
-        directory.mkdir(parents=True, exist_ok=True)
-        text = definition_text(change_id, settings.compliance_profile, fields)
-        _write_new(directory / DEFINITION_FILE, text, created)
-        _write_new(directory / SPEC_FILE, spec_text(change_id, fields), created)
+        _write_files(directory, change_id, settings.compliance_profile, fields, created)
         done = run_action(root, change_id, request, anchors or GitAnchorStore(root))
     except OSError as error:
         _undo(created, directory, made_directory=made_directory)
-        return failure(
-            "new", (Issue("state-write-failed", f"the files cannot be written: {error}"),)
-        )
-    if done.result != "success":
+        text = f"the files cannot be written: {error}"
+        return failure("new", (Issue("state-write-failed", text),))
+    if done.result != "success" and not done.changed:
         _undo(created, directory, made_directory=made_directory)
     return done
+
+
+def _write_files(
+    directory: Path, change_id: str, profile: str, fields: NewFields, created: list[Path]
+) -> None:
+    directory.mkdir(parents=True, exist_ok=True)
+    _write_new(directory / DEFINITION_FILE, definition_text(change_id, profile, fields), created)
+    _write_new(directory / SPEC_FILE, spec_text(change_id, fields), created)

@@ -185,3 +185,11 @@ def test_review_needs_a_complete_report(root: Path) -> None:
 def test_a_missing_project_is_an_error(tmp_path: Path) -> None:
     done = run_read_only(tmp_path, "c-1", "check", NOW)
     assert done.result == "error" and done.exit_code == 2
+
+
+def test_an_unreadable_review_is_an_error_not_a_traceback(root: Path) -> None:
+    make_change(root)
+    (root / "specs/c-1/review.md").write_bytes(b"\xff\xfe\x00bad")
+    done = read(root, "review")
+    assert done.result == "error" and done.exit_code == 2
+    assert [i.code for i in done.issues] == ["review-unreadable"]

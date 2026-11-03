@@ -9,10 +9,12 @@ import pytest
 from project_helpers import ADA, FIELDS, FULL, make_change, req, settle, write
 
 from ggsad.core.engine_types import Actor
+from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.issues import Issue
-from ggsad.core.new_change import create_change
+from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, run_action
+from ggsad.core.state_store import StateStore
 
 
 def codes(envelope: Envelope) -> list[str]:
@@ -136,3 +138,38 @@ def test_new_refuses_a_change_folder_that_leads_outside_the_project(
     done = create_change(root, "c-1", req("new"), FIELDS)
     assert done.result == "rejected" and codes(done) == ["path-outside-project"]
     assert list(outside.iterdir()) == []
+
+
+def test_new_keeps_non_bmp_characters_in_the_generated_files(root: Path) -> None:
+    fields = NewFields("Fix \U0001f600", ["Users see \U0001f600"], "human:ada", "human:ada")
+    done = create_change(root, "c-1", req("new"), fields)
+    assert done.result == "success", done.issues
+    assert "\U0001f600" in (root / "specs/c-1/change.yaml").read_text(encoding="utf-8")
+
+
+def test_new_keeps_its_files_when_the_entry_was_recorded_but_the_anchor_lagged(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(self: GitAnchorStore, change_id: str, anchor: object) -> None:
+        raise StateError("anchor-write-failed", "no space")
+
+    monkeypatch.setattr(GitAnchorStore, "write", refuse)
+    done = create_change(root, "c-1", req("new"), FIELDS)
+    assert done.result == "error" and done.changed and codes(done) == ["anchor-lagging"]
+    assert (root / "specs/c-1/change.yaml").is_file() and (root / "specs/c-1/state.json").is_file()
+
+
+def test_a_state_conflict_does_not_claim_that_this_call_recorded_anything(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_change(root)
+    real = StateStore.append
+
+    def competing(self: StateStore, body: dict[str, object], *, read_version: int) -> object:
+        real(self, {**body, "note": "other writer"}, read_version=read_version)
+        raise StateError("state-conflict", "another writer changed the change")
+
+    monkeypatch.setattr(StateStore, "append", competing)
+    done = run_action(root, "c-1", req("ask", text="Q?"))
+    assert done.result == "error" and codes(done) == ["state-conflict"]
+    assert not done.changed and done.problems() == []

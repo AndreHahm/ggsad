@@ -70,8 +70,8 @@ class Envelope:
         found: list[str] = []
         if self.result not in RESULTS:
             found.append(f"{self.result!r} is not a result")
-        if self.result in ("rejected", "error") and self.changed:
-            found.append(f"a {self.result} result cannot have changed true")
+        if self.result == "rejected" and self.changed:
+            found.append("a rejected result cannot have changed true")
         if self.result == "blocked" and not self.changed:
             found.append("a blocked result must have changed true")
         if self.result != "success" and not self.issues:
@@ -124,14 +124,21 @@ def make_runner(root: Path, settings: Settings, loaded: LoadedChange) -> Command
     return CommandRunner(root, tools or (), settings.interpreter)
 
 
-def _append(loaded: LoadedChange, bodies: tuple[dict[str, object], ...]) -> Issue | None:
-    """Append the bodies in order. Returns the issue of the first write that failed."""
+def _append(
+    loaded: LoadedChange, bodies: tuple[dict[str, object], ...]
+) -> tuple[Issue | None, int]:
+    """Append the bodies in order. Returns the issue of the first write that failed and how many
+    entries this call recorded. `anchor-lagging` means the entry was recorded."""
+    recorded = 0
     for offset, body in enumerate(bodies):
         try:
             loaded.store.append(body, read_version=loaded.read_version + offset)
         except StateError as error:
-            return error_issue(error)
-    return None
+            if error.code == "anchor-lagging":
+                recorded += 1
+            return error_issue(error), recorded
+        recorded += 1
+    return None, recorded
 
 
 def run_action(
@@ -172,10 +179,7 @@ def _anchor_first(loaded: LoadedChange, anchors: AnchorStore) -> Envelope | None
 
 
 def _record(loaded: LoadedChange, done: ActionResult) -> Envelope:
-    issue = _append(loaded, tuple(done.bodies))
+    issue, recorded = _append(loaded, tuple(done.bodies))
     if issue is not None:
-        written = loaded.store.read()
-        count = len(written.entries) if written is not None else 0
-        partial = count > loaded.read_version
-        return Envelope(done.operation, "error", partial, issues=(issue,))
+        return Envelope(done.operation, "error", recorded > 0, issues=(issue,))
     return Envelope(done.operation, done.result, True, done.state.to_json(), done.issues, done.data)
