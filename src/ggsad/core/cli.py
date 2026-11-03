@@ -18,11 +18,14 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
+from ggsad.core.approval_summary import build_summary
 from ggsad.core.doctor import run_doctor
 from ggsad.core.engine_types import Actor, Request
+from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.git_scope import GitError, run_git
 from ggsad.core.init_project import InitOptions, init_project
 from ggsad.core.issues import Issue
+from ggsad.core.loader import load_change
 from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, failure, now_utc, run_action
 from ggsad.core.project import CONFIG_PATH, load_settings
@@ -33,6 +36,7 @@ from ggsad.core.settings import PROFILES, TEAM_MODES
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
+    from typing import TextIO
 
     from ggsad.core.settings import Settings
 
@@ -56,12 +60,13 @@ FLAGS: Final[dict[str, dict[str, Any]]] = {
     "document": {**TEXT, "action": "append", "help": "a document that conflicts, twice"},
     "and_resume": {"action": "store_true", "help": "resume the change with the answer"},
     "about_spec": {"action": "store_true", "help": "the question is about spec.md"},
+    "yes": {"action": "store_true", "help": "record the approval without asking after the summary"},
     "show": {"action": "store_true", "help": "only show what is damaged; write nothing"},
     "agent_report": {**TEXT, "help": "a JSON file with the report of the agent that closes"},
 }
 ACTIONS: Final[dict[str, tuple[str, ...]]] = {
     "start": ("note",),
-    "approve": ("gate", "reason", "attempts", "text", "note"),
+    "approve": ("gate", "reason", "attempts", "text", "note", "yes"),
     "wait": ("question", "reason", "owner", "resume_when", "expires", "note"),
     "ask": ("text", "option", "owner", "about_spec"),
     "answer": ("question", "answer", "and_resume", "note"),
@@ -260,7 +265,33 @@ def _new_fields(args: argparse.Namespace, actor: Actor, settings: Settings | Non
     return NewFields(args.problem or "", args.done_when or (), owner, author)
 
 
-def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> tuple[Envelope, str]:
+def _confirm_approval(
+    args: argparse.Namespace, root: Path, settings: Settings | None, stdin: TextIO
+) -> Envelope | None:
+    """Show the approval summary; return a refusal unless the human confirms (Section 24.1)."""
+    if settings is None:
+        return None
+    anchors = GitAnchorStore(root)
+    loaded = load_change(root, settings, args.change_id, anchors, "approve")
+    if loaded.problems or loaded.history_error is not None or loaded.state is None:
+        return None
+    lines = ["approval summary:", *build_summary(loaded, settings)]
+    sys.stderr.write("\n".join(lines) + "\n")
+    if args.yes or (stdin.isatty() and _asked(stdin)):
+        return None
+    text = "the approval was not confirmed after the summary; run again and answer y, or pass --yes"
+    return failure("approve", (Issue("approval-not-confirmed", text),))
+
+
+def _asked(stdin: TextIO) -> bool:
+    sys.stderr.write("record this approval? [y/N] ")
+    sys.stderr.flush()
+    return stdin.readline().strip().lower() in ("y", "yes")
+
+
+def _change(
+    args: argparse.Namespace, root: Path, clock: Callable[[], str], stdin: TextIO
+) -> tuple[Envelope, str]:
     settings, _ = load_settings(root)
     actor = resolve_actor(args.actor, root, args.assurance, args.account)
     try:
@@ -268,6 +299,10 @@ def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> t
     except (OSError, ValueError, TypeError) as error:
         issue = Issue("agent-report-invalid", f"the agent report cannot be read: {error}")
         return failure(args.command, (issue,)), actor.identity
+    if args.command == "approve" and actor.is_human:
+        refusal = _confirm_approval(args, root, settings, stdin)
+        if refusal is not None:
+            return refusal, actor.identity
     if args.command == "new":
         fields = _new_fields(args, actor, settings)
         return create_change(root, args.change_id, request, fields), actor.identity
@@ -278,7 +313,7 @@ def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> t
 
 
 def execute(
-    args: argparse.Namespace, root: Path, clock: Callable[[], str]
+    args: argparse.Namespace, root: Path, clock: Callable[[], str], stdin: TextIO
 ) -> tuple[Envelope, str | None]:
     """Run the command. Returns the envelope and the identity that acted, if any."""
     if args.command == "init":
@@ -287,13 +322,18 @@ def execute(
         return run_doctor(root, clock()), None
     if args.command in READ_ONLY:
         return run_read_only(root, args.change_id, args.command, clock()), None
-    return _change(args, root, clock)
+    return _change(args, root, clock, stdin)
 
 
-def main(argv: Sequence[str] | None = None, *, clock: Callable[[], str] = now_utc) -> int:
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    clock: Callable[[], str] = now_utc,
+    stdin: TextIO | None = None,
+) -> int:
     """Run the command line and return the exit code."""
     args = build_parser().parse_args(argv)
-    envelope, actor = execute(args, find_root(args.root), clock)
+    envelope, actor = execute(args, find_root(args.root), clock, stdin or sys.stdin)
     sys.stdout.write((render_json(envelope) if args.json else render_text(envelope, actor)) + "\n")
     return envelope.exit_code
 
