@@ -98,27 +98,15 @@ def _target(root: Path, relative: str) -> Path:
     return target_path
 
 
-def _target_new(root: Path, relative:str) -> tuple[Path, bool]:
-    """The path below `specs/` with links resolved, or PathOutsideProjectError."""
-    target_path = _target(root, relative)
-    path_exists = target_path.exists()
-    if not path_exists:
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-    return target_path, path_exists
-
-
 def _write_new(root: Path, relative: str, text: str, created: list[Path]) -> None:
     """Write a file below `specs/` unless it exists. The target is checked, then written."""
-    # base_path = (root / "specs").resolve()
-    # target_path = (base_path / relative).resolve()
-    # if not target_path.is_relative_to(base_path):
-    #     raise PathOutsideProjectError(relative)
-    # if target_path.exists():
-    #     return
-    # target_path.parent.mkdir(parents=True, exist_ok=True)
-    target_path, path_exists = _target_new(root, relative)
-    if path_exists:
+    base_path = (root / "specs").resolve()
+    target_path = (base_path / relative).resolve()
+    if not target_path.is_relative_to(base_path):
+        raise PathOutsideProjectError(relative)
+    if target_path.exists():
         return
+    target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(text, encoding="utf-8", newline="\n")
     created.append(target_path)
 
