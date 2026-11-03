@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Final
 
 from ggsad.core.engine_types import Call, Rejected, Step
 from ggsad.core.gate_eval import NOT_EVALUABLE, Decision, Evaluation, override_in_force, probe
+from ggsad.core.guards import approved_hash, recorded_documents, required_level
 from ggsad.core.issues import Issue
 from ggsad.core.state import Approval, Question, State, Wait
 
@@ -111,24 +112,36 @@ def _new(_call: Call) -> Step:
 # ------------------------------------------------------------------ approve
 
 
-@handler("approve")
-def _approve(call: Call) -> Step:
+def _check_approve(call: Call) -> str:
     request, state = call.request, call.state
     target = request.target
-    if target not in APPROVE_TARGETS:
+    if target not in APPROVE_TARGETS or target is None:
         raise Rejected("approve-target-invalid", f"{target!r} is not a target of an approval")
     for code, message in call.facts.target_issues.get(f"approve:{target}", ()):
         raise Rejected(code, message)
     if target in ("spec", "all"):
         _no_open_questions(state)
+    if target in ("gates", "all") and call.facts.definitions_hash is None:
+        raise Rejected("gates-missing", "the change definition has no gate definitions to approve")
+    return target
+
+
+@handler("approve")
+def _approve(call: Call) -> Step:
+    target, state = _check_approve(call), call.state
+    if target == "gate":
+        return _sign_off_step(call)
     if target == "override":
         approvals = (_override_approval(call),)
-    elif target == "gate":
-        approvals = (_gate_approval(call),)
     else:
         names = ("spec", "gates") if target == "all" else (target,)
         approvals = tuple(_approval(call, name) for name in names)
-    return Step(state.with_(approvals=(*state.approvals, *approvals)))
+    questions = _stale_sign_off_questions(call) if approvals[-1].target == "amendment" else ()
+    return Step(
+        state.with_(
+            approvals=(*state.approvals, *approvals), questions=(*state.questions, *questions)
+        )
+    )
 
 
 def _no_open_questions(state: State) -> None:
@@ -137,19 +150,87 @@ def _no_open_questions(state: State) -> None:
         raise Rejected("open-questions", f"these questions are unanswered: {ids}")
 
 
-def _approval(call: Call, target: str, level: str | None = None) -> Approval:
-    request, context, facts = call.request, call.context, call.facts
-    content = facts.definitions_hash if target == "gates" else request.content_hash
-    return Approval(
+def _approval(call: Call, target: str) -> Approval:
+    """The approval record of a target, bound to the content it approves (Section 24.3)."""
+    request, facts = call.request, call.facts
+    base = Approval(
         target=target,
         actor=request.actor.identity,
         assurance=request.actor.assurance,
-        required_level=level or context.required_level,
-        content_hash=content,
-        definitions_hash=facts.definitions_hash
-        if target in ("gates", "gate", "override")
-        else None,
+        required_level=required_level(call),
+        content_hash=request.content_hash,
     )
+    if target == "spec":
+        return replace(
+            base,
+            content_hash=facts.spec_hash or request.content_hash,
+            documents=tuple(sorted(facts.documents.items())),
+        )
+    if target == "documents":
+        return _documents_approval(call, base)
+    if target == "gates":
+        return _gates_approval(call, base)
+    return base
+
+
+def _documents_approval(call: Call, base: Approval) -> Approval:
+    recorded = recorded_documents(call.state)
+    current = dict(call.facts.documents)
+    if recorded is not None and recorded == current:
+        raise Rejected("documents-unchanged", "the higher-ranking documents did not change")
+    return replace(base, documents=tuple(sorted(current.items())))
+
+
+def _gates_approval(call: Call, base: Approval) -> Approval:
+    """The first approval of the gate definitions, or the amendment that replaces the hash."""
+    new = call.facts.definitions_hash
+    old = approved_hash(call.state)
+    if old is None or old == new:
+        return replace(base, content_hash=new, definitions_hash=new)
+    return replace(
+        base,
+        target="amendment",
+        content_hash=new,
+        definitions_hash=new,
+        replaced_hash=old,
+        summary=call.request.text,
+    )
+
+
+def _stale_text(gate_id: str) -> str:
+    return f"The gate definitions changed. Please sign off {gate_id} again."
+
+
+def _stale_signers(call: Call) -> list[Approval]:
+    """The sign-offs that are bound to the replaced hash, for gates that still exist."""
+    old = approved_hash(call.state)
+    gates = {g.id for g in call.context.gates if g.kind == "sign-off"}
+    signed = {a.gate: a for a in call.state.approvals if a.target == "gate" and a.gate in gates}
+    return [a for a in signed.values() if a.definitions_hash == old]
+
+
+def _stale_sign_off_questions(call: Call) -> tuple[Question, ...]:
+    """One question per sign-off that the amendment makes stale (Section 24.3)."""
+    first = len(call.state.questions) + 1
+    asker = call.request.actor.identity
+    return tuple(
+        Question(f"Q{first + i}", _stale_text(a.gate or ""), a.actor, asker)
+        for i, a in enumerate(_stale_signers(call))
+    )
+
+
+def _sign_off_step(call: Call) -> Step:
+    """A sign-off; it answers the question that a stale sign-off left, in the same entry."""
+    state = call.state
+    approval = _gate_approval(call)
+    text = _stale_text(approval.gate or "")
+    questions = tuple(
+        replace(q, answer="signed off", answerer=approval.actor)
+        if not q.answered and q.text == text
+        else q
+        for q in state.questions
+    )
+    return Step(state.with_(approvals=(*state.approvals, approval), questions=questions))
 
 
 def _gate_approval(call: Call) -> Approval:
@@ -157,8 +238,8 @@ def _gate_approval(call: Call) -> Approval:
     gate = next((g for g in call.context.gates if g.id == name), None)
     if gate is None or gate.group != "done" or gate.kind != "sign-off":
         raise Rejected("gate-not-sign-off", f"{name!r} is not a sign-off done gate of the change")
-    level = gate.minimum_level or call.context.required_level
-    return replace(_approval(call, "gate", level), gate=name)
+    base = _approval(call, "gate")
+    return replace(base, gate=name, definitions_hash=call.facts.definitions_hash)
 
 
 def _override_approval(call: Call) -> Approval:
@@ -175,7 +256,7 @@ def _override_approval(call: Call) -> Approval:
         raise Rejected(
             "attempts-invalid", "an override gives a whole number of attempts, at least 1"
         )
-    base = _approval(call, "override")
+    base = replace(_approval(call, "override"), definitions_hash=call.facts.definitions_hash)
     return replace(base, gate=waiting_for, reason=reason, attempts=attempts)
 
 
@@ -309,6 +390,12 @@ def _valid_answer(question: Question, answer: str | None) -> str:
     return answer
 
 
+def _may_resume(call: Call, wait: Wait) -> bool:
+    """The answerer resumes when approved or when the owner of the wait (Section 24.3)."""
+    actor = call.request.actor.identity
+    return call.context.is_approved_human(actor) or actor == wait.owner
+
+
 def _chained_resume(call: Call, state: State) -> Step | None:
     """Answer and resume as one step, when the answerer may resume and the change waits for it."""
     wait = state.wait
@@ -316,7 +403,7 @@ def _chained_resume(call: Call, state: State) -> Step | None:
         wait is None
         or wait.kind != "question"
         or wait.question != call.request.question
-        or not call.context.is_approved_human(call.request.actor.identity)
+        or not _may_resume(call, wait)
     ):
         return None
     chained = replace(call, state=state, request=replace(call.request, action="resume"))

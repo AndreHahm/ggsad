@@ -20,11 +20,9 @@ from ggsad.core.engine_types import (
     Step,
 )
 from ggsad.core.gate_eval import Facts, Runner
+from ggsad.core.guards import HUMAN_ONLY, check_guards
 from ggsad.core.state import State
 
-HUMAN_ONLY: Final = frozenset(
-    {"approve", "fail", "cancel", "supersede", "adopt", "repair", "handover", "reassign", "answer"}
-)
 REQUESTOR_ACTIONS: Final = frozenset({"new", "start", "ask", "wait", "conflict", "resume", "close"})
 HUMAN_MAY: Final = frozenset({"resume", "close"})
 ANY_STATE: Final = frozenset({"open", "active", "waiting"})
@@ -75,6 +73,7 @@ def _check_access(call: Call, *, is_new: bool) -> None:
             f"the action {request.action!r} is not legal from the state {call.state.state!r}",
         )
     _check_actor(call)
+    check_guards(call)
     for code, message in call.facts.target_issues.get(request.action, ()):
         raise Rejected(code, message)
 

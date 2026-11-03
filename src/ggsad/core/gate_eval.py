@@ -112,6 +112,8 @@ class Facts:
     review_gaps: Mapping[str, tuple[str, ...]] = field(default_factory=dict)
     not_satisfied_counts: Mapping[str, int] = field(default_factory=dict)
     definitions_hash: str | None = None
+    spec_hash: str | None = None
+    documents: Mapping[str, str] = field(default_factory=dict)
     gates_approved: bool = False
     spec_approval_ok: bool = True
     revision: str | None = None
@@ -275,10 +277,13 @@ def _approved(state: State, gate: Gate) -> Approval | None:
     return None
 
 
-def _sign_off(state: State, gate: Gate) -> Outcome:
+def _sign_off(state: State, gate: Gate, facts: Facts) -> Outcome:
     approval = _approved(state, gate)
     if approval is None:
         return Outcome(NOT_SATISFIED, "no sign-off is recorded")
+    bound = approval.definitions_hash
+    if bound is not None and facts.definitions_hash not in (None, bound):
+        return Outcome(NOT_SATISFIED, "the sign-off is stale: the gate definitions changed")
     needed = LEVEL_ORDER.get(gate.minimum_level or "A0", 0)
     if LEVEL_ORDER.get(approval.assurance, 0) < needed:
         return Outcome(NOT_SATISFIED, f"the sign-off needs the level {gate.minimum_level}")
@@ -291,8 +296,21 @@ def _predicate(gate: Gate, state: State, facts: Facts) -> Outcome:
         if open_ids:
             return Outcome(SATISFIED, f"unanswered: {', '.join(open_ids)}")
         return Outcome(NOT_SATISFIED)
-    check = facts.scope if gate.predicate == "scope-violation" else facts.stale_spec_approval
-    return _from_check(check, gate.predicate or gate.id)
+    if gate.predicate == "scope-violation":
+        if state.state == "open":
+            return Outcome(NOT_APPLICABLE, "the change has not started")
+        return _from_check(facts.scope, "scope-violation")
+    return _stale_spec(state, facts)
+
+
+def _stale_spec(state: State, facts: Facts) -> Outcome:
+    """Active only if the specification was approved and its hash differs from the approved one."""
+    if facts.spec_hash is None:
+        return _from_check(facts.stale_spec_approval, "stale-spec-approval")
+    approved = [a for a in state.approvals if a.target == "spec"]
+    if not approved or approved[-1].content_hash == facts.spec_hash:
+        return Outcome(NOT_SATISFIED)
+    return Outcome(SATISFIED, "spec.md changed after its approval")
 
 
 def _from_check(check: Check | None, name: str) -> Outcome:
@@ -323,7 +341,7 @@ def _evaluate_gate(gate: Gate, env: _Env) -> Outcome:
     if gate.kind == "evidence":
         return _from_check(env.facts.evidence, "the evidence")
     if gate.kind == "sign-off":
-        return _sign_off(env.state, gate)
+        return _sign_off(env.state, gate, env.facts)
     if gate.kind == "review":
         return _review(gate, env.facts)
     return _command(gate, env)
