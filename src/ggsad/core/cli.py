@@ -18,6 +18,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Final
 
+from ggsad.core.doctor import run_doctor
 from ggsad.core.engine_types import Actor, Request
 from ggsad.core.git_scope import GitError, run_git
 from ggsad.core.init_project import InitOptions, init_project
@@ -135,6 +136,9 @@ def build_parser() -> argparse.ArgumentParser:
     for action in READ_ONLY:
         _common(commands.add_parser(action, help=HELP[action]))
     _add_init(commands)
+    doctor = commands.add_parser("doctor", help="check the project, the tools, and every change")
+    doctor.add_argument("--root", help="the project folder (default: the nearest project upwards)")
+    doctor.add_argument("--json", action="store_true", help="print the result envelope as JSON")
     return parser
 
 
@@ -263,6 +267,8 @@ def execute(
     """Run the command. Returns the envelope and the identity that acted, if any."""
     if args.command == "init":
         return _init(args, root), None
+    if args.command == "doctor":
+        return run_doctor(root, clock()), None
     if args.command in READ_ONLY:
         return run_read_only(root, args.change_id, args.command, clock()), None
     return _change(args, root, clock)
