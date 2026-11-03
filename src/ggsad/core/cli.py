@@ -1,0 +1,240 @@
+"""The command line of GG-SAD: one command per action (Implementation Contract, Section 22).
+
+`ggsad <action> <change-id> [options]`. The message is readable text; `--json` prints the result
+envelope instead. The exit code is 0 for `success`, 1 for `rejected` or `blocked`, and 2 for
+`error` (or for a command line that cannot be read).
+
+Who acts: `--actor`, else the variable `GGSAD_ACTOR`, else `human:<git user.name>`. The assurance
+level is declared with `--assurance` (default A0); this tool cannot verify it. The time of an
+entry is the system clock in UTC.
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import sys
+from pathlib import Path
+from typing import TYPE_CHECKING, Any, Final
+
+from ggsad.core.engine_types import Actor, Request
+from ggsad.core.git_scope import GitError, run_git
+from ggsad.core.issues import Issue
+from ggsad.core.new_change import NewFields, create_change
+from ggsad.core.operations import Envelope, failure, now_utc, run_action
+from ggsad.core.project import CONFIG_PATH, load_settings
+from ggsad.core.render import render_json, render_text
+from ggsad.core.reports import READ_ONLY, run_read_only
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Sequence
+
+    from ggsad.core.settings import Settings
+
+ACTOR_VARIABLE: Final = "GGSAD_ACTOR"
+TEXT: Final = {"type": str}
+FLAGS: Final[dict[str, dict[str, Any]]] = {
+    "note": {**TEXT, "help": "a short note recorded with the entry"},
+    "reason": {**TEXT, "help": "the reason that is recorded"},
+    "text": {**TEXT, "help": "the text of a question, a conflict, or an approval summary"},
+    "owner": {**TEXT, "help": "the identity that owns the item, for example human:ada"},
+    "question": {**TEXT, "help": "the identifier of a question, for example Q1"},
+    "gate": {**TEXT, "help": "the identifier of a gate"},
+    "answer": {**TEXT, "help": "the answer to a question"},
+    "resume_when": {**TEXT, "help": "the condition that ends a wait"},
+    "expires": {**TEXT, "help": "when a wait is overdue, as a UTC time"},
+    "replaced_by": {**TEXT, "help": "the open change that replaces this one"},
+    "target": {**TEXT, "help": "what to reassign: wait"},
+    "attempts": {"type": int, "help": "the further attempts an override grants"},
+    "option": {**TEXT, "action": "append", "help": "an option of a structured question"},
+    "document": {**TEXT, "action": "append", "help": "a document that conflicts, twice"},
+    "and_resume": {"action": "store_true", "help": "resume the change with the answer"},
+    "about_spec": {"action": "store_true", "help": "the question is about spec.md"},
+    "agent_report": {**TEXT, "help": "a JSON file with the report of the agent that closes"},
+}
+ACTIONS: Final[dict[str, tuple[str, ...]]] = {
+    "start": ("note",),
+    "approve": ("gate", "reason", "attempts", "text", "note"),
+    "wait": ("question", "reason", "owner", "resume_when", "expires", "note"),
+    "ask": ("text", "option", "owner", "about_spec"),
+    "answer": ("question", "answer", "and_resume", "note"),
+    "resume": ("note", "question"),
+    "close": ("note", "agent_report"),
+    "fail": ("reason", "note"),
+    "cancel": ("reason",),
+    "supersede": ("replaced_by", "reason"),
+    "conflict": ("text", "document", "owner"),
+    "handover": ("owner", "reason"),
+    "reassign": ("owner", "reason", "question", "target"),
+}
+HELP: Final = {
+    "new": "create a change from a template and record it",
+    "approve": "record an approval; the target is spec, gates, review, documents, all, gate, "
+    "or override",
+    "start": "start an open change",
+    "wait": "pause an active change",
+    "ask": "record a question",
+    "answer": "answer a question",
+    "resume": "resume a waiting change",
+    "close": "evaluate the done gates and close the change",
+    "fail": "close a waiting change as failed",
+    "cancel": "cancel a change",
+    "supersede": "cancel a change that another change replaces",
+    "conflict": "record a conflict between two documents",
+    "handover": "hand a change over to a new Change owner",
+    "reassign": "reassign the owner of a question or a wait",
+    "check": "report on a change: the status report",
+    "review": "check review.md",
+    "guard": "verify the record of a change without running any command",
+    "check-scope": "report paths changed outside the allowed list",
+}
+
+
+def _common(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("change_id", help="the identifier of the change")
+    parser.add_argument("--root", help="the project root (default: the nearest project upwards)")
+    parser.add_argument("--json", action="store_true", help="print the result envelope as JSON")
+    parser.add_argument("--actor", help="who acts, for example human:ada or agent:builder")
+    parser.add_argument("--assurance", choices=("A0", "A1", "A2"), default="A0")
+
+
+def _add_flag(parser: argparse.ArgumentParser, name: str) -> None:
+    spec = dict(FLAGS[name])
+    parser.add_argument("--" + name.replace("_", "-"), dest=name, **spec)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """The parser of every command."""
+    parser = argparse.ArgumentParser(
+        prog="ggsad", description="Goal-Gated Spec-Anchored Development"
+    )
+    commands = parser.add_subparsers(dest="command", required=True, metavar="<command>")
+    new = commands.add_parser("new", help=HELP["new"])
+    _common(new)
+    new.add_argument("--problem", required=True, help="the problem the change solves")
+    new.add_argument("--done-when", dest="done_when", action="append", required=True,
+                     help="a sentence that says when the change is done, repeatable")  # fmt: skip
+    new.add_argument("--owner", help="the Change owner (default: the Owner of the project)")
+    new.add_argument("--author", help="the Author (default: the actor if human, else the Owner)")
+    for action, names in ACTIONS.items():
+        sub = commands.add_parser(action, help=HELP[action])
+        _common(sub)
+        if action == "approve":
+            sub.add_argument("approve_target", metavar="target", help="what is approved")
+        for name in names:
+            _add_flag(sub, name)
+    for action in READ_ONLY:
+        _common(commands.add_parser(action, help=HELP[action]))
+    return parser
+
+
+def find_root(given: str | None) -> Path:
+    """The project root: the given folder, else the nearest folder upwards with a config file."""
+    if given:
+        return Path(given).resolve()
+    here = Path.cwd().resolve()
+    for folder in (here, *here.parents):
+        if (folder / CONFIG_PATH).is_file():
+            return folder
+    return here
+
+
+def _git_name(root: Path) -> str | None:
+    try:
+        name = run_git(root, "config", "user.name", ok=(0, 1)).decode("utf-8").strip()
+    except GitError:
+        return None
+    return name or None
+
+
+def resolve_actor(
+    given: str | None, root: Path, settings: Settings | None, assurance: str
+) -> Actor:
+    """Who acts: the option, else the variable, else the Git user (Section 24.3)."""
+    identity = given or os.environ.get(ACTOR_VARIABLE)
+    if not identity:
+        name = _git_name(root)
+        identity = f"human:{name}" if name else "human:unknown"
+    account = None
+    if settings is not None and settings.approved_humans is not None:
+        account = next(
+            (h.account for h in settings.approved_humans if h.identity == identity), None
+        )
+    return Actor(identity, assurance, account)
+
+
+def _read_report(path: str | None) -> dict[str, object] | None:
+    if path is None:
+        return None
+    value = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        message = "the agent report must be a JSON object"
+        raise TypeError(message)
+    return value
+
+
+def build_request(action: str, args: argparse.Namespace, actor: Actor, at: str) -> Request:
+    """The request of an action from the parsed command line."""
+    options = tuple(args.option) if getattr(args, "option", None) else None
+    documents = tuple(getattr(args, "document", None) or ())
+    return Request(
+        action,
+        actor,
+        at,
+        note=getattr(args, "note", None),
+        reason=getattr(args, "reason", None),
+        target=getattr(args, "approve_target", None) or getattr(args, "target", None),
+        gate=getattr(args, "gate", None),
+        question=getattr(args, "question", None),
+        text=getattr(args, "text", None),
+        owner=getattr(args, "owner", None),
+        options=options,
+        answer=getattr(args, "answer", None),
+        resume_when=getattr(args, "resume_when", None),
+        expires=getattr(args, "expires", None),
+        and_resume=bool(getattr(args, "and_resume", False)),
+        about_spec=bool(getattr(args, "about_spec", False)),
+        replaced_by=getattr(args, "replaced_by", None),
+        documents=documents,
+        attempts=getattr(args, "attempts", None),
+        agent_report=_read_report(getattr(args, "agent_report", None)),
+    )
+
+
+def execute(
+    args: argparse.Namespace, root: Path, clock: Callable[[], str]
+) -> tuple[Envelope, str | None]:
+    """Run the command. Returns the envelope and the identity that acted, if any."""
+    action = args.command
+    if action in READ_ONLY:
+        return run_read_only(root, args.change_id, action, clock()), None
+    settings, _ = load_settings(root)
+    actor = resolve_actor(args.actor, root, settings, args.assurance)
+    try:
+        request = build_request(action, args, actor, clock())
+    except (OSError, ValueError, TypeError) as error:
+        issue = Issue("agent-report-invalid", f"the agent report cannot be read: {error}")
+        return failure(action, (issue,)), actor.identity
+    if action == "new":
+        owner = args.owner or (settings.owner if settings else "")
+        fields = NewFields(
+            args.problem,
+            args.done_when,
+            owner,
+            args.author or (actor.identity if actor.is_human else owner),
+        )
+        return create_change(root, args.change_id, request, fields), actor.identity
+    return run_action(root, args.change_id, request), actor.identity
+
+
+def main(argv: Sequence[str] | None = None, *, clock: Callable[[], str] = now_utc) -> int:
+    """Run the command line and return the exit code."""
+    args = build_parser().parse_args(argv)
+    envelope, actor = execute(args, find_root(args.root), clock)
+    sys.stdout.write((render_json(envelope) if args.json else render_text(envelope, actor)) + "\n")
+    return envelope.exit_code
+
+
+if __name__ == "__main__":  # pragma: no cover
+    sys.exit(main())
