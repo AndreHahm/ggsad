@@ -315,6 +315,7 @@ def _chained_resume(call: Call, state: State) -> Step | None:
     if (
         wait is None
         or wait.kind != "question"
+        or wait.question != call.request.question
         or not call.context.is_approved_human(call.request.actor.identity)
     ):
         return None
