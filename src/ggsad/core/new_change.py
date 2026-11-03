@@ -81,6 +81,11 @@ def spec_text(change_id: str, fields: NewFields) -> str:
     return f"# Specification: {change_id}\n\nProblem: {fields.problem}\n\n{CONFLICT_STUB}\n"
 
 
+def _inside(root: Path, directory: Path) -> bool:
+    """True when the folder of a change, links resolved, lies below `specs` of the project."""
+    return directory.resolve().is_relative_to((root / "specs").resolve())
+
+
 def _write_new(path: Path, text: str, created: list[Path]) -> None:
     if path.exists():
         return
@@ -112,6 +117,9 @@ def create_change(
     if invalid:
         return failure("new", tuple(invalid))
     directory = change_path(root, change_id)
+    if not _inside(root, directory):
+        text = f"the folder of {change_id!r} leads outside the project"
+        return failure("new", (Issue("path-outside-project", text),))
     if (directory / "state.json").exists():
         return run_action(root, change_id, request, anchors)
     made_directory = not directory.exists()

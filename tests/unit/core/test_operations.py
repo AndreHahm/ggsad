@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from project_helpers import ADA, FIELDS, FULL, make_change, req, settle, write
 
 from ggsad.core.engine_types import Actor
@@ -121,3 +122,17 @@ def test_json_omits_what_does_not_apply() -> None:
     shown = Envelope("a", "error", False, issues=(Issue("c", "m", "p"),), data={"k": 1}).to_json()
     assert shown["issues"] == [{"code": "c", "message": "m", "path": "p"}]
     assert shown["data"] == {"k": 1}
+
+
+def test_new_refuses_a_change_folder_that_leads_outside_the_project(
+    root: Path, tmp_path_factory: pytest.TempPathFactory
+) -> None:
+    outside = tmp_path_factory.mktemp("outside")
+    (root / "specs").mkdir()
+    try:
+        (root / "specs" / "c-1").symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("links cannot be created here")
+    done = create_change(root, "c-1", req("new"), FIELDS)
+    assert done.result == "rejected" and codes(done) == ["path-outside-project"]
+    assert list(outside.iterdir()) == []
