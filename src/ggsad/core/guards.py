@@ -68,10 +68,19 @@ def check_guards(call: Call) -> None:
         _check_approver(call)
 
 
+def _needs_listing(call: Call) -> bool:
+    """True when the action must be performed by an approved human (and the actor is not one)."""
+    action, wait = call.request.action, call.state.wait
+    if action in HUMAN_ONLY or action == "close":
+        return True
+    return action == "resume" and (wait is None or wait.owner != call.request.actor.identity)
+
+
 def _check_listed(call: Call) -> None:
+    """A human who must be an approved human is on the list, when a list is set."""
     actor, listed = call.request.actor, call.context.approved_humans
-    required = call.request.action in HUMAN_ONLY and actor.is_human
-    if required and listed is not None and actor.identity not in listed:
+    unlisted = actor.is_human and listed is not None and actor.identity not in listed
+    if unlisted and _needs_listing(call):
         raise Rejected("human-not-approved", f"{actor.identity} is not an approved human")
 
 
@@ -100,7 +109,7 @@ def _check_frozen_gates(call: Call) -> None:
 def _check_higher_documents(call: Call) -> None:
     request = call.request
     recorded = recorded_documents(call.state)
-    if recorded is None or request.action == "cancel":
+    if recorded is None or request.action in FROZEN_EXEMPT:
         return
     if request.action == "approve" and request.target == "documents":
         return

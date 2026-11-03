@@ -174,3 +174,28 @@ def test_the_ignore_set_is_computed_once_for_many_untracked_files(repo: Path, mo
         write(repo, f"lib/new{index}.py")
     assert len(changed_paths(repo, base)) == 20
     assert len(calls) == 1
+
+
+def test_a_git_call_that_does_not_finish_is_not_evaluable(repo: Path, monkeypatch) -> None:
+    base = head_revision(repo)
+
+    def hang(*args, **kwargs):
+        raise subprocess.TimeoutExpired(cmd="git", timeout=1)
+
+    monkeypatch.setattr(module.subprocess, "run", hang)
+    check = measure_scope(repo, base, ["lib/**"], CHANGE)
+    assert check.result == "not_evaluable" and "did not finish" in check.detail
+
+
+def test_repository_state_variables_of_the_caller_are_not_inherited(
+    repo: Path, tmp_path_factory, monkeypatch
+) -> None:
+    base = head_revision(repo)
+    other = tmp_path_factory.mktemp("other")
+    git(other, "init", "-q")
+    monkeypatch.setenv("GIT_DIR", str(other / ".git"))
+    monkeypatch.setenv("GIT_WORK_TREE", str(other))
+    monkeypatch.setenv("GIT_INDEX_FILE", str(other / ".git" / "index"))
+    write(repo, "lib/new.py")
+    assert changed_paths(repo, base) == ["lib/new.py"]
+    assert head_revision(repo) == base

@@ -47,9 +47,13 @@ def matches(pattern: str, path: str) -> bool:
     """True when the pattern matches the path (both written relative to the repository root)."""
     if not pattern_valid(pattern):
         return False
+    segments = path.split("/")
     if pattern.endswith("/"):
-        return path.startswith(pattern) and len(path) > len(pattern)
-    return _match_segments(pattern.split("/"), path.split("/"))
+        # Every path below the directory: at least one more, non-empty segment must follow.
+        return "" not in segments and _match_segments(
+            [*pattern[:-1].split("/"), "*", "**"], segments
+        )
+    return _match_segments(pattern.split("/"), segments)
 
 
 def is_record_file(path: str, change_dir: str) -> bool:
