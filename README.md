@@ -53,8 +53,8 @@ implementation.
 
 The reference implementation is pre-alpha. The package `src/ggsad/core/` implements the `core`
 profile: the transition table, gate evaluation, the history and its anchor, scope checks, evidence,
-the status report, and the command line. The operation `migrate` is not implemented yet; the
-refusals for an unusable schema version are.
+the status report, and the command line. The operation `migrate` converts an old `state.yaml`
+(schema 0.1) to `state.json`; the refusals for an unusable schema version are implemented too.
 
 ## Repository Structure
 
@@ -120,7 +120,9 @@ specs/example/              # an example change to try with `ggsad new example`
 A change lives in `specs/<change-id>/`: `change.yaml`, `spec.md`, `state.json` (the history), and
 `review.md` when a review is kept. The anchor of a history is a Git ref
 (`refs/ggsad/anchors/<change-id>`) in the repository. `ggsad doctor` checks the project, the
-tools, and every change, and names the command that fixes each problem.
+tools, and every change, and names the command that fixes each problem. A change that still has
+only an old `state.yaml` is refused until `ggsad migrate <change-id>` converts it; the old file stays.
+Only clear statuses are taken over (draft, ready, done, cancelled, failed with a reason).
 
 ## Pair Review
 

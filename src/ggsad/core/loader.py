@@ -267,11 +267,20 @@ def _read_without_anchor(
     return state, bodies, None
 
 
+def _migration_issues(path: Path) -> tuple[Issue, ...]:
+    """An old YAML state document without `state.json` must be migrated first (Section 25.3)."""
+    if (path / "state.json").exists() or not (path / "state.yaml").exists():
+        return ()
+    message = f"{path.name} has an old state.yaml; run `ggsad migrate {path.name}` first"
+    return (Issue("migration-required", message),)
+
+
 def _read_files(path: Path, store: StateStore, change_id: str, *, lenient: bool = False) -> _Files:
     invalid = check_identifier(change_id)
     if invalid:
         return _Files(None, tuple(invalid), None, (), None, None, None)
     definition, problems = _definition(path)
+    problems += _migration_issues(path)
     state, bodies, error = _read_history(path, store, change_id, lenient=lenient)
     spec, review = read_text(path / SPEC_FILE), read_text(path / REVIEW_FILE)
     return _Files(definition, problems, state, bodies, error, spec, review)

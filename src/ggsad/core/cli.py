@@ -27,6 +27,7 @@ from ggsad.core.identifiers import check_identifier
 from ggsad.core.init_project import InitOptions, init_project
 from ggsad.core.issues import Issue
 from ggsad.core.loader import load_change
+from ggsad.core.migrate import migrate_change
 from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, failure, now_utc, run_action
 from ggsad.core.project import CONFIG_PATH, load_settings
@@ -62,6 +63,7 @@ FLAGS: Final[dict[str, dict[str, Any]]] = {
     "and_resume": {"action": "store_true", "help": "resume the change with the answer"},
     "about_spec": {"action": "store_true", "help": "the question is about spec.md"},
     "yes": {"action": "store_true", "help": "record the approval without asking after the summary"},
+    "to": {**TEXT, "help": "the schema version to migrate to (default: the highest supported)"},
     "show": {"action": "store_true", "help": "only show what is damaged; write nothing"},
     "agent_report": {**TEXT, "help": "a JSON file with the report of the agent that closes"},
 }
@@ -81,6 +83,7 @@ ACTIONS: Final[dict[str, tuple[str, ...]]] = {
     "reassign": ("owner", "reason", "question", "target"),
     "adopt": ("note",),
     "repair": ("reason", "show", "note"),
+    "migrate": ("to", "note"),
 }
 HELP: Final = {
     "new": "create a change from a template and record it",
@@ -100,6 +103,7 @@ HELP: Final = {
     "reassign": "reassign the owner of a question or a wait",
     "adopt": "create the anchor of a history that has none",
     "repair": "replace a damaged history by its consistent part (the Owner, with a reason)",
+    "migrate": "convert an old state.yaml to state.json (explicit; the old file stays)",
     "check": "report on a change: the status report",
     "review": "check review.md",
     "guard": "verify the record of a change without running any command",
@@ -315,6 +319,9 @@ def _change(
     if args.command == "new":
         fields = _new_fields(args, actor, settings)
         return create_change(root, args.change_id, request, fields), actor.identity
+    if args.command == "migrate":
+        done = migrate_change(root, args.change_id, request, target=args.to)
+        return done, actor.identity
     if args.command == "repair":
         done = repair_change(root, args.change_id, request, show_only=args.show)
         return done, actor.identity
