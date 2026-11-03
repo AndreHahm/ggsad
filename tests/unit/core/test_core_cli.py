@@ -17,7 +17,6 @@ from ggsad.core.cli import (
 )
 from ggsad.core.engine_types import Actor
 from ggsad.core.operations import run_action
-from ggsad.core.project import load_settings
 
 AT = "2026-11-03T10:00:00Z"
 NEW = ["new", "c-1", "--problem", "Resets are manual", "--done-when", "Users can reset"]

@@ -22,7 +22,7 @@ from ggsad.core.history import Entry, make_entry, verify_history
 from ggsad.core.values import as_int, as_list, as_mapping
 
 if TYPE_CHECKING:
-    from collections.abc import Iterator, Mapping
+    from collections.abc import Iterator, Mapping, Sequence
     from pathlib import Path
     from typing import IO
 
@@ -193,6 +193,38 @@ class StateStore:
             self._replace(StateDocument(version, entries))
             self._advance_anchor(entries)
         return entry
+
+    def replace_history(
+        self,
+        kept: Sequence[Entry],
+        version: str,
+        body: Mapping[str, object],
+        *,
+        expected_text: str | None,
+    ) -> Entry:
+        """Replace the history by `kept` and append `body`, in one locked, atomic write (repair).
+
+        `expected_text` is the text of the damaged document the caller examined. If the document
+        changed since, nothing is written (`state-conflict`).
+        """
+        self._dir.mkdir(parents=True, exist_ok=True)
+        with _exclusive_lock(self._dir / LOCK_FILE):
+            current = self._raw_text()
+            if current != expected_text:
+                raise StateError(
+                    "state-conflict",
+                    "another writer changed the change; examine it again and repeat the repair",
+                )
+            previous = kept[-1].hash if kept else ZERO_HASH
+            entry = make_entry(len(kept) + 1, previous, body)
+            self._replace(StateDocument(version, (*kept, entry)))
+        return entry
+
+    def _raw_text(self) -> str | None:
+        try:
+            return self.state_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            return None
 
     def _build_entry(self, document: StateDocument | None, body: Mapping[str, object]) -> Entry:
         previous = document.entries[-1].hash if document is not None else ZERO_HASH

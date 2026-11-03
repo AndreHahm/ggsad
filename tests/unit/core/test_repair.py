@@ -8,11 +8,14 @@ from pathlib import Path
 import pytest
 from project_helpers import ADA, CONFIG, FIELDS, req, write
 
+from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
+from ggsad.core.history import Entry
 from ggsad.core.new_change import create_change
 from ggsad.core.operations import run_action
 from ggsad.core.repair import REPAIRS_DIRECTORY, repair_change
 from ggsad.core.reports import run_read_only
+from ggsad.core.state_store import LOCK_FILE, StateStore, _exclusive_lock
 
 STRICT = CONFIG + "minimum_levels: {sign_off: A2}\n"
 STATE = "specs/c-1/state.json"
@@ -124,3 +127,20 @@ def test_an_agent_cannot_repair_and_a_reason_is_required(truncated: Path) -> Non
     assert silent.result == "rejected" and [i.code for i in silent.issues] == ["reason-missing"]
     assert not (truncated / REPAIRS_DIRECTORY).exists()
     assert len(json.loads((truncated / STATE).read_text())["entries"]) == 5
+
+
+def test_a_repair_cannot_take_the_lock_and_writes_nothing(truncated: Path) -> None:
+    before = (truncated / STATE).read_bytes()
+    with _exclusive_lock(truncated / "specs/c-1" / LOCK_FILE):
+        done = repair(truncated)
+    assert done.result == "error" and [i.code for i in done.issues] == ["lock-unavailable"]
+    assert not done.changed and (truncated / STATE).read_bytes() == before
+    assert not list((truncated / REPAIRS_DIRECTORY).glob("*"))
+
+
+def test_a_repair_stops_when_the_document_changed_after_it_was_examined(truncated: Path) -> None:
+    store = StateStore(truncated / "specs/c-1", change_id="c-1")
+    kept: list[Entry] = []
+    with pytest.raises(StateError) as caught:
+        store.replace_history(kept, "1.0", {}, expected_text="not the current text")
+    assert caught.value.code == "state-conflict"
