@@ -178,3 +178,9 @@ def test_a_state_conflict_does_not_claim_that_this_call_recorded_anything(
 
 def test_the_clock_gives_a_utc_time_to_the_second() -> None:
     assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", now_utc())
+
+
+@pytest.mark.parametrize("change_id", ["a/b", "..", "x/../y"])
+def test_new_refuses_an_identifier_that_is_a_path(root: Path, change_id: str) -> None:
+    done = create_change(root, change_id, req("new"), FIELDS)
+    assert done.result == "rejected" and not (root / "specs").exists()
