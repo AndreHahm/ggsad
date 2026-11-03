@@ -20,12 +20,14 @@ from typing import TYPE_CHECKING, Any, Final
 
 from ggsad.core.engine_types import Actor, Request
 from ggsad.core.git_scope import GitError, run_git
+from ggsad.core.init_project import InitOptions, init_project
 from ggsad.core.issues import Issue
 from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, failure, now_utc, run_action
 from ggsad.core.project import CONFIG_PATH, load_settings
 from ggsad.core.render import render_json, render_text
 from ggsad.core.reports import READ_ONLY, run_read_only
+from ggsad.core.settings import PROFILES, TEAM_MODES
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Sequence
@@ -112,8 +114,8 @@ def build_parser() -> argparse.ArgumentParser:
     commands = parser.add_subparsers(dest="command", required=True, metavar="<command>")
     new = commands.add_parser("new", help=HELP["new"])
     _common(new)
-    new.add_argument("--problem", required=True, help="the problem the change solves")
-    new.add_argument("--done-when", dest="done_when", action="append", required=True,
+    new.add_argument("--problem", help="the problem (not needed if change.yaml exists)")
+    new.add_argument("--done-when", dest="done_when", action="append",
                      help="a sentence that says when the change is done, repeatable")  # fmt: skip
     new.add_argument("--owner", help="the Change owner (default: the Owner of the project)")
     new.add_argument("--author", help="the Author (default: the actor if human, else the Owner)")
@@ -126,7 +128,19 @@ def build_parser() -> argparse.ArgumentParser:
             _add_flag(sub, name)
     for action in READ_ONLY:
         _common(commands.add_parser(action, help=HELP[action]))
+    _add_init(commands)
     return parser
+
+
+def _add_init(commands: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
+    init = commands.add_parser("init", help="set up a project: config, brief, templates, example")
+    init.add_argument("--root", help="the project folder (default: the current folder)")
+    init.add_argument("--json", action="store_true", help="print the result envelope as JSON")
+    init.add_argument("--profile", required=True, choices=PROFILES, help="the compliance profile")
+    init.add_argument("--project-id", dest="project_id", help="default: the folder name")
+    init.add_argument("--owner", help="the Owner, for example human:ada (default: the Git user)")
+    init.add_argument("--requestor", action="append", help="an agent that may request changes")
+    init.add_argument("--team-mode", dest="team_mode", choices=TEAM_MODES, default="team")
 
 
 def find_root(given: str | None) -> Path:
@@ -202,30 +216,47 @@ def build_request(action: str, args: argparse.Namespace, actor: Actor, at: str) 
     )
 
 
+def _init(args: argparse.Namespace, root: Path) -> Envelope:
+    name = _git_name(root)
+    options = InitOptions(
+        args.profile,
+        args.project_id or root.name,
+        args.owner or (f"human:{name}" if name else "human:unknown"),
+        tuple(args.requestor or ("agent:assistant",)),
+        args.team_mode,
+    )
+    return init_project(root, options)
+
+
+def _new_fields(args: argparse.Namespace, actor: Actor, settings: Settings | None) -> NewFields:
+    owner = args.owner or (settings.owner if settings else "")
+    author = args.author or (actor.identity if actor.is_human else owner)
+    return NewFields(args.problem or "", args.done_when or (), owner, author)
+
+
+def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> tuple[Envelope, str]:
+    settings, _ = load_settings(root)
+    actor = resolve_actor(args.actor, root, settings, args.assurance)
+    try:
+        request = build_request(args.command, args, actor, clock())
+    except (OSError, ValueError, TypeError) as error:
+        issue = Issue("agent-report-invalid", f"the agent report cannot be read: {error}")
+        return failure(args.command, (issue,)), actor.identity
+    if args.command == "new":
+        fields = _new_fields(args, actor, settings)
+        return create_change(root, args.change_id, request, fields), actor.identity
+    return run_action(root, args.change_id, request), actor.identity
+
+
 def execute(
     args: argparse.Namespace, root: Path, clock: Callable[[], str]
 ) -> tuple[Envelope, str | None]:
     """Run the command. Returns the envelope and the identity that acted, if any."""
-    action = args.command
-    if action in READ_ONLY:
-        return run_read_only(root, args.change_id, action, clock()), None
-    settings, _ = load_settings(root)
-    actor = resolve_actor(args.actor, root, settings, args.assurance)
-    try:
-        request = build_request(action, args, actor, clock())
-    except (OSError, ValueError, TypeError) as error:
-        issue = Issue("agent-report-invalid", f"the agent report cannot be read: {error}")
-        return failure(action, (issue,)), actor.identity
-    if action == "new":
-        owner = args.owner or (settings.owner if settings else "")
-        fields = NewFields(
-            args.problem,
-            args.done_when,
-            owner,
-            args.author or (actor.identity if actor.is_human else owner),
-        )
-        return create_change(root, args.change_id, request, fields), actor.identity
-    return run_action(root, args.change_id, request), actor.identity
+    if args.command == "init":
+        return _init(args, root), None
+    if args.command in READ_ONLY:
+        return run_read_only(root, args.change_id, args.command, clock()), None
+    return _change(args, root, clock)
 
 
 def main(argv: Sequence[str] | None = None, *, clock: Callable[[], str] = now_utc) -> int:
