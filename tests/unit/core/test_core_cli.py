@@ -63,7 +63,7 @@ def test_an_error_exits_with_two(tmp_path: Path, capsys: pytest.CaptureFixture[s
 def test_approve_takes_the_target_and_the_assurance(root: Path) -> None:
     make_change(root)
     settle(root)
-    assert run(root, "approve", "c-1", "all", actor="human:ada") == 0
+    assert run(root, "approve", "c-1", "all", "--yes", actor="human:ada") == 0
     assert run(root, "start", "c-1") == 0
 
 
