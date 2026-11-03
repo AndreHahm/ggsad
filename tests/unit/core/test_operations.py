@@ -7,14 +7,17 @@ import re
 from pathlib import Path
 
 import pytest
-from project_helpers import ADA, FIELDS, FULL, make_change, req, settle, write
+from project_helpers import ADA, CONFIG, FIELDS, FULL, make_change, req, settle, write
 
+from ggsad.core.definition_update import DefinitionUpdateError, set_owner
 from ggsad.core.engine_types import Actor
 from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.issues import Issue
+from ggsad.core.loader import load_change
 from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, now_utc, run_action
+from ggsad.core.project import load_settings
 from ggsad.core.state_store import StateStore
 
 
@@ -184,3 +187,71 @@ def test_the_clock_gives_a_utc_time_to_the_second() -> None:
 def test_new_refuses_an_identifier_that_is_a_path(root: Path, change_id: str) -> None:
     done = create_change(root, change_id, req("new"), FIELDS)
     assert done.result == "rejected" and not (root / "specs").exists()
+
+
+ADA_LINE = '    - {identity: "human:ada", account: ada-gh}\n'
+CY_LINE = '    - {identity: "human:cy", account: cy-gh}\n'
+WITH_CY = CONFIG.replace(ADA_LINE, ADA_LINE + CY_LINE)
+
+
+def test_ae325_a_handover_updates_the_owner_in_the_definition(root: Path) -> None:
+    write(root, ".ggsad/config.yaml", WITH_CY)
+    make_change(root)
+    before = (root / "specs/c-1/change.yaml").read_text(encoding="utf-8")
+    assert "# Paths this change may touch" in before
+    done = run_action(root, "c-1", req("handover", ADA, owner="human:cy", reason="Bo left"))
+    assert done.result == "success", done.issues
+    after = (root / "specs/c-1/change.yaml").read_text(encoding="utf-8")
+    assert 'owner: "human:cy"' in after or "owner: human:cy" in after
+    assert "# Paths this change may touch" in after
+    settings, _ = load_settings(root)
+    assert settings is not None
+    loaded = load_change(root, settings, "c-1", GitAnchorStore(root))
+    assert loaded.context.change_owner == "human:cy"
+
+
+def test_a_handover_does_not_make_the_gates_look_changed(root: Path) -> None:
+    write(root, ".ggsad/config.yaml", WITH_CY)
+    make_change(root)
+    settle(root)
+    run_action(root, "c-1", req("approve", ADA, target="all"))
+    run_action(root, "c-1", req("handover", ADA, owner="human:cy", reason="Bo left"))
+    assert run_action(root, "c-1", req("start")).result == "success"
+
+
+def test_a_document_that_cannot_be_read_is_an_error_not_a_traceback(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    make_change(root)
+
+    def unreadable(path: Path) -> str:
+        raise PermissionError(path.name)
+
+    monkeypatch.setattr("ggsad.core.project.path_content_hash", unreadable)
+    done = run_action(root, "c-1", req("ask", text="Q?"))
+    assert done.result == "error" and codes(done) == ["document-unreadable"] and not done.changed
+
+
+def test_a_handover_whose_definition_cannot_be_updated_says_so(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    write(root, ".ggsad/config.yaml", WITH_CY)
+    make_change(root)
+
+    def refuse(path: Path, owner: str) -> None:
+        raise DefinitionUpdateError(path.name + owner)
+
+    monkeypatch.setattr("ggsad.core.operations.set_owner", refuse)
+    done = run_action(root, "c-1", req("handover", ADA, owner="human:cy", reason="Bo left"))
+    assert done.result == "error" and done.changed
+    assert codes(done) == ["definition-update-failed"] and "human:cy" in done.issues[0].message
+
+
+def test_set_owner_refuses_a_file_that_is_not_a_mapping(tmp_path: Path) -> None:
+    path = tmp_path / "change.yaml"
+    path.write_text("- a\n- b\n", encoding="utf-8")
+    with pytest.raises(DefinitionUpdateError):
+        set_owner(path, "human:cy")
+    path.write_text("a: [unclosed\n", encoding="utf-8")
+    with pytest.raises(DefinitionUpdateError):
+        set_owner(path, "human:cy")
