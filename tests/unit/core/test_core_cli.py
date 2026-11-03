@@ -112,7 +112,7 @@ def test_an_unreadable_agent_report_is_an_error(
 
 def test_a_missing_required_option_is_a_usage_error(root: Path) -> None:
     with pytest.raises(SystemExit) as caught:
-        main(["new", "c-1", "--root", str(root)], clock=lambda: AT)
+        main(["init", "--root", str(root)], clock=lambda: AT)
     assert caught.value.code == 2
 
 
