@@ -15,7 +15,7 @@ from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.issues import Issue
 from ggsad.core.loader import load_change
-from ggsad.core.new_change import NewFields, create_change
+from ggsad.core.new_change import NewFields, PathOutsideProjectError, _write_new, create_change
 from ggsad.core.operations import Envelope, now_utc, run_action
 from ggsad.core.project import load_settings
 from ggsad.core.state_store import StateStore
@@ -281,3 +281,12 @@ def test_a_follow_up_of_a_change_that_is_not_closed_is_rejected(root: Path) -> N
     write(root, "specs/c-2/change.yaml", FOLLOW_UP)
     done = create_change(root, "c-2", req("new"), FIELDS)
     assert done.result == "rejected" and "follows-invalid" in codes(done)
+
+
+def test_a_file_is_never_written_outside_specs(root: Path) -> None:
+    created: list[Path] = []
+    with pytest.raises(PathOutsideProjectError):
+        _write_new(root, "../escaped.txt", "x", created)
+    with pytest.raises(PathOutsideProjectError):
+        _write_new(root, "c-1/../../escaped.txt", "x", created)
+    assert created == [] and not (root / "escaped.txt").exists()

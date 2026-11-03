@@ -8,7 +8,6 @@ leaves nothing behind (Section 22.3).
 from __future__ import annotations
 
 import json
-import os
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -83,21 +82,33 @@ def spec_text(change_id: str, fields: NewFields) -> str:
     return f"# Specification: {change_id}\n\nProblem: {fields.problem}\n\n{CONFLICT_STUB}\n"
 
 
-def _safe_directory(root: Path, change_id: str) -> Path | None:
-    """The folder of a change with links resolved, or None if it lies outside `specs/`."""
-    name = os.path.basename(change_id)  # noqa: PTH119 - a name, never a path
-    if not name or name != change_id:
-        return None
-    base = os.path.realpath(root / "specs")
-    target = os.path.realpath(os.path.join(base, name))  # noqa: PTH118
-    return Path(target) if target.startswith(base + os.sep) else None
+class PathOutsideProjectError(ValueError):
+    """A path leads outside `specs/` of the project, so nothing may be written there."""
+
+    def __init__(self, relative: str) -> None:
+        super().__init__(f"{relative!r} leads outside the project")
 
 
-def _write_new(path: Path, text: str, created: list[Path]) -> None:
-    if path.exists():
+def _target(root: Path, relative: str) -> Path:
+    """The path below `specs/` with links resolved, or PathOutsideProjectError."""
+    base_path = (root / "specs").resolve()
+    target_path = (base_path / relative).resolve()
+    if not target_path.is_relative_to(base_path):
+        raise PathOutsideProjectError(relative)
+    return target_path
+
+
+def _write_new(root: Path, relative: str, text: str, created: list[Path]) -> None:
+    """Write a file below `specs/` unless it exists. The target is checked, then written."""
+    base_path = (root / "specs").resolve()
+    target_path = (base_path / relative).resolve()
+    if not target_path.is_relative_to(base_path):
+        raise PathOutsideProjectError(relative)
+    if target_path.exists():
         return
-    path.write_text(text, encoding="utf-8", newline="\n")
-    created.append(path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    target_path.write_text(text, encoding="utf-8", newline="\n")
+    created.append(target_path)
 
 
 def _undo(created: list[Path], directory: Path, *, made_directory: bool) -> None:
@@ -109,16 +120,21 @@ def _undo(created: list[Path], directory: Path, *, made_directory: bool) -> None
             directory.parent.rmdir()
 
 
+def _write_issue(error: OSError | PathOutsideProjectError) -> Issue:
+    if isinstance(error, PathOutsideProjectError):
+        return Issue("path-outside-project", str(error))
+    return Issue("state-write-failed", f"the files cannot be written: {error}")
+
+
 def _checked_directory(root: Path, change_id: str) -> Path | Envelope:
     """The folder of the change, or the envelope that refuses it."""
     invalid = check_identifier(change_id)
     if invalid:
         return failure("new", tuple(invalid))
-    directory = _safe_directory(root, change_id)
-    if directory is None:
-        text = f"the folder of {change_id!r} leads outside the project"
-        return failure("new", (Issue("path-outside-project", text),))
-    return directory
+    try:
+        return _target(root, change_id)
+    except PathOutsideProjectError as error:
+        return failure("new", (Issue("path-outside-project", str(error)),))
 
 
 def create_change(
@@ -140,20 +156,19 @@ def create_change(
     made_directory = not directory.exists()
     created: list[Path] = []
     try:
-        _write_files(directory, change_id, settings.compliance_profile, fields, created)
+        _write_files(root, change_id, settings.compliance_profile, fields, created)
         done = run_action(root, change_id, request, anchors or GitAnchorStore(root))
-    except OSError as error:
+    except (OSError, PathOutsideProjectError) as error:
         _undo(created, directory, made_directory=made_directory)
-        text = f"the files cannot be written: {error}"
-        return failure("new", (Issue("state-write-failed", text),))
+        return failure("new", (_write_issue(error),))
     if done.result != "success" and not done.changed:
         _undo(created, directory, made_directory=made_directory)
     return done
 
 
 def _write_files(
-    directory: Path, change_id: str, profile: str, fields: NewFields, created: list[Path]
+    root: Path, change_id: str, profile: str, fields: NewFields, created: list[Path]
 ) -> None:
-    directory.mkdir(parents=True, exist_ok=True)
-    _write_new(directory / DEFINITION_FILE, definition_text(change_id, profile, fields), created)
-    _write_new(directory / SPEC_FILE, spec_text(change_id, fields), created)
+    definition = definition_text(change_id, profile, fields)
+    _write_new(root, f"{change_id}/{DEFINITION_FILE}", definition, created)
+    _write_new(root, f"{change_id}/{SPEC_FILE}", spec_text(change_id, fields), created)
