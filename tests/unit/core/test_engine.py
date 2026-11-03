@@ -824,3 +824,13 @@ def test_equal_duplicate_overrides_do_not_double_the_attempts() -> None:
     loud = runner({"flaky": RunOutcome("exit", status=1)})
     after = do(state, req("close"), context(gates), run=loud).state
     assert [a.used for a in after.approvals] == [0, 1]
+
+
+def test_and_resume_applies_only_to_the_question_the_change_waits_for() -> None:
+    q1 = Question("Q1", "t", "human:ada", "agent:codex")
+    q2 = Question("Q2", "t", "human:ada", "agent:codex", answer="yes", answerer="human:ada")
+    wait = Wait("question", "r", "human:ada", "Q2 answered", None, "Q2")
+    waiting = State(state="waiting", questions=(q1, q2), wait=wait)
+    result = do(waiting, req("answer", question="Q1", answer="yes", and_resume=True))
+    assert result.state.state == "waiting" and result.state.wait == wait
+    assert [b["action"] for b in result.bodies] == ["answer"]
