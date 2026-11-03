@@ -841,3 +841,33 @@ def test_no_input_makes_a_validator_raise(
 
     assert isinstance(new(data).issues, tuple)
     assert isinstance(approval(data).issues, tuple)
+
+
+def test_an_extraction_rule_is_a_pattern_with_one_capture_group_and_a_stream() -> None:
+    data = definition()
+    gate = check_gate()
+    gate["extract"] = {"pattern": r"^FAILED (\S+)", "stream": "both"}
+    data["gates"]["done"] = [gate]
+    assert approval(data).ok
+    gate["extract"] = {"pattern": r"^FAILED (\S+)"}
+    assert approval(data).ok
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        "x",
+        {},
+        {"pattern": r"FAILED \S+"},
+        {"pattern": r"(a)(b)"},
+        {"pattern": "("},
+        {"pattern": r"(\S+)", "stream": "none"},
+        {"pattern": r"(\S+)", "color": "red"},
+    ],
+)
+def test_an_invalid_extraction_rule_is_rejected_at_approval(rule: object) -> None:
+    data = definition()
+    gate = check_gate()
+    gate["extract"] = rule
+    data["gates"]["done"] = [gate]
+    assert "extract-invalid" in approval(data).codes

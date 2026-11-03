@@ -38,6 +38,9 @@ from ggsad.core.gate_eval import (
 )
 from ggsad.core.state import Approval, Question, State, Wait
 
+H1 = "sha256:" + "1" * 64
+H2 = "sha256:" + "2" * 64
+
 # ------------------------------------------------------------ states and outcomes
 
 
@@ -392,22 +395,25 @@ def test_close_by_an_agent_needs_a_report_and_permission() -> None:
     )
 
 
-def test_missing_base_gate_result_is_not_evaluable_never_a_pass() -> None:
-    result = do(active(), req("close"), facts=replace(CLEAR, evidence=None))
+def test_a_missing_base_gate_result_is_not_evaluable_never_a_pass() -> None:
+    result = do(active(), req("close"), facts=replace(CLEAR, scope=None))
     assert result.state.wait is not None and result.state.wait.kind == "external"
-    assert (
-        do(active(), req("close"), facts=replace(CLEAR, evidence=Check("not_satisfied"))).result
-        == "blocked"
-    )
+    assert do(active(), req("close"), context(requirements=[])).result == "blocked"
 
 
-def test_review_gate_needs_a_complete_report() -> None:
+def test_review_gate_needs_a_complete_approved_report() -> None:
     gates = definition(done=[{"id": "code-review", "kind": "review"}])
-    facts = replace(CLEAR, review_gaps={"code-review": ("F-1 has no decision",)})
-    result = do(active(), req("close"), context(gates), facts)  # AE-316
+    gaps = replace(CLEAR, review_gaps={"code-review": ("F-1 has no decision",)})
+    result = do(active(), req("close"), context(gates), gaps)  # AE-316
     assert result.result == "blocked" and "F-1" in result.issues[0].message
-    ok = replace(CLEAR, review_gaps={"code-review": ()})
-    assert do(active(), req("close"), context(gates), ok).state.outcome == "done"
+    clean = replace(CLEAR, review_gaps={"code-review": ()}, review_hash=H1)
+    assert "not approved" in do(active(), req("close"), context(gates), clean).issues[0].message
+    approved = Approval("review", "human:ada", "A0", "A0", content_hash=H1)
+    done = do(active(approvals=(approved,)), req("close"), context(gates), clean)
+    assert done.state.outcome == "done"
+    edited = replace(clean, review_hash=H2)
+    stale = do(active(approvals=(approved,)), req("close"), context(gates), edited)
+    assert stale.result == "blocked" and "changed after" in stale.issues[0].message
 
 
 # ------------------------------------------------------- failure, retry, override

@@ -12,6 +12,7 @@ exit map (`satisfied`, `not_satisfied`, `not_evaluable`), and the baseline entry
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from datetime import date
 from typing import TYPE_CHECKING, Final
@@ -234,6 +235,8 @@ def _check_done_gate(gate_id: str, gate: Mapping[str, object], path: str, ctx: _
             ctx,
         )
         check_command_fields(gate, path, ctx.rb, required=ctx.approval)
+        if "extract" in gate:
+            _check_extract(gate["extract"], f"{path}.extract", ctx)
     elif kind == "sign-off":
         ctx.sign_off_ids.add(gate_id)
         _check_keys(gate, frozenset(common | {"minimum_level", "baseline"}), path, ctx)
@@ -243,6 +246,31 @@ def _check_done_gate(gate_id: str, gate: Mapping[str, object], path: str, ctx: _
         _check_keys(gate, frozenset(common | {"baseline"}), path, ctx)
     if ctx.approval:
         _check_baseline(gate, kind, path, ctx)
+
+
+def _pattern_groups(pattern: str) -> int:
+    """The number of capture groups of a pattern, or -1 when it is not a regular expression."""
+    try:
+        return re.compile(pattern).groups
+    except re.error:
+        return -1
+
+
+def _check_extract(value: object, path: str, ctx: _Context) -> None:
+    """An extraction rule: a pattern with one capture group and the stream to read (24.6)."""
+    rule = as_mapping(value)
+    pattern = as_text(rule.get("pattern")) if rule else None
+    if rule is None or set(rule) - {"pattern", "stream"} or pattern is None:
+        ctx.rb.error("extract-invalid", "extract holds a pattern and optionally a stream", path)
+        return
+    if rule.get("stream", "stdout") not in ("stdout", "stderr", "both"):
+        ctx.rb.error("extract-invalid", "the stream is stdout, stderr, or both", f"{path}.stream")
+    if _pattern_groups(pattern) != 1:
+        ctx.rb.error(
+            "extract-invalid",
+            "the pattern is a regular expression with exactly one capture group",
+            f"{path}.pattern",
+        )
 
 
 def _check_minimum_level(value: object, path: str, ctx: _Context) -> None:
