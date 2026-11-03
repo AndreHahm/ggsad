@@ -61,7 +61,8 @@ def _git(repo: Path, *args: str, stdin: bytes | None = None, ok: Sequence[int] =
     try:
         # Fixed argument list, no shell; revisions are validated hashes (see _check_revision).
         done = subprocess.run(  # noqa: S603  # nosec B603  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit
-            command,  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args
+            # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-tainted-env-args.dangerous-subprocess-use-tainted-env-args  # noqa: E501
+            command,
             input=stdin,
             capture_output=True,
             check=False,
