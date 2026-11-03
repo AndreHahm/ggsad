@@ -65,6 +65,12 @@ def _list_lines(
     return [f"{title}:", *(f"  - {text(item)}" for item in items)]
 
 
+def _issue_lines(envelope: Envelope) -> list[str]:
+    if envelope.data.get("findings"):
+        return []
+    return [f"  {issue.code}: {issue.message}" for issue in envelope.issues]
+
+
 def render_text(envelope: Envelope, actor: str | None = None) -> str:
     """The readable message: the report for `check`, otherwise the result and the issues."""
     report = envelope.data.get("report")
@@ -76,12 +82,24 @@ def render_text(envelope: Envelope, actor: str | None = None) -> str:
     lines.append(f"{envelope.operation}: {envelope.result} ({changed})")
     if actor:
         lines.append(f"acting as: {actor}")
-    lines.extend(f"  {issue.code}: {issue.message}" for issue in envelope.issues)
+    lines.extend(_issue_lines(envelope))
     if envelope.state is not None and not isinstance(report, dict):
         lines.append(f"state: {envelope.state.get('state')}")
+    findings = cast("list[dict[str, str]]", envelope.data.get("findings") or [])
+    lines.extend(_finding_lines(findings))
     lines.extend(_data_lines(envelope.data))
     return "\n".join(lines)
 
 
+def _finding_lines(findings: list[dict[str, str]]) -> list[str]:
+    lines: list[str] = []
+    for item in findings:
+        where = f"{item['category']}: {item['code']}: {item['message']}"
+        lines.append(f"  [{item['severity']}] {where}")
+        lines.append(f"      fix: {item['fix']}")
+    return lines
+
+
 def _data_lines(data: Mapping[str, object]) -> list[str]:
-    return [f"{key}: {value}" for key, value in data.items() if key != "report"]
+    hidden = ("report", "findings")
+    return [f"{key}: {value}" for key, value in data.items() if key not in hidden]
