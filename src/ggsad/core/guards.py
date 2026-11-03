@@ -78,7 +78,11 @@ def _check_listed(call: Call) -> None:
 def _is_replacement(call: Call) -> bool:
     """True for the approval of the gate definitions that replaces the approved hash."""
     request = call.request
-    return request.action == "approve" and request.target in ("gates", "all")
+    return (
+        request.action == "approve"
+        and request.target in ("gates", "all")
+        and approved_hash(call.state) is not None
+    )
 
 
 def _check_frozen_gates(call: Call) -> None:

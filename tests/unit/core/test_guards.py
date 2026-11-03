@@ -293,3 +293,14 @@ def test_a_hard_failure_and_a_missing_program_still_work_with_guards_in_place() 
     run = runner({"mk": RunOutcome("cannot-start", program_missing=True)})
     assert do(active(), req("close"), context(gates), run=run).state.wait is not None
     assert do(State(), req("start", AGENT)).result == "success"
+
+
+def test_the_expanded_approvers_apply_only_to_a_real_reapproval() -> None:
+    ctx = context(author="human:cy", approver="human:bo", owner="human:ada",
+                  deputies=frozenset({"human:dee"}))  # fmt: skip
+    for who in ("human:ada", "human:dee"):
+        for target in ("gates", "all"):
+            result = do(State(), req("approve", Actor(who), target=target), ctx, with_hash(H1))
+            assert result.codes == ("not-approver",), (who, target)
+    first = do(State(), req("approve", Actor("human:bo"), target="gates"), ctx, with_hash(H1))
+    assert first.changed
