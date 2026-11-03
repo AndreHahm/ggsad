@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final
 
 from ggsad.core.engine_types import Context
+from ggsad.core.gate_model import parse_gates
 from ggsad.core.issues import Report, ReportBuilder
 from ggsad.core.values import as_int, as_list, as_mapping, as_text, text_list
 
@@ -36,7 +37,9 @@ KINDS: Final = (
     "spec_approval", "gate_approval", "review_approval", "documents_approval", "sign_off",
     "override", "answer", "cancel", "fail", "adopt", "repair",
 )  # fmt: skip
-_TOP: Final = frozenset({"schema_version", "project", "roles", "defaults", "minimum_levels"})
+_TOP: Final = frozenset(
+    {"schema_version", "project", "roles", "defaults", "minimum_levels", "interpreter"}
+)
 _PROJECT: Final = frozenset({"id", "compliance_profile", "team_mode"})
 _ROLES: Final = frozenset(
     {"owner", "approved_humans", "deputies", "unavailable_approvers", "requestors"}
@@ -79,6 +82,7 @@ class Settings:
     retry_limit: int = MAX_RETRY_LIMIT
     fail_severity: str = "hard"
     minimum_levels: Mapping[str, str] = field(default_factory=dict)
+    interpreter: str | None = None
 
     @property
     def approved_identities(self) -> frozenset[str] | None:
@@ -97,13 +101,7 @@ class _Roles:
     requestors: tuple[Requestor, ...]
 
 
-def read_settings(value: object) -> tuple[Settings | None, Report]:
-    """Check parsed settings. The settings are None when the report holds errors."""
-    rb = ReportBuilder()
-    root = as_mapping(value)
-    if root is None:
-        rb.error("field-type-invalid", "the settings must be a mapping")
-        return None, rb.build()
+def _check_header(root: Mapping[str, object], rb: ReportBuilder) -> None:
     _check_unknown(root, _TOP, "", rb)
     if root.get("schema_version") != SCHEMA_VERSION:
         rb.error(
@@ -111,6 +109,18 @@ def read_settings(value: object) -> tuple[Settings | None, Report]:
             f"schema_version must be {SCHEMA_VERSION!r}",
             "schema_version",
         )
+    if "interpreter" in root and as_text(root["interpreter"]) is None:
+        rb.error("field-type-invalid", "interpreter must be the name of a program", "interpreter")
+
+
+def read_settings(value: object) -> tuple[Settings | None, Report]:
+    """Check parsed settings. The settings are None when the report holds errors."""
+    rb = ReportBuilder()
+    root = as_mapping(value)
+    if root is None:
+        rb.error("field-type-invalid", "the settings must be a mapping")
+        return None, rb.build()
+    _check_header(root, rb)
     project = _read_project(root.get("project"), rb)
     roles = _read_roles(root.get("roles"), rb)
     defaults = _read_defaults(root.get("defaults"), rb)
@@ -122,6 +132,7 @@ def read_settings(value: object) -> tuple[Settings | None, Report]:
         compliance_profile=project[1],
         team_mode=project[2],
         minimum_levels=levels,
+        interpreter=as_text(root.get("interpreter")) if "interpreter" in root else None,
         retry_limit=defaults[0],
         fail_severity=defaults[1],
         owner=roles.owner,
@@ -299,6 +310,13 @@ def _check_consistency(settings: Settings, rb: ReportBuilder) -> None:
         rb.error(
             "deputy-required", "the profile regulated needs at least one deputy", "roles.deputies"
         )
+
+
+def gates_for(settings: Settings, definition: Mapping[str, object]) -> tuple[Gate, ...]:
+    """The gates of a change: its own, the base gates, the implicit retry limits, the evidence."""
+    return parse_gates(
+        definition.get("gates"), settings.retry_limit, definition.get("requirements")
+    )
 
 
 def build_context(

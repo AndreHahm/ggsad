@@ -9,7 +9,7 @@ import pytest
 from hypothesis import given
 from hypothesis import strategies as st
 
-from ggsad.core.settings import build_context, read_settings
+from ggsad.core.settings import build_context, gates_for, read_settings
 
 GOOD: dict[str, Any] = {
     "schema_version": "1.0",
@@ -145,3 +145,28 @@ def test_build_context_falls_back_to_the_change_owner_for_an_unapproved_approver
     assert away.approver == "human:bo"
     named = build_context(settings, {"owner": "human:bo", "approver": "human:ada"}, (), "C-1")
     assert named.approver == "human:ada"
+
+
+def test_the_interpreter_key_is_read_and_must_be_a_program_name() -> None:
+    data = changed(["interpreter"], "rt-stable")
+    settings, report = read_settings(data)
+    assert report.ok and settings is not None and settings.interpreter == "rt-stable"
+    plain, _ = read_settings(GOOD)
+    assert plain is not None and plain.interpreter is None
+    for bad in ("", 3, ["x"]):
+        assert "field-type-invalid" in read_settings(changed(["interpreter"], bad))[1].codes
+
+
+def test_gates_for_adds_the_requirements_and_the_default_retry_limit() -> None:
+    settings, _ = read_settings(changed(["defaults", "retry_limit"], 2))
+    assert settings is not None
+    exit_map = {"satisfied": [0], "not_satisfied": [1]}
+    gate = {"id": "t", "kind": "check", "command": ["x"], "exit_map": exit_map}
+    evidence = {"command": ["y"], "exit_map": exit_map}
+    definition = {
+        "gates": {"fail": [], "wait": [], "done": [gate]},
+        "requirements": [{"id": "R1", "evidence": [evidence]}],
+    }
+    by_id = {g.id: g for g in gates_for(settings, definition)}
+    assert by_id["t#retry-limit"].limit == 2
+    assert [r.id for r in by_id["incomplete-evidence"].requirements] == ["R1"]

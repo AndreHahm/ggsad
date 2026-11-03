@@ -18,7 +18,6 @@ NOW = "2026-11-03T10:00:00Z"
 CLEAR = Facts(
     scope=Check("not_satisfied"),
     stale_spec_approval=Check("not_satisfied"),
-    evidence=Check("satisfied"),
     gates_approved=True,
     revision="r1",
 )
@@ -38,10 +37,21 @@ def definition(fail: list[Any] | None = None, wait: list[Any] | None = None,
     return {"fail": fail or [], "wait": wait or [], "done": done or []}
 
 
-def context(gates: dict[str, Any] | None = None, **kw: Any) -> Context:
+def evidence_requirement(
+    program: str = "evidence-check", requirement_id: str = "R1"
+) -> dict[str, Any]:
+    exit_map = {"satisfied": [0], "not_satisfied": [1], "not_evaluable": [9]}
+    command = {"command": [program], "exit_map": exit_map}
+    return {"id": requirement_id, "text": "t", "done_when": [], "evidence": [command]}
+
+
+def context(
+    gates: dict[str, Any] | None = None, requirements: list[Any] | None = None, **kw: Any
+) -> Context:
+    reqs = [evidence_requirement()] if requirements is None else requirements
     base = Context(
         change_id="C-1",
-        gates=parse_gates(gates or definition()),
+        gates=parse_gates(gates or definition(), requirements=reqs),
         change_owner="human:ada",
         author="human:ada",
         owner="human:ada",
