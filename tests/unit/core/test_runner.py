@@ -15,8 +15,9 @@ from engine_helpers import (
     req,
 )
 
+from ggsad.core.baseline import compare
 from ggsad.core.checks import run_command
-from ggsad.core.gate_model import CommandSpec, ExitMap
+from ggsad.core.gate_model import CommandSpec, ExitMap, ExtractRule, RunOutcome
 from ggsad.core.runner import CommandRunner
 
 PY = sys.executable
@@ -126,3 +127,46 @@ def test_the_engine_closes_a_change_with_the_real_runner(tmp_path: Path) -> None
     result = do(active(), req("close"), ctx, run=runner(tmp_path))
     assert result.state.outcome == "done"
     assert "ran " in str(result.bodies[0]["gate_detail"])
+
+
+def test_output_over_the_cap_is_marked_truncated_and_a_baseline_cannot_pass_on_it(
+    tmp_path: Path,
+) -> None:
+    code = "print('FAILED old'); print('x' * 1_100_000); print('FAILED new')"
+    run = runner(tmp_path)(("@interpreter", "-c", code), None)
+    assert run.truncated and "FAILED old" in run.stdout and "FAILED new" not in run.stdout
+    rule = ExtractRule(r"^FAILED (\S+)")
+    assert compare(["old"], rule, run).result == "not_evaluable"
+    seen = RunOutcome("exit", status=1, stdout="FAILED new", truncated=True)
+    assert compare(["old"], rule, seen).result == "not_satisfied"  # a new failure is certain
+
+
+def test_a_program_that_exists_but_is_not_executable_is_not_a_missing_program(
+    tmp_path: Path, monkeypatch
+) -> None:
+    (tmp_path / "approved-tool").write_text("not a program", encoding="utf-8")
+    (tmp_path / "approved-tool").chmod(0o644)
+    monkeypatch.setenv("PATH", str(tmp_path))
+    run = runner(tmp_path, {"approved-tool"})(("approved-tool",), None)
+    assert run.kind == "cannot-start" and not run.program_missing
+    assert "not executable" in run.cause
+
+
+def test_a_relative_program_path_is_resolved_from_the_repository_root(
+    tmp_path: Path, monkeypatch, tmp_path_factory
+) -> None:
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    script = scripts / "check.cmd" if sys.platform == "win32" else scripts / "check"
+    script.write_text("exit 0\n" if sys.platform == "win32" else "#!/bin/sh\nexit 0\n")
+    script.chmod(0o755)
+    monkeypatch.chdir(tmp_path_factory.mktemp("elsewhere"))
+    run = runner(tmp_path, {"scripts/check"})(("scripts/check",), None)
+    assert run.kind == "exit" and run.status == 0
+
+
+def test_a_command_without_a_time_limit_gets_the_default_limit(tmp_path: Path) -> None:
+    bounded = CommandRunner(tmp_path, default_time_limit=1)
+    run = bounded(("@interpreter", "-c", "import time; time.sleep(30)"), None)
+    assert run.kind == "timeout"
+    assert CommandRunner(tmp_path).default_time_limit == 1800

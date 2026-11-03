@@ -117,6 +117,8 @@ def review_outcome(state: State, gate: Gate, facts: Facts) -> Outcome:
     approval = _approval_of(state, "review")
     if approval is None:
         return Outcome(NOT_SATISFIED, "the review result is not approved")
+    if facts.review_hash is None:
+        return Outcome(NOT_EVALUABLE, "the content hash of review.md was not provided")
     if approval.content_hash != facts.review_hash:
         return Outcome(NOT_SATISFIED, "review.md changed after the approval of the review result")
     return Outcome(SATISFIED)

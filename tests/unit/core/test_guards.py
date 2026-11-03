@@ -325,3 +325,19 @@ def test_a_human_that_is_not_approved_cannot_resume_or_close() -> None:
     owned = State(state="waiting", wait=Wait("manual", "r", "human:eve", "ok"))
     assert do(owned, req("resume", eve, note="done"), ctx).result == "success"
     assert do(waiting, req("resume", eve, note="done")).result == "success"  # no list set
+
+
+def test_a_review_gate_without_a_content_hash_is_not_evaluable_never_satisfied() -> None:
+    gates = definition(done=[{"id": "code-review", "kind": "review"}])
+    unhashed = Approval("review", "human:ada", "A0", "A0")  # no content hash recorded
+    facts = replace(CLEAR, review_gaps={"code-review": ()})  # no review_hash handed in
+    result = do(active(approvals=(unhashed,)), req("close"), context(gates), facts)
+    assert result.state.wait is not None and result.state.wait.kind == "external"
+    hashed = Approval("review", "human:ada", "A0", "A0", content_hash=H1)
+    with_hash = replace(facts, review_hash=H1)
+    assert (
+        do(active(approvals=(hashed,)), req("close"), context(gates), with_hash).state.outcome
+        == "done"
+    )
+    bare = do(active(approvals=(unhashed,)), req("close"), context(gates), with_hash)
+    assert bare.result == "blocked"
