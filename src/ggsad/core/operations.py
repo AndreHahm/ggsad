@@ -99,7 +99,8 @@ class Envelope:
 
 def now_utc() -> str:
     """The time of an entry: the system clock in UTC, to the second."""
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    moment = datetime.now(UTC).replace(microsecond=0)
+    return moment.isoformat().replace("+00:00", "Z")
 
 
 def failure(operation: str, issues: tuple[Issue, ...]) -> Envelope:

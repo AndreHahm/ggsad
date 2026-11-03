@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -13,7 +14,7 @@ from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.issues import Issue
 from ggsad.core.new_change import NewFields, create_change
-from ggsad.core.operations import Envelope, run_action
+from ggsad.core.operations import Envelope, now_utc, run_action
 from ggsad.core.state_store import StateStore
 
 
@@ -173,3 +174,7 @@ def test_a_state_conflict_does_not_claim_that_this_call_recorded_anything(
     done = run_action(root, "c-1", req("ask", text="Q?"))
     assert done.result == "error" and codes(done) == ["state-conflict"]
     assert not done.changed and done.problems() == []
+
+
+def test_the_clock_gives_a_utc_time_to_the_second() -> None:
+    assert re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", now_utc())
