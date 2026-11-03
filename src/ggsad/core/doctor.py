@@ -63,6 +63,7 @@ FIXES: Final = {
     "actor-unknown": "set GGSAD_ACTOR, run `git config user.name`, or pass --actor",
     "tool-missing": "install the program or remove it from required_tools of the change",
     "anchor-missing": "a human runs `ggsad adopt {id}`",
+    "migration-required": "run `ggsad migrate {id}`; the old state.yaml stays as it is",
     "history-inconsistent": "the Owner runs `ggsad repair {id} --show`, then `ggsad repair {id} "
     "--reason <why>`",
     "gates-changed": "a human approves them again with `ggsad approve {id} gates`, or cancels "
@@ -215,7 +216,8 @@ def _change(
 def _changes(root: Path, settings: Settings, anchors: AnchorStore, now: str) -> list[Finding]:
     found: list[Finding] = []
     for change_id in existing_ids(root):
-        if (root / "specs" / change_id / STATE_FILE).is_file():
+        folder = root / "specs" / change_id
+        if (folder / STATE_FILE).is_file() or (folder / "state.yaml").is_file():
             found.extend(_change(root, settings, change_id, anchors, now))
     return found
 
