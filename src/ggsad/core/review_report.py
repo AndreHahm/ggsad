@@ -78,23 +78,26 @@ def _read_record(lines: list[str], start: int) -> tuple[dict[str, str], int]:
     return record, index
 
 
+def _check_finding(finding: Finding) -> None:
+    where = finding.id
+    if not finding.id:
+        raise _bad("layout", "a finding needs an identifier")
+    if finding.severity not in SEVERITIES:
+        raise _bad("layout", f"{where}: severity {finding.severity!r} is not one of {SEVERITIES}")
+    if finding.decision and finding.decision not in DECISIONS:
+        raise _bad("layout", f"{where}: decision {finding.decision!r} is not one of {DECISIONS}")
+    if finding.decision and not finding.reason:
+        raise _bad("layout", f"{where}: a decision needs a reason")
+    if finding.status not in STATUSES:
+        raise _bad("layout", f"{where}: status {finding.status!r} is not one of {STATUSES}")
+
+
 def _read_row(line: str) -> Finding:
     cells = _cells(line)
     if len(cells) != len(COLUMNS):
         raise _bad("layout", f"a finding row has {len(COLUMNS)} columns: {line!r}")
     finding = Finding(*cells)
-    if not finding.id:
-        raise _bad("layout", "a finding needs an identifier")
-    if finding.severity not in SEVERITIES:
-        raise _bad(
-            "layout", f"{finding.id}: severity {finding.severity!r} is not one of {SEVERITIES}"
-        )
-    if finding.decision and finding.decision not in DECISIONS:
-        raise _bad(
-            "layout", f"{finding.id}: decision {finding.decision!r} is not one of {DECISIONS}"
-        )
-    if finding.status not in STATUSES:
-        raise _bad("layout", f"{finding.id}: status {finding.status!r} is not one of {STATUSES}")
+    _check_finding(finding)
     return finding
 
 

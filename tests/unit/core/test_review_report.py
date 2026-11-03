@@ -154,3 +154,12 @@ def test_the_review_gate_is_satisfied_end_to_end_from_the_parsed_report() -> Non
         do(active(approvals=(approval,)), req("close"), context(gates), open_fix).result
         == "blocked"
     )
+
+
+def test_a_decision_without_a_reason_is_not_a_complete_report() -> None:
+    text = report("| F1 | critical | reject | | open |")
+    code, message = approval_issues(text)[0]
+    assert code == "review-layout-invalid" and "F1" in message and "reason" in message
+    assert completion_gaps(text)
+    assert approval_issues(report("| F1 | minor | | | open |")) == []  # no decision yet
+    assert approval_issues(report("| F1 | critical | reject | duplicate of F0 | open |")) == []

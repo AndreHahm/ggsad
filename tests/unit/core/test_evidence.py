@@ -177,3 +177,14 @@ def test_extraction_streams_and_bad_rules() -> None:
     assert extract_failures(ExtractRule(r"FAILED \w+", "stdout"), run) is None  # no group
     assert extract_failures(ExtractRule(r"(", "stdout"), run) is None  # not a regex
     assert compare(["x"], None, run).result == "not_evaluable"
+
+
+def test_a_failure_after_the_line_limit_cannot_let_a_baseline_pass() -> None:
+    long_line = "FAILED old\n" + "x" * 10_001 + " FAILED new\n"
+    run = RunOutcome("exit", status=1, stdout=long_line)
+    rule = ExtractRule(r"FAILED (\S+)")
+    assert compare(["old"], rule, run).result == "not_evaluable"
+    seen = RunOutcome("exit", status=1, stdout="FAILED new\n" + "x" * 10_001)
+    assert compare(["old"], rule, seen).result == "not_satisfied"  # a new failure is certain
+    short = RunOutcome("exit", status=1, stdout="FAILED old\n" + "x" * 9_000)
+    assert compare(["old"], rule, short).result == "satisfied"
