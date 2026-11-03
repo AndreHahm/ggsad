@@ -11,7 +11,7 @@ from ggsad.core.anchor import AnchorStore, adopt_anchor, advance_anchor
 from ggsad.core.canonical import ZERO_HASH
 from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
-from ggsad.core.history import Anchor, make_entry
+from ggsad.core.history import Anchor, Entry, make_entry
 
 VALID_BODY = {
     "action": "ask",
@@ -34,8 +34,8 @@ def repo(tmp_path: Path) -> Path:
     return tmp_path
 
 
-def entries(count: int) -> list:
-    made = []
+def entries(count: int) -> list[Entry]:
+    made: list[Entry] = []
     previous = ZERO_HASH
     for number in range(1, count + 1):
         entry = make_entry(number, previous, VALID_BODY)
