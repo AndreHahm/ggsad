@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 STREAMS: Final = ("stdout", "stderr", "both")
 MAX_LINE: Final = 10_000
 NAMED_NEW: Final = 3
+NEWLINE: Final = "\n"
 
 
 def compile_rule(pattern: str) -> re.Pattern[str] | None:
@@ -30,22 +31,30 @@ def compile_rule(pattern: str) -> re.Pattern[str] | None:
     return compiled if compiled.groups == 1 else None
 
 
+def _text(rule: ExtractRule, run: RunOutcome) -> str:
+    return {
+        "stdout": run.stdout,
+        "stderr": run.stderr,
+        "both": run.stdout + NEWLINE + run.stderr,
+    }[rule.stream]
+
+
 def extract_failures(rule: ExtractRule, run: RunOutcome) -> set[str] | None:
     """The failure identifiers in the output, or None when the output cannot be read."""
     compiled = compile_rule(rule.pattern)
     if compiled is None or rule.stream not in STREAMS:
         return None
-    text = {
-        "stdout": run.stdout,
-        "stderr": run.stderr,
-        "both": run.stdout + "\n" + run.stderr,
-    }[rule.stream]
     found: set[str] = set()
-    for line in text.splitlines():
+    for line in _text(rule, run).splitlines():
         match = compiled.search(line[:MAX_LINE])
         if match and match.group(1):
             found.add(match.group(1))
     return found
+
+
+def incomplete(rule: ExtractRule, run: RunOutcome) -> bool:
+    """True when the comparison cannot have seen everything: cut output or a line over the limit."""
+    return run.truncated or any(len(line) > MAX_LINE for line in _text(rule, run).splitlines())
 
 
 def compare(baseline: Collection[str], rule: ExtractRule | None, run: RunOutcome) -> Outcome:
@@ -58,9 +67,9 @@ def compare(baseline: Collection[str], rule: ExtractRule | None, run: RunOutcome
         )
     new = sorted(failures - set(baseline))
     unused = len(set(baseline) - failures)
-    if not new and run.truncated:
+    if not new and rule is not None and incomplete(rule, run):
         return Outcome(
-            NOT_EVALUABLE, "the output was cut, so failures after the cut cannot be compared"
+            NOT_EVALUABLE, "the output was cut or has a very long line, so it cannot be compared"
         )
     if not new:
         return Outcome(
