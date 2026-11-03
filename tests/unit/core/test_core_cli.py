@@ -136,17 +136,30 @@ def test_the_actor_is_the_option_then_the_variable_then_git(
 ) -> None:
     monkeypatch.delenv("GGSAD_ACTOR", raising=False)
     git(root, "config", "user.name", "ada")
-    assert resolve_actor(None, root, None, "A0").identity == "human:ada"
+    assert resolve_actor(None, root, "A0").identity == "human:ada"
     monkeypatch.setenv("GGSAD_ACTOR", "agent:env")
-    assert resolve_actor(None, root, None, "A0").identity == "agent:env"
-    assert resolve_actor("agent:option", root, None, "A1").identity == "agent:option"
+    assert resolve_actor(None, root, "A0").identity == "agent:env"
+    assert resolve_actor("agent:option", root, "A1").identity == "agent:option"
 
 
-def test_the_account_comes_from_the_list_of_approved_humans(root: Path) -> None:
-    settings, _ = load_settings(root)
-    actor = resolve_actor("human:ada", root, settings, "A1")
-    assert actor == Actor("human:ada", "A1", "ada-gh")
-    assert resolve_actor("human:zed", root, settings, "A0").account is None
+def test_the_account_is_read_independently_of_the_claimed_identity(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.delenv("GGSAD_ACCOUNT", raising=False)
+    assert resolve_actor("human:ada", root, "A1") == Actor("human:ada", "A1", None)
+    git(root, "config", "github.user", "real-user")
+    assert resolve_actor("human:ada", root, "A1").account == "real-user"
+    monkeypatch.setenv("GGSAD_ACCOUNT", "env-user")
+    assert resolve_actor("human:ada", root, "A1").account == "env-user"
+    assert resolve_actor("human:ada", root, "A1", "option-user").account == "option-user"
+
+
+def test_the_recorded_account_is_the_one_given_not_the_one_on_the_list(root: Path) -> None:
+    approved(root)
+    assert run(root, "start", "c-1", "--account", "someone-else") == 0
+    entries = json.loads((root / "specs/c-1/state.json").read_text(encoding="utf-8"))["entries"]
+    assert entries[-1]["body"]["account"] == "someone-else"
+    assert run(root, "check", "c-1") == 0
 
 
 def test_without_any_identity_the_actor_is_unknown(
@@ -155,7 +168,7 @@ def test_without_any_identity_the_actor_is_unknown(
     monkeypatch.delenv("GGSAD_ACTOR", raising=False)
     monkeypatch.setenv("GIT_CONFIG_GLOBAL", str(tmp_path / "none"))
     monkeypatch.setenv("GIT_CONFIG_SYSTEM", str(tmp_path / "none"))
-    assert resolve_actor(None, tmp_path, None, "A0").identity == "human:unknown"
+    assert resolve_actor(None, tmp_path, "A0").identity == "human:unknown"
 
 
 def test_the_root_is_found_upwards(root: Path, monkeypatch: pytest.MonkeyPatch) -> None:
