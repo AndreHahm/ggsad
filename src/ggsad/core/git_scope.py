@@ -12,6 +12,7 @@ An exclude file in the metadata directory or an excludes file of the user is nev
 
 from __future__ import annotations
 
+import os
 import re
 import subprocess  # nosec B404 - the adapter must start git; see _git
 import tempfile
@@ -25,11 +26,27 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 IGNORE_FILE: Final = ".gitignore"
+GIT_TIMEOUT_SECONDS: Final = 300
+# Variables that point Git at a repository, an index, or objects; the caller's must not leak in.
+_REPOSITORY_STATE: Final = frozenset(
+    {
+        "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY",
+        "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_NAMESPACE", "GIT_COMMON_DIR", "GIT_PREFIX",
+        "GIT_QUARANTINE_PATH", "GIT_INDEX_VERSION", "GIT_CEILING_DIRECTORIES",
+    }
+)  # fmt: skip
 _REVISION: Final = re.compile(r"[0-9a-f]{7,64}")
 
 
 class GitError(Exception):
     """Git is unavailable or could not answer."""
+
+
+class GitTimeoutError(GitError):
+    """A Git call did not finish in time."""
+
+    def __init__(self, command: str) -> None:
+        super().__init__(f"git {command} did not finish within {GIT_TIMEOUT_SECONDS} seconds")
 
 
 class NotARevisionError(GitError):
@@ -48,9 +65,13 @@ def _git(repo: Path, *args: str, stdin: bytes | None = None, ok: Sequence[int] =
             input=stdin,
             capture_output=True,
             check=False,
+            env={k: v for k, v in os.environ.items() if k not in _REPOSITORY_STATE},
+            timeout=GIT_TIMEOUT_SECONDS,
         )
     except OSError as error:
         raise GitError(str(error)) from error
+    except subprocess.TimeoutExpired as error:
+        raise GitTimeoutError(args[0]) from error
     if done.returncode not in ok:
         message = done.stderr.decode("utf-8", "replace").strip()
         raise GitError(message or f"git {args[0]} ended with status {done.returncode}")

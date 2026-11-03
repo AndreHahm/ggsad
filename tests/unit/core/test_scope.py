@@ -62,3 +62,20 @@ def test_an_empty_allowed_list_allows_nothing_and_no_change_is_in_scope() -> Non
 
 def test_outside_paths_are_in_code_point_order() -> None:
     assert paths_outside(["x"], ["b", "B", "a"], "specs/c") == ["B", "a", "b"]
+
+
+@pytest.mark.parametrize(
+    ("pattern", "path", "expected"),
+    [
+        ("src/*/", "src/core/file.py", True),
+        ("src/*/", "src/a", False),
+        ("src/*/", "src/", False),
+        ("src/*/", "lib/core/file.py", False),
+        ("a/**/", "a/b/c.py", True),
+        ("a/**/", "a/c.py", True),
+        ("a/**/", "a", False),
+        ("a/**/", "x/b/c.py", False),
+    ],
+)
+def test_wildcards_in_a_trailing_directory_pattern(pattern: str, path: str, expected: bool) -> None:
+    assert matches(pattern, path) is expected

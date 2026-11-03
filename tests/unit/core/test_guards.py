@@ -304,3 +304,24 @@ def test_the_expanded_approvers_apply_only_to_a_real_reapproval() -> None:
             assert result.codes == ("not-approver",), (who, target)
     first = do(State(), req("approve", Actor("human:bo"), target="gates"), ctx, with_hash(H1))
     assert first.changed
+
+
+def test_supersede_ends_a_change_after_a_higher_document_changed() -> None:
+    state = spec_approved(DOC)
+    edited = replace(CLEAR, documents={}, spec_hash=S1, open_changes=frozenset({"C-2"}))
+    done = do(state, req("supersede", replaced_by="C-2", reason="merged"), facts=edited)
+    assert done.state.replaced_by == "C-2"
+
+
+def test_a_human_that_is_not_approved_cannot_resume_or_close() -> None:
+    ctx = context(approved_humans=frozenset({"human:ada"}))
+    eve = Actor("human:eve")
+    manual = Wait("manual", "r", "human:ada", "ok")
+    waiting = State(state="waiting", wait=manual)
+    assert do(waiting, req("resume", eve, note="done"), ctx).codes == ("human-not-approved",)
+    assert do(active(), req("close", eve), ctx).codes == ("human-not-approved",)
+    assert do(waiting, req("resume", ADA, note="done"), ctx).result == "success"
+    assert do(active(), req("close", ADA), ctx).state.outcome == "done"
+    owned = State(state="waiting", wait=Wait("manual", "r", "human:eve", "ok"))
+    assert do(owned, req("resume", eve, note="done"), ctx).result == "success"
+    assert do(waiting, req("resume", eve, note="done")).result == "success"  # no list set
