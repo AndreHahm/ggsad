@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final
 
+from ggsad.core.anchor import adopt_anchor
 from ggsad.core.engine import apply
 from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
@@ -152,7 +153,22 @@ def run_action(
         return Envelope(
             request.action, done.result, False, done.state.to_json(), done.issues, done.data
         )
+    if request.action == "adopt":
+        refusal = _anchor_first(loaded, store)
+        if refusal is not None:
+            return refusal
     return _record(loaded, done)
+
+
+def _anchor_first(loaded: LoadedChange, anchors: AnchorStore) -> Envelope | None:
+    """Create the anchor of the history as it is, before the entry of `adopt` is appended."""
+    document = loaded.store.read()
+    entries = document.entries if document is not None else ()
+    try:
+        adopt_anchor(anchors, loaded.change_id, entries)
+    except StateError as error:
+        return failure("adopt", (error_issue(error),))
+    return None
 
 
 def _record(loaded: LoadedChange, done: ActionResult) -> Envelope:

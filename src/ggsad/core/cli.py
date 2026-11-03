@@ -69,6 +69,7 @@ ACTIONS: Final[dict[str, tuple[str, ...]]] = {
     "conflict": ("text", "document", "owner"),
     "handover": ("owner", "reason"),
     "reassign": ("owner", "reason", "question", "target"),
+    "adopt": ("note",),
 }
 HELP: Final = {
     "new": "create a change from a template and record it",
@@ -86,6 +87,7 @@ HELP: Final = {
     "conflict": "record a conflict between two documents",
     "handover": "hand a change over to a new Change owner",
     "reassign": "reassign the owner of a question or a wait",
+    "adopt": "create the anchor of a history that has none",
     "check": "report on a change: the status report",
     "review": "check review.md",
     "guard": "verify the record of a change without running any command",

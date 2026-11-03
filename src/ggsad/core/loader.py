@@ -226,18 +226,36 @@ class _Files:
     review_text: str | None
 
 
-def _read_files(path: Path, store: StateStore, change_id: str) -> _Files:
+def _read_history(
+    path: Path, store: StateStore, change_id: str, *, lenient: bool
+) -> tuple[State | None, tuple[Mapping[str, object], ...], StateError | None]:
+    """The state, the bodies, and the error. `lenient` accepts a missing anchor (for `adopt`)."""
+    try:
+        state, bodies = _read_state(store)
+    except StateError as caught:
+        if lenient and caught.code == "anchor-missing":
+            return _read_without_anchor(path, store, change_id)
+        return None, (), caught
+    return state, bodies, None
+
+
+def _read_without_anchor(
+    path: Path, store: StateStore, change_id: str
+) -> tuple[State | None, tuple[Mapping[str, object], ...], StateError | None]:
+    loose = StateStore(path, anchors=store.anchors, require_anchor=False, change_id=change_id)
+    try:
+        state, bodies = _read_state(loose)
+    except StateError as caught:
+        return None, (), caught
+    return state, bodies, None
+
+
+def _read_files(path: Path, store: StateStore, change_id: str, *, lenient: bool = False) -> _Files:
     invalid = check_identifier(change_id)
     if invalid:
         return _Files(None, tuple(invalid), None, (), None, None, None)
     definition, problems = _definition(path)
-    state: State | None = None
-    bodies: tuple[Mapping[str, object], ...] = ()
-    error: StateError | None = None
-    try:
-        state, bodies = _read_state(store)
-    except StateError as caught:
-        error = caught
+    state, bodies, error = _read_history(path, store, change_id, lenient=lenient)
     spec, review = read_text(path / SPEC_FILE), read_text(path / REVIEW_FILE)
     return _Files(definition, problems, state, bodies, error, spec, review)
 
@@ -285,7 +303,7 @@ def load_change(
     store = StateStore(
         path, anchors=anchors, require_anchor=anchor_required(settings), change_id=change_id
     )
-    files = _read_files(path, store, change_id)
+    files = _read_files(path, store, change_id, lenient=action == "adopt")
     definition = files.definition
     gates = gates_for(settings, definition) if definition is not None else ()
     context = build_context(settings, definition or {}, gates, change_id)
