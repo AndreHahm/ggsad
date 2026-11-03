@@ -13,7 +13,7 @@ An exclude file in the metadata directory or an excludes file of the user is nev
 from __future__ import annotations
 
 import re
-import subprocess
+import subprocess  # nosec B404 - the adapter must start git; see _git
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Final
@@ -42,7 +42,8 @@ class NotARevisionError(GitError):
 def _git(repo: Path, *args: str, stdin: bytes | None = None, ok: Sequence[int] = (0,)) -> bytes:
     command = ["git", "-C", str(repo), *args]
     try:
-        done = subprocess.run(  # noqa: S603 - fixed argument list, no shell
+        # Fixed argument list, no shell; revisions are validated hashes (see _check_revision).
+        done = subprocess.run(  # noqa: S603  # nosec B603  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit
             command,
             input=stdin,
             capture_output=True,
