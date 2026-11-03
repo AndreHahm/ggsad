@@ -167,6 +167,7 @@ def _target_issues(
         )
         report = validate_for_gate_approval(definition, context)
         found["approve:gates"] = tuple((i.code, i.message) for i in report.issues)
+    found["approve:all"] = found["approve:spec"] + found.get("approve:gates", ())
     return found
 
 

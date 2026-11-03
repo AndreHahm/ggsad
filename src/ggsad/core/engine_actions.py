@@ -166,6 +166,8 @@ def _approval(call: Call, target: str) -> Approval:
             content_hash=facts.spec_hash or request.content_hash,
             documents=tuple(sorted(facts.documents.items())),
         )
+    if target == "review":
+        return replace(base, content_hash=facts.review_hash or request.content_hash)
     if target == "documents":
         return _documents_approval(call, base)
     if target == "gates":

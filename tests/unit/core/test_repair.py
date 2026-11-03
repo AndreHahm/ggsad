@@ -165,3 +165,20 @@ def test_a_repair_prepares_the_anchor_before_it_writes_anything(
     assert done.result == "error" and [i.code for i in done.issues] == ["anchor-write-failed"]
     assert (truncated / STATE).read_bytes() == before
     assert not (truncated / REPAIRS_DIRECTORY).exists()
+
+
+def test_the_backup_is_kept_when_only_the_anchor_could_not_be_updated(
+    truncated: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def refuse(self: GitAnchorStore, change_id: str, anchor: object) -> None:
+        raise StateError("anchor-write-failed", "no space")
+
+    monkeypatch.setattr(GitAnchorStore, "write", refuse)
+    damaged = (truncated / STATE).read_text(encoding="utf-8")
+    done = repair(truncated)
+    assert done.result == "error" and done.changed
+    assert [i.code for i in done.issues] == ["anchor-lagging"]
+    kept = truncated / str(done.data["damaged_file"])
+    assert kept.read_text(encoding="utf-8") == damaged
+    entries = json.loads((truncated / STATE).read_text(encoding="utf-8"))["entries"]
+    assert entries[-1]["body"]["repaired"]["damaged_file"] == done.data["damaged_file"]
