@@ -37,6 +37,7 @@ if TYPE_CHECKING:
     from ggsad.core.settings import Settings
 
 ACTOR_VARIABLE: Final = "GGSAD_ACTOR"
+ACCOUNT_VARIABLE: Final = "GGSAD_ACCOUNT"
 TEXT: Final = {"type": str}
 FLAGS: Final[dict[str, dict[str, Any]]] = {
     "note": {**TEXT, "help": "a short note recorded with the entry"},
@@ -106,6 +107,9 @@ def _common(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--json", action="store_true", help="print the result envelope as JSON")
     parser.add_argument("--actor", help="who acts, for example human:ada or agent:builder")
     parser.add_argument("--assurance", choices=("A0", "A1", "A2"), default="A0")
+    parser.add_argument(
+        "--account", help="the real account of the hosting service (default: Git github.user)"
+    )
 
 
 def _add_flag(parser: argparse.ArgumentParser, name: str) -> None:
@@ -172,20 +176,32 @@ def _git_name(root: Path) -> str | None:
     return name or None
 
 
+def _git_value(root: Path, key: str) -> str | None:
+    try:
+        value = run_git(root, "config", key, ok=(0, 1)).decode("utf-8").strip()
+    except GitError:
+        return None
+    return value or None
+
+
+def resolve_account(given: str | None, root: Path) -> str | None:
+    """The real account: the option, else the variable, else `github.user` of Git (Section 24.3).
+
+    It is never taken from the list of approved humans: that list says which account is expected,
+    and the history must make a difference between the two visible.
+    """
+    return given or os.environ.get(ACCOUNT_VARIABLE) or _git_value(root, "github.user")
+
+
 def resolve_actor(
-    given: str | None, root: Path, settings: Settings | None, assurance: str
+    given: str | None, root: Path, assurance: str, account: str | None = None
 ) -> Actor:
     """Who acts: the option, else the variable, else the Git user (Section 24.3)."""
     identity = given or os.environ.get(ACTOR_VARIABLE)
     if not identity:
         name = _git_name(root)
         identity = f"human:{name}" if name else "human:unknown"
-    account = None
-    if settings is not None and settings.approved_humans is not None:
-        account = next(
-            (h.account for h in settings.approved_humans if h.identity == identity), None
-        )
-    return Actor(identity, assurance, account)
+    return Actor(identity, assurance, resolve_account(account, root))
 
 
 def _read_report(path: str | None) -> dict[str, object] | None:
@@ -246,7 +262,7 @@ def _new_fields(args: argparse.Namespace, actor: Actor, settings: Settings | Non
 
 def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> tuple[Envelope, str]:
     settings, _ = load_settings(root)
-    actor = resolve_actor(args.actor, root, settings, args.assurance)
+    actor = resolve_actor(args.actor, root, args.assurance, args.account)
     try:
         request = build_request(args.command, args, actor, clock())
     except (OSError, ValueError, TypeError) as error:
