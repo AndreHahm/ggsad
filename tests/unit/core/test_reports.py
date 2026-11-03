@@ -236,3 +236,18 @@ def test_a_guard_checks_approvals_against_the_current_minimum_level(root: Path) 
     done = read(root, "guard")
     assert done.result == "rejected"
     assert any("spec" in i.message and "level" in i.message for i in done.issues)
+
+
+def test_review_and_check_scope_also_reject_edited_gates(root: Path) -> None:
+    active_change(root)
+    write(root, "specs/c-1/review.md", HEAD)
+    assert read(root, "review").result == "success"
+    assert read(root, "check-scope").result == "success"
+    write(root, "specs/c-1/change.yaml", FULL.replace("lib/**", "src/**"))
+    review = read(root, "review")
+    assert review.result == "rejected" and not review.changed
+    assert [i.code for i in review.issues] == ["gates-changed"]
+    assert review.data["review_exists"] is True
+    scope = read(root, "check-scope")
+    assert scope.result == "rejected" and [i.code for i in scope.issues] == ["gates-changed"]
+    assert scope.data["scope"] in ("holds", "violated")
