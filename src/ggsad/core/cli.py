@@ -26,6 +26,7 @@ from ggsad.core.new_change import NewFields, create_change
 from ggsad.core.operations import Envelope, failure, now_utc, run_action
 from ggsad.core.project import CONFIG_PATH, load_settings
 from ggsad.core.render import render_json, render_text
+from ggsad.core.repair import repair_change
 from ggsad.core.reports import READ_ONLY, run_read_only
 from ggsad.core.settings import PROFILES, TEAM_MODES
 
@@ -53,6 +54,7 @@ FLAGS: Final[dict[str, dict[str, Any]]] = {
     "document": {**TEXT, "action": "append", "help": "a document that conflicts, twice"},
     "and_resume": {"action": "store_true", "help": "resume the change with the answer"},
     "about_spec": {"action": "store_true", "help": "the question is about spec.md"},
+    "show": {"action": "store_true", "help": "only show what is damaged; write nothing"},
     "agent_report": {**TEXT, "help": "a JSON file with the report of the agent that closes"},
 }
 ACTIONS: Final[dict[str, tuple[str, ...]]] = {
@@ -70,6 +72,7 @@ ACTIONS: Final[dict[str, tuple[str, ...]]] = {
     "handover": ("owner", "reason"),
     "reassign": ("owner", "reason", "question", "target"),
     "adopt": ("note",),
+    "repair": ("reason", "show", "note"),
 }
 HELP: Final = {
     "new": "create a change from a template and record it",
@@ -88,6 +91,7 @@ HELP: Final = {
     "handover": "hand a change over to a new Change owner",
     "reassign": "reassign the owner of a question or a wait",
     "adopt": "create the anchor of a history that has none",
+    "repair": "replace a damaged history by its consistent part (the Owner, with a reason)",
     "check": "report on a change: the status report",
     "review": "check review.md",
     "guard": "verify the record of a change without running any command",
@@ -247,6 +251,9 @@ def _change(args: argparse.Namespace, root: Path, clock: Callable[[], str]) -> t
     if args.command == "new":
         fields = _new_fields(args, actor, settings)
         return create_change(root, args.change_id, request, fields), actor.identity
+    if args.command == "repair":
+        done = repair_change(root, args.change_id, request, show_only=args.show)
+        return done, actor.identity
     return run_action(root, args.change_id, request), actor.identity
 
 
