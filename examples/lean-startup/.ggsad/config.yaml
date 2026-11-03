@@ -1,0 +1,15 @@
+schema_version: "1.0"
+project:
+  id: "lean-startup"
+  compliance_profile: "lean"
+  team_mode: "team"
+roles:
+  owner: "human:ada"
+  approved_humans:
+    - {identity: "human:ada", account: ada-gh}
+  requestors:
+    - {identity: "agent:assistant"}
+defaults:
+  retry_limit: 3
+  fail_severity: hard
+minimum_levels: {}

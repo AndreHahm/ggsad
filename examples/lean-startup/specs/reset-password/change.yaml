@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "reset-password"
+method_profile: core
+compliance_profile: "lean"
+author: "human:ada"
+owner: "human:ada"
+approver: "human:ada"
+goal:
+  problem: "Small teams lose customers because password resets need a support ticket."
+  done_when: ["A user resets a password without help from the team."]
+  non_goals: []
+scope:
+  allow: ["src/reset/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "A user resets a password without help from the team."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["A user resets a password without help from the team."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/reset/reset_password.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []

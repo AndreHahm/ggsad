@@ -1,0 +1,16 @@
+schema_version: "1.0"
+project:
+  id: "governed-enterprise"
+  compliance_profile: "governed"
+  team_mode: "team"
+roles:
+  owner: "human:ada"
+  approved_humans:
+    - {identity: "human:ada", account: ada-gh}
+    - {identity: "human:grace", account: grace-gh}
+  requestors:
+    - {identity: "agent:assistant"}
+defaults:
+  retry_limit: 3
+  fail_severity: hard
+minimum_levels: {spec_approval: A1, gate_approval: A1}

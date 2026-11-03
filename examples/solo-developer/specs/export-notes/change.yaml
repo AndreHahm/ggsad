@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "export-notes"
+method_profile: core
+compliance_profile: "standard"
+author: "human:sam"
+owner: "human:sam"
+approver: "human:sam"
+goal:
+  problem: "One developer keeps a notes app and wants exports without hand-made copies."
+  done_when: ["A user exports all notes in one step."]
+  non_goals: []
+scope:
+  allow: ["src/export/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "A user exports all notes in one step."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["A user exports all notes in one step."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/export/export_notes.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []

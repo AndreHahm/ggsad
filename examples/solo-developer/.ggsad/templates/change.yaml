@@ -1,0 +1,23 @@
+schema_version: "1.0"
+id: "<change-id>"
+method_profile: core
+compliance_profile: "standard"
+author: "human:sam"
+owner: "human:sam"
+goal:
+  problem: "<problem>"
+  done_when: ["<done-when sentence>"]
+  non_goals: []
+# Paths this change may touch, for example: allow: ["src/"]
+scope:
+  allow: []
+# One requirement per sentence; add examples and evidence commands before approval.
+requirements:
+  - id: R1
+    text: "<done-when sentence>"
+    examples: ["Given ..., when ..., then ..."]
+    done_when: ["<done-when sentence>"]
+gates:
+  fail: []
+  wait: []
+  done: []

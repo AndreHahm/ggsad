@@ -1,0 +1,26 @@
+schema_version: "1.0"
+id: "reset-mail-text"
+method_profile: core
+compliance_profile: "lean"
+author: "human:ada"
+owner: "human:ada"
+approver: "human:ada"
+goal:
+  problem: "The reset mail is hard to understand."
+  done_when: ["The reset mail tells the user in one sentence what to do next."]
+  non_goals: []
+scope:
+  allow: ["src/mail/"]
+required_tools: [git]
+requirements:
+  - id: R1
+    text: "The reset mail tells the user in one sentence what to do next."
+    examples: ["Given a person who needs it, when they ask, then it happens"]
+    done_when: ["The reset mail tells the user in one sentence what to do next."]
+    evidence:
+      - command: ["git", "ls-files", "--error-unmatch", "src/mail/reset_mail.py"]
+        exit_map: {satisfied: [0], not_satisfied: [1]}
+gates:
+  fail: []
+  wait: []
+  done: []
