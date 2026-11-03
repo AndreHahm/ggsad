@@ -8,19 +8,20 @@ leaves nothing behind (Section 22.3).
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Final
 
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.identifiers import check_identifier
 from ggsad.core.issues import Issue
-from ggsad.core.loader import DEFINITION_FILE, SPEC_FILE, change_path
+from ggsad.core.loader import DEFINITION_FILE, SPEC_FILE
 from ggsad.core.operations import Envelope, failure, open_project, run_action
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
-    from pathlib import Path
 
     from ggsad.core.anchor import AnchorStore
     from ggsad.core.engine_types import Request
@@ -82,9 +83,11 @@ def spec_text(change_id: str, fields: NewFields) -> str:
     return f"# Specification: {change_id}\n\nProblem: {fields.problem}\n\n{CONFLICT_STUB}\n"
 
 
-def _inside(root: Path, directory: Path) -> bool:
-    """True when the folder of a change, links resolved, lies below `specs` of the project."""
-    return directory.resolve().is_relative_to((root / "specs").resolve())
+def _safe_directory(root: Path, change_id: str) -> Path | None:
+    """The folder of a change with links resolved, or None if it lies outside `specs/`."""
+    base = os.path.realpath(root / "specs")
+    target = os.path.realpath(os.path.join(base, change_id))  # noqa: PTH118
+    return Path(target) if target.startswith(base + os.sep) else None
 
 
 def _write_new(path: Path, text: str, created: list[Path]) -> None:
@@ -103,14 +106,16 @@ def _undo(created: list[Path], directory: Path, *, made_directory: bool) -> None
             directory.parent.rmdir()
 
 
-def _refusal(root: Path, change_id: str, directory: Path) -> Envelope | None:
+def _checked_directory(root: Path, change_id: str) -> Path | Envelope:
+    """The folder of the change, or the envelope that refuses it."""
     invalid = check_identifier(change_id)
     if invalid:
         return failure("new", tuple(invalid))
-    if not _inside(root, directory):
+    directory = _safe_directory(root, change_id)
+    if directory is None:
         text = f"the folder of {change_id!r} leads outside the project"
         return failure("new", (Issue("path-outside-project", text),))
-    return None
+    return directory
 
 
 def create_change(
@@ -124,10 +129,9 @@ def create_change(
     settings, issues = open_project(root)
     if settings is None:
         return failure("new", issues)
-    directory = change_path(root, change_id)
-    refusal = _refusal(root, change_id, directory)
-    if refusal is not None:
-        return refusal
+    directory = _checked_directory(root, change_id)
+    if isinstance(directory, Envelope):
+        return directory
     if (directory / "state.json").exists():
         return run_action(root, change_id, request, anchors)
     made_directory = not directory.exists()
