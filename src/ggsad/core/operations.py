@@ -41,7 +41,7 @@ ERROR_CODES: Final = frozenset(
     {
         "config-missing", "config-unreadable", "definition-unreadable", "state-read-failed",
         "state-write-failed", "lock-unavailable", "state-conflict", "anchor-write-failed",
-        "anchor-lagging", "anchor-invalid",
+        "anchor-lagging", "anchor-invalid", "agent-report-invalid",
     }
 )  # fmt: skip
 RESULTS: Final = ("success", "rejected", "blocked", "error")
