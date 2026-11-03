@@ -193,3 +193,14 @@ def test_init_without_a_root_uses_the_current_folder_even_inside_a_project(
     monkeypatch.chdir(inner)
     assert main(["init", "--profile", "lean", "--owner", "human:ada"], clock=lambda: AT) == 0
     assert (inner / ".ggsad/config.yaml").is_file()
+
+
+@pytest.mark.parametrize("change_id", ["../x", "a/b", "nul", "x.", ".hidden"])
+def test_a_change_identifier_that_is_not_valid_is_a_usage_error(
+    root: Path, change_id: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as caught:
+        main(["check", change_id, "--root", str(root)], clock=lambda: AT)
+    assert caught.value.code == 2
+    assert "identifier" in capsys.readouterr().err
+    assert not (root / "specs").exists()

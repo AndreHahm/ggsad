@@ -23,6 +23,7 @@ from ggsad.core.doctor import run_doctor
 from ggsad.core.engine_types import Actor, Request
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.git_scope import GitError, run_git
+from ggsad.core.identifiers import check_identifier
 from ggsad.core.init_project import InitOptions, init_project
 from ggsad.core.issues import Issue
 from ggsad.core.loader import load_change
@@ -106,8 +107,16 @@ HELP: Final = {
 }
 
 
+def change_identifier(text: str) -> str:
+    """An argparse type: the identifier of a change, checked where the command line is read."""
+    problems = check_identifier(text)
+    if problems:
+        raise argparse.ArgumentTypeError(problems[0].message)
+    return text
+
+
 def _common(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("change_id", help="the identifier of the change")
+    parser.add_argument("change_id", type=change_identifier, help="the identifier of the change")
     parser.add_argument("--root", help="the project root (default: the nearest project upwards)")
     parser.add_argument("--json", action="store_true", help="print the result envelope as JSON")
     parser.add_argument("--actor", help="who acts, for example human:ada or agent:builder")
