@@ -76,17 +76,20 @@ def _with_wait(call: Call, ev: Evaluation, state: State) -> Step:
 
 
 def _bump_attempts(call: Call, ev: Evaluation) -> State:
-    """Count one attempt on each override in force that covers an active soft failure."""
+    """Count one attempt on every override in force, whether or not its condition is active now."""
     state = call.state
     if ev.decision.kind in ("fail", "external"):
         return state
-    approvals = list(state.approvals)
-    for gate_id in ev.covered:
-        in_force = override_in_force(state, gate_id, call.facts)
-        if in_force is not None:
-            index = approvals.index(in_force)
-            approvals[index] = replace(in_force, used=in_force.used + 1)
-    return state.with_(approvals=tuple(approvals))
+    forced = [override_in_force(state, g, call.facts) for g in _override_gates(state)]
+    used_up = {id(a) for a in forced if a is not None}
+    approvals = tuple(
+        replace(a, used=a.used + 1) if id(a) in used_up else a for a in state.approvals
+    )
+    return state.with_(approvals=approvals)
+
+
+def _override_gates(state: State) -> list[str]:
+    return list(dict.fromkeys(a.gate or "" for a in state.approvals if a.target == "override"))
 
 
 def _owner_or_default(call: Call, about_spec: bool) -> str:
@@ -461,7 +464,8 @@ def _handover(call: Call) -> Step:
         raise Rejected("not-owner", "only the Owner or the Change owner hands a change over")
     new_owner = _owner_or_default_strict(call)
     call.need(request.reason, "reason-missing", "a handover gives a reason")
-    return Step(call.state, data={"owner": new_owner})
+    note = f"new Change owner {new_owner}: {request.reason}"
+    return Step(call.state, data={"owner": new_owner}, note=note)
 
 
 def _owner_or_default_strict(call: Call) -> str:

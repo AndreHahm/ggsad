@@ -784,3 +784,43 @@ def test_sign_off_minimum_level() -> None:
         active(), req("approve", Actor("human:ada", "A2"), target="gate", gate="s"), ctx
     ).state
     assert do(high, req("close"), ctx).state.outcome == "done"
+
+
+def test_a_blocked_chained_resume_keeps_its_issues() -> None:
+    qs = (
+        Question("Q1", "t", "human:ada", "agent:codex"),
+        Question("Q2", "t", "human:ada", "agent:codex"),
+    )
+    wait = Wait("question", "r", "human:ada", "Q1 answered", None, "Q1")
+    waiting = State(state="waiting", questions=qs, wait=wait)
+    result = do(waiting, req("answer", question="Q1", answer="yes", and_resume=True))
+    assert result.result == "blocked" and result.codes == ("wait-gate-active",)
+    assert [b["action"] for b in result.bodies] == ["answer", "resume"]
+
+
+def test_handover_records_the_new_owner_in_the_body() -> None:
+    result = do(active(), req("handover", owner="human:cy", reason="Bo left"))
+    note = str(result.bodies[0]["note"])
+    assert "human:cy" in note and "Bo left" in note
+
+
+def test_override_attempts_are_used_even_when_the_condition_is_inactive() -> None:
+    gates = definition(fail=[cmd_gate("flaky", "soft", "flaky")])
+    override = Approval("override", "human:ada", "A1", "A0", gate="flaky", attempts=2)
+    state = active(approvals=(override,))
+    quiet = runner({"flaky": RunOutcome("exit", status=0)})  # condition not active
+    first = do(state, req("close"), context(gates), run=quiet)
+    assert first.state.outcome == "done"
+    again = do(
+        active(approvals=(replace(override, used=1),)), req("close"), context(gates), run=quiet
+    )
+    assert again.state.approvals[0].used == 2
+
+
+def test_equal_duplicate_overrides_do_not_double_the_attempts() -> None:
+    gates = definition(fail=[cmd_gate("flaky", "soft", "flaky")])
+    override = Approval("override", "human:ada", "A1", "A0", gate="flaky", attempts=2)
+    state = active(approvals=(override, replace(override)))
+    loud = runner({"flaky": RunOutcome("exit", status=1)})
+    after = do(state, req("close"), context(gates), run=loud).state
+    assert [a.used for a in after.approvals] == [0, 1]

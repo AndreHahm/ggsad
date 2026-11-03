@@ -121,6 +121,7 @@ class Step:
     data: dict[str, object] = field(default_factory=dict)
     action: str | None = None
     chained: Step | None = None
+    note: str | None = None
 
 
 @dataclass(frozen=True)
