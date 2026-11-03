@@ -54,10 +54,23 @@ def run_read_only(
     if action == "guard":
         return _guard(loaded)
     if action == "check-scope":
-        return _check_scope(loaded)
+        return _frozen(_check_scope(loaded), loaded)
     if action == "review":
-        return _review(root, loaded)
+        return _frozen(_review(root, loaded), loaded)
     return _check(root, settings, loaded, now)
+
+
+def _frozen(done: Envelope, loaded: LoadedChange) -> Envelope:
+    """While the gate definitions differ from the approved ones, a read-only action is rejected
+    with `gates-changed` and keeps its diagnostic data (Section 24.1)."""
+    state = loaded.state
+    approved = approved_hash(state) if state is not None else None
+    if approved is None or approved == loaded.facts.definitions_hash:
+        return done
+    text = "the gate definitions differ from the approved ones; the gates are not enforced"
+    issues = (Issue("gates-changed", text),)
+    data = {**done.data, "gates_enforced": False}
+    return Envelope(done.operation, "rejected", False, done.state, issues, data)
 
 
 def _refusal(action: str, loaded: LoadedChange) -> Envelope | None:
