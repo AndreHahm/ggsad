@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Final
 
 from ggsad.core.anchor import adopt_anchor
+from ggsad.core.definition_update import DefinitionUpdateError, set_owner
 from ggsad.core.engine import apply
 from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
@@ -42,7 +43,7 @@ ERROR_CODES: Final = frozenset(
     {
         "config-missing", "config-unreadable", "definition-unreadable", "state-read-failed",
         "state-write-failed", "lock-unavailable", "state-conflict", "anchor-write-failed",
-        "anchor-lagging", "anchor-invalid", "agent-report-invalid",
+        "anchor-lagging", "anchor-invalid", "agent-report-invalid", "document-unreadable",
     }
 )  # fmt: skip
 RESULTS: Final = ("success", "rejected", "blocked", "error")
@@ -142,6 +143,19 @@ def _append(
     return None, recorded
 
 
+def _update_owner(root: Path, loaded: LoadedChange, owner: str) -> Issue | None:
+    """Write the new Change owner into `change.yaml` after the handover was recorded."""
+    try:
+        set_owner(root / loaded.change_dir / "change.yaml", owner)
+    except DefinitionUpdateError as error:
+        text = (
+            f"the handover was recorded, but change.yaml was not updated ({error}); "
+            f'set owner: "{owner}" by hand'
+        )
+        return Issue("definition-update-failed", text)
+    return None
+
+
 def run_action(
     root: Path, change_id: str, request: Request, anchors: AnchorStore | None = None
 ) -> Envelope:
@@ -165,7 +179,7 @@ def run_action(
         refusal = _anchor_first(loaded, store)
         if refusal is not None:
             return refusal
-    return _record(loaded, done)
+    return _record(root, loaded, done)
 
 
 def _anchor_first(loaded: LoadedChange, anchors: AnchorStore) -> Envelope | None:
@@ -179,8 +193,13 @@ def _anchor_first(loaded: LoadedChange, anchors: AnchorStore) -> Envelope | None
     return None
 
 
-def _record(loaded: LoadedChange, done: ActionResult) -> Envelope:
+def _record(root: Path, loaded: LoadedChange, done: ActionResult) -> Envelope:
     issue, recorded = _append(loaded, tuple(done.bodies))
     if issue is not None:
         return Envelope(done.operation, "error", recorded > 0, issues=(issue,))
+    owner = done.data.get("owner") if done.operation == "handover" else None
+    if isinstance(owner, str):
+        failed = _update_owner(root, loaded, owner)
+        if failed is not None:
+            return Envelope(done.operation, "error", True, issues=(failed,), data=done.data)
     return Envelope(done.operation, done.result, True, done.state.to_json(), done.issues, done.data)

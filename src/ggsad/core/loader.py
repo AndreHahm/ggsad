@@ -284,12 +284,21 @@ def _build_facts(
         not_satisfied_counts=count_not_satisfied(files.bodies),
         definitions_hash=hash_now,
         spec_hash=_text_hash(files.spec_text),
-        documents=document_fingerprint(root),
         gates_approved=approved is not None and approved == hash_now,
         spec_approval_ok=_spec_approved(settings, state),
         target_issues=issues,
         history_damaged=files.error is not None,
     )
+
+
+def _fingerprint(root: Path) -> tuple[dict[str, str], tuple[Issue, ...]]:
+    """The fingerprint of the higher documents, or the issue that one of them cannot be read."""
+    try:
+        return document_fingerprint(root), ()
+    except OSError as error:
+        return {}, (
+            Issue("document-unreadable", f"a higher-ranking document cannot be read: {error}"),
+        )
 
 
 def load_change(
@@ -308,8 +317,13 @@ def load_change(
     definition = files.definition
     gates = gates_for(settings, definition) if definition is not None else ()
     context = build_context(settings, definition or {}, gates, change_id)
+    documents, unreadable = _fingerprint(root)
     facts = _build_facts(root, settings, change_id, files, gates)
-    extra: dict[str, object] = {"has_anchor": _has_anchor(anchors, change_id)}
+    problems = (*files.problems, *unreadable)
+    extra: dict[str, object] = {
+        "has_anchor": _has_anchor(anchors, change_id),
+        "documents": documents,
+    }
     if action == "start":
         extra["revision"], extra["unclean_paths"] = _start_facts(root, f"{SPECS}/{change_id}")
     if action == "supersede":
@@ -323,7 +337,7 @@ def load_change(
         context,
         replace(facts, **extra),
         store,
-        files.problems,
+        problems,
         files.error,
     )
 
