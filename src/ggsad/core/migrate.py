@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Final
 
-from ggsad.core.content_hash import path_content_hash
+from ggsad.core.content_hash import file_content_hash
 from ggsad.core.errors import StateError
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.identifiers import check_identifier
@@ -69,13 +69,14 @@ def _body(
 
 def _convert_file(path: Path, request: Request, store: StateStore) -> Envelope:
     try:
-        converted = convert((path / LEGACY_FILE).read_text(encoding="utf-8"))
+        data = (path / LEGACY_FILE).read_bytes()
+        converted = convert(data.decode("utf-8"))
     except LegacyStateError as error:
         return _refused(error.issue)
     except (OSError, UnicodeDecodeError) as error:
         return failure("migrate", (Issue("state-read-failed", f"{LEGACY_FILE}: {error}"),))
-    note = request.note or converted.note
-    source_hash = path_content_hash(path / LEGACY_FILE)
+    note = f"{converted.note}; note: {request.note}" if request.note else converted.note
+    source_hash = file_content_hash(data)
     after = converted.state.to_json()
     try:
         store.append(_body(request, source_hash, note, after), read_version=0)

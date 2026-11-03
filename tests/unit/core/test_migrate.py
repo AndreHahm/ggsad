@@ -8,12 +8,14 @@ from typing import TYPE_CHECKING, cast
 import pytest
 from project_helpers import ADA, FULL, git, req, write
 
+from ggsad.core import migrate as migrate_module
 from ggsad.core.canonical import ZERO_HASH
 from ggsad.core.cli import main
-from ggsad.core.content_hash import path_content_hash
+from ggsad.core.content_hash import file_content_hash, path_content_hash
 from ggsad.core.doctor import run_doctor
 from ggsad.core.git_anchor import GitAnchorStore
 from ggsad.core.history import verify_chain
+from ggsad.core.legacy_state import Converted
 from ggsad.core.migrate import migrate_change
 from ggsad.core.operations import Envelope, run_action
 from ggsad.core.state import State
@@ -231,3 +233,33 @@ def test_the_doctor_names_the_migrate_command(root: Path) -> None:
         "migration-required",
         "run `ggsad migrate c-1`; the old state.yaml stays as it is",
     ) in found
+
+
+def test_a_note_of_the_actor_keeps_the_old_history(root: Path) -> None:
+    folder = old_change(root)
+    done = migrate_change(root, "c-1", req("migrate", ADA, note="checked by hand"))
+    assert done.result == "success", done.issues
+    document = StateStore(folder).read()
+    assert document is not None
+    note = document.entries[0].body["note"]
+    assert isinstance(note, str)
+    assert "checked by hand" in note and "change-created" in note
+
+
+def test_the_hash_names_the_snapshot_that_was_converted(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    folder = old_change(root)
+    original = file_content_hash((folder / "state.yaml").read_bytes())
+    real = migrate_module.convert
+
+    def convert_then_edit(text: str) -> Converted:
+        converted = real(text)
+        (folder / "state.yaml").write_text("changed: after the read\n", encoding="utf-8")
+        return converted
+
+    monkeypatch.setattr(migrate_module, "convert", convert_then_edit)
+    assert migrate(root).result == "success"
+    document = StateStore(folder).read()
+    assert document is not None
+    assert document.entries[0].body["source_hash"] == original
