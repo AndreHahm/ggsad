@@ -82,10 +82,13 @@ uv run ggsad --help
 Useful commands include:
 
 ```bash
-uv run ggsad init .
-uv run ggsad new CHG-002 example-change --goal "Desired outcome" --title "Change title" --class M
-uv run ggsad validate
+uv run ggsad init --profile lean --owner human:ada
+uv run ggsad new example --actor agent:assistant
+uv run ggsad check example
 ```
+
+Every command takes the change identifier, prints readable text, and prints the result envelope
+with `--json`. The exit code is 0 for `success`, 1 for `rejected` or `blocked`, and 2 for `error`.
 
 Run the engineering baseline with:
 
