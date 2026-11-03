@@ -58,6 +58,10 @@ def compare(baseline: Collection[str], rule: ExtractRule | None, run: RunOutcome
         )
     new = sorted(failures - set(baseline))
     unused = len(set(baseline) - failures)
+    if not new and run.truncated:
+        return Outcome(
+            NOT_EVALUABLE, "the output was cut, so failures after the cut cannot be compared"
+        )
     if not new:
         return Outcome(
             SATISFIED, f"every failure is on the baseline; {unused} baseline entries did not fail"

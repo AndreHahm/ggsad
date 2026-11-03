@@ -118,6 +118,7 @@ class RunOutcome:
     stdout: str = ""
     stderr: str = ""
     ran: str = ""
+    truncated: bool = False
 
 
 type Runner = Callable[[tuple[str, ...], int | None], RunOutcome]

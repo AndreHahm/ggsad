@@ -7,11 +7,13 @@ project settings name (or for the Python that runs this tool when they name none
 searches the project for an interpreter.
 
 `CommandRunner` is the `Runner` that the engine is handed. It reports what happened; the engine
-decides what it means.
+decides what it means. A relative program path is resolved from the repository root, the directory
+the command runs in.
 """
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess  # nosec B404 - the runner must start the programs of the gates
 import sys
@@ -26,10 +28,13 @@ if TYPE_CHECKING:
 
 INTERPRETER_MARK: Final = "@interpreter"
 MAX_OUTPUT: Final = 1_000_000
+DEFAULT_TIME_LIMIT: Final = 1800
 
 
-def _cap(data: bytes | None) -> str:
-    return (data or b"")[:MAX_OUTPUT].decode("utf-8", "replace")
+def _cap(data: bytes | None) -> tuple[str, bool]:
+    """The decoded output, cut at the cap, and whether anything was cut."""
+    raw = data or b""
+    return raw[:MAX_OUTPUT].decode("utf-8", "replace"), len(raw) > MAX_OUTPUT
 
 
 @dataclass(frozen=True)
@@ -39,14 +44,30 @@ class CommandRunner:
     root: Path
     required_tools: Collection[str] | None = None
     interpreter: str | None = None
+    default_time_limit: int = DEFAULT_TIME_LIMIT
 
     def interpreter_program(self) -> str:
         """The program that the token stands for."""
         return self.interpreter or sys.executable
 
+    def _lookup(self, program: str) -> str | None:
+        """The executable file for a program name, from the root for a relative path."""
+        if os.sep in program or "/" in program:
+            return shutil.which(
+                program if Path(program).is_absolute() else str(self.root / program)
+            )
+        return shutil.which(program)
+
+    def _exists_unexecutable(self, program: str) -> bool:
+        """True when a file of that name exists but is not an executable program."""
+        if os.sep in program or "/" in program:
+            return (self.root / program).is_file()
+        folders = os.environ.get("PATH", "").split(os.pathsep)
+        return any((Path(folder) / program).is_file() for folder in folders if folder)
+
     def interpreter_warning(self) -> str | None:
         """A warning when the interpreter lives inside the repository (Section 24.10)."""
-        found = shutil.which(self.interpreter_program())
+        found = self._lookup(self.interpreter_program())
         if found is None:
             return None
         if Path(found).resolve().is_relative_to(self.root.resolve()):
@@ -63,20 +84,22 @@ class CommandRunner:
             return RunOutcome(
                 "cannot-start", cause=f"the program {program!r} is not on the list required_tools"
             )
-        found = shutil.which(program)
+        found = self._lookup(program)
         if found is None:
-            return RunOutcome(
-                "cannot-start",
-                cause=f"the approved program {program!r} is missing",
-                program_missing=True,
-                ran=ran,
-            )
-        return self._run([found, *command[1:]], time_limit, ran)
+            return self._not_found(program, ran)
+        return self._run([found, *command[1:]], time_limit or self.default_time_limit, ran)
 
-    def _run(self, argv: list[str], time_limit: int | None, ran: str) -> RunOutcome:
+    def _not_found(self, program: str, ran: str) -> RunOutcome:
+        if self._exists_unexecutable(program):
+            cause = f"the program {program!r} exists but is not executable"
+            return RunOutcome("cannot-start", cause=cause, ran=ran)
+        cause = f"the approved program {program!r} is missing"
+        return RunOutcome("cannot-start", cause=cause, program_missing=True, ran=ran)
+
+    def _run(self, argv: list[str], time_limit: int, ran: str) -> RunOutcome:
         try:
             # Argument list, no shell; the program was checked against required_tools above.
-            done = subprocess.run(  # noqa: S603  # nosec B603
+            done = subprocess.run(  # noqa: S603  # nosec B603  # nosemgrep: python.lang.security.audit.dangerous-subprocess-use-audit.dangerous-subprocess-use-audit
                 argv, capture_output=True, check=False, cwd=self.root, timeout=time_limit
             )
         except subprocess.TimeoutExpired:
@@ -86,10 +109,13 @@ class CommandRunner:
         if done.returncode < 0:
             cause = f"ended by signal {-done.returncode}"
             return RunOutcome("no-status", cause=cause, ran=ran)
+        out, out_cut = _cap(done.stdout)
+        err, err_cut = _cap(done.stderr)
         return RunOutcome(
             "exit",
             status=done.returncode,
-            stdout=_cap(done.stdout),
-            stderr=_cap(done.stderr),
+            stdout=out,
+            stderr=err,
             ran=ran,
+            truncated=out_cut or err_cut,
         )
