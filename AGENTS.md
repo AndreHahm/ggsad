@@ -21,8 +21,8 @@ re-check. The owner dispositions each finding as fix, defer, or reject.
 
 ## Engineering baseline
 
-Use Python with explicit type annotations, uv, Typer, Pydantic v2, ruamel.yaml, JSON Schema,
-pytest, Hypothesis where valuable, Ruff, and ty strict checking. Preserve unrelated changes,
+Use Python with explicit type annotations, uv, argparse, ruamel.yaml, pytest, Hypothesis where
+valuable, Ruff, and ty strict checking. Preserve unrelated changes,
 avoid destructive Git operations, do not commit secrets, and report checks that were not run.
 
 Run the applicable baseline before completion:

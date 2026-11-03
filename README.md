@@ -7,8 +7,8 @@ for goal-oriented, specification-driven software delivery. Every governed change
 explicit goal, is anchored in an approved specification, and advances only after its applicable
 readiness, completion, waiting, and failure conditions have been evaluated.
 
-> **Status:** Pre-alpha. The method baseline exists; the CLI and automation remain under active
-> development.
+> **Status:** Pre-alpha. The `core` method profile is implemented by the `ggsad` command line;
+> the specification and the implementation contract define its scope.
 
 ## Why GG-SAD?
 
@@ -24,15 +24,17 @@ unnecessary document proliferation.
 
 - **Goal:** the desired outcome, success signals, scope, and non-goals.
 - **Specification anchor:** the approved definition of what a change must achieve.
-- **Goal gates:** Definition of Fail, Definition of Wait, current-phase Definition of Ready,
-  current-phase Definition of Done, and next-phase Definition of Ready, skipping gates that are not
-  applicable to the requested action or state.
-- **Evidence:** verifiable tests, analyses, reviews, approvals, reports, commits, or release records.
+- **Goal gates:** fail, wait, and done gates, evaluated in a fixed order. Their definitions are
+  frozen when a human approves them.
+- **Evidence:** verifiable tests, reviews, approvals, and reports that the history records.
 
-Key capabilities include Class S, M, and L changes; explicit phases and statuses; controlled state
-transitions; example-driven specifications; traceability; risk- and compliance-based tailoring;
-`lean`, `standard`, `governed`, and `regulated` profiles; independent Pair Review; portable
-Markdown, YAML, and JSON Schema artifacts; stand-alone use; and optional companion mappings.
+Key capabilities include controlled state transitions under one transition table; example-driven
+specifications; a hash-chained history of every change with an optional anchor outside the working
+tree; scope checks against Git; `lean`, `standard`, `governed`, and `regulated` profiles;
+independent Pair Review; portable Markdown, YAML, and JSON artifacts; and stand-alone use. A
+second model with phases and size classes is kept in
+[GG-SAD_full_profile_deferred.md](docs/method/GG-SAD_full_profile_deferred.md); it is not part of
+the `core` profile.
 
 ## Repository Authority and Development Method
 
@@ -40,28 +42,30 @@ The [English normative specification](docs/method/GG-SAD_normative_method_specif
 leading source for GG-SAD method semantics and reference-implementation behavior. This README is
 an orientation and usage guide, not a second specification.
 
-[AGENTS.md](AGENTS.md) contains current repository instructions. This repository uses pinned GSD
-Core 1.10.0 as its sole development method; [`.planning/`](.planning/) contains the active project,
-requirements, roadmap, state, phase contexts, plans, and verification artifacts. Tool-specific
-instructions are in [CLAUDE.md](CLAUDE.md).
+[AGENTS.md](AGENTS.md) contains current repository instructions. The repository is developed with
+plain, small, reviewable commits on short-lived branches. GSD is no longer used, and
+[`.planning/`](.planning/) is a historical record. Tool-specific instructions are in
+[CLAUDE.md](CLAUDE.md). The [implementation contract](docs/method/GG-SAD_implementation_contract.md)
+defines the operations, the result envelope, and the state document of the reference
+implementation.
 
 ## Current Development Status
 
-The reference implementation is pre-alpha. Consult the [active roadmap](.planning/ROADMAP.md) for
-completed work, the current phase, and planned development. Status summaries here intentionally do
-not duplicate that development record.
+The reference implementation is pre-alpha. The package `src/ggsad/core/` implements the `core`
+profile: the transition table, gate evaluation, the history and its anchor, scope checks, evidence,
+the status report, and the command line. The operation `migrate` is not implemented yet; the
+refusals for an unusable schema version are.
 
 ## Repository Structure
 
 ```text
 .
-├── .ggsad/                         # Product configuration, schemas, profiles, mappings, templates
-├── .planning/                      # Active GSD Core 1.10.0 development state
+├── .planning/                      # Historical development record (GSD is no longer used)
 ├── archive/legacy-ggsad-governance/ # Non-authoritative historical material
-├── docs/method/
-│   └── GG-SAD_normative_method_specification.md
-├── src/ggsad/                      # Python reference implementation
-├── tests/                          # Automated tests and fixtures
+├── docs/method/                    # Specification, implementation contract, extensions
+├── docs/requirements/              # User requirements and use cases
+├── src/ggsad/core/                 # Python reference implementation of the core profile
+├── tests/unit/core/                # Automated tests
 ├── AGENTS.md
 ├── CLAUDE.md
 └── pyproject.toml
@@ -69,8 +73,7 @@ not duplicate that development record.
 
 ## Requirements and Quick Start
 
-Development requires Python 3.13 or newer, `uv`, and Git. Node.js and npm are needed only for
-maintaining the pinned GSD development tooling.
+Development requires Python 3.13 or newer, `uv`, and Git.
 
 ```bash
 git clone <repository-url>
@@ -85,6 +88,7 @@ Useful commands include:
 uv run ggsad init --profile lean --owner human:ada
 uv run ggsad new example --actor agent:assistant
 uv run ggsad check example
+uv run ggsad doctor
 ```
 
 Every command takes the change identifier, prints readable text, and prints the result envelope
@@ -100,20 +104,23 @@ uv run pytest
 uv build
 ```
 
-## Configuration, Schemas, and Templates
+## Configuration and Templates
 
-The primary project configuration is `.ggsad/config.yaml`. JSON Schema Draft 2020-12 schemas are
-stored at:
+`ggsad init` creates the project files and never overwrites one that exists:
 
 ```text
-.ggsad/schemas/config.schema.json
-.ggsad/schemas/mappings.schema.json
-.ggsad/schemas/state.schema.json
+.ggsad/config.yaml          # settings, schema version 1.0: profile, roles, defaults, levels
+.ggsad/templates/           # templates for the brief, constitution, architecture, roadmap,
+                            # change definition, specification, and review report
+docs/project-brief.md       # states the compliance profile; must equal the configuration
+docs/constitution.md        # and, from the profile `standard` on, architecture and roadmap
+specs/example/              # an example change to try with `ggsad new example`
 ```
 
-The bundled GSD mapping contract is `.ggsad/mappings/gsd.yaml`. Reusable project and change
-templates are under `.ggsad/templates/`, including specification, plan, tasks, evidence, gate,
-configuration, mapping, and state artifacts. Generated artifacts require review before approval.
+A change lives in `specs/<change-id>/`: `change.yaml`, `spec.md`, `state.json` (the history), and
+`review.md` when a review is kept. The anchor of a history is a Git ref
+(`refs/ggsad/anchors/<change-id>`) in the repository. `ggsad doctor` checks the project, the
+tools, and every change, and names the command that fixes each problem.
 
 ## Pair Review
 
@@ -124,10 +131,9 @@ artifact, change class, or project policy; it does not replace required human ap
 
 ## Development and Contributing
 
-Before making repository changes, read [AGENTS.md](AGENTS.md), any applicable tool instructions,
-and the active [GSD planning artifacts](.planning/). Follow the current phase context and approved
-plan, preserve unrelated changes, add appropriate tests and evidence, and obtain the required
-reviews and approvals.
+Before making repository changes, read [AGENTS.md](AGENTS.md) and any applicable tool
+instructions. Preserve unrelated changes, add appropriate tests and evidence, and obtain the
+required reviews and approvals.
 
 Public contribution policy is not yet finalized. A dedicated `CONTRIBUTING.md` will be added before
 broad community participation is invited.
