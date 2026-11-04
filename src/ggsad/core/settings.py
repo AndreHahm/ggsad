@@ -309,6 +309,21 @@ def _read_reviewers(value: object, rb: ReportBuilder) -> tuple[Reviewer, ...] | 
     return tuple(r for r in found if r is not None)
 
 
+def _vendor_key(vendor: str | None) -> str | None:
+    return None if vendor is None else vendor.strip().casefold()
+
+
+def _check_fallback_vendors(settings: Settings, rb: ReportBuilder) -> None:
+    """The fallback Reviewer comes from a vendor other than the Requestors' and the Reviewers'."""
+    others = {_vendor_key(r.vendor) for r in settings.requestors}
+    others |= {_vendor_key(r.vendor) for r in settings.reviewers if not r.fallback}
+    for reviewer in settings.reviewers:
+        key = _vendor_key(reviewer.vendor)
+        if reviewer.fallback and key is not None and key in others:
+            message = f"the fallback Reviewer {reviewer.identity} must come from a third vendor"
+            rb.error("fallback-vendor-same", message, "roles.reviewers")
+
+
 def _read_defaults(value: object, rb: ReportBuilder) -> tuple[int, str] | None:
     defaults = _section(value, "defaults", rb)
     if defaults is None:
@@ -352,6 +367,7 @@ def _check_consistency(settings: Settings, rb: ReportBuilder) -> None:
     for name in (*settings.deputies, *settings.unavailable_approvers):
         if listed is not None and name not in listed:
             rb.error("human-not-approved", f"{name} is not on the list of approved humans", "roles")
+    _check_fallback_vendors(settings, rb)
     if settings.compliance_profile == "regulated" and not settings.deputies:
         rb.error(
             "deputy-required", "the profile regulated needs at least one deputy", "roles.deputies"

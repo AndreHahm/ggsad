@@ -1,4 +1,6 @@
-"""The vendor rule for the Reviewer (Section 14.2): the same vendor as the Requestor is declined.
+"""The independence rules for the Reviewer (Section 14.2).
+
+A Reviewer with the identity of the Requestor, or from the vendor of the Requestor, is declined.
 
 The Requestor of a change is the agent that started it: the actor of the first `new` or `start`
 entry that is not a human. Its vendor, and the vendor of the Reviewer named in `review.md`, come
@@ -50,6 +52,9 @@ def vendor_issues(
     except LayoutError:
         return []
     requestor = _requestor_identity(bodies)
+    if requestor == reviewer:
+        message = f"the Reviewer {reviewer} is the Requestor; the identities must be distinct"
+        return [("reviewer-is-requestor", message)]
     vendor = _vendor(reviewer, reviewers)
     if vendor is None or vendor != _vendor(requestor, requestors):
         return []

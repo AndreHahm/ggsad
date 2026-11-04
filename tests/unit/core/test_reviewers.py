@@ -62,3 +62,12 @@ def test_an_unlisted_reviewer_or_a_missing_vendor_is_not_declined() -> None:
 def test_a_text_that_is_not_a_report_or_is_missing_has_no_vendor_issue() -> None:
     assert vendor_issues(None, REQUESTORS, REVIEWERS, (started(),)) == []
     assert vendor_issues("nothing", REQUESTORS, REVIEWERS, (started(),)) == []
+
+
+def test_a_reviewer_with_the_identity_of_the_requestor_is_declined_whatever_the_vendors() -> None:
+    same = (Requestor("agent:solo", "A"),)
+    listed = (Reviewer("agent:solo", "B"),)
+    found = vendor_issues(report(who="agent:solo"), same, listed, (started("agent:solo"),))
+    assert [c for c, _ in found] == ["reviewer-is-requestor"]
+    bare = vendor_issues(report(who="agent:solo"), (), (), (started("agent:solo"),))
+    assert [c for c, _ in bare] == ["reviewer-is-requestor"]

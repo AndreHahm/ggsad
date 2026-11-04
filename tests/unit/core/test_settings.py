@@ -64,6 +64,23 @@ def test_reviewers_are_read_with_vendor_model_and_fallback() -> None:
     assert second.fallback is True and second.model is None
 
 
+@pytest.mark.parametrize("vendor", ["Cognition", " cognition ", "vendor-a"])
+def test_a_fallback_reviewer_needs_a_vendor_other_than_the_others(vendor: str) -> None:
+    listed = [
+        {"identity": "agent:devin", "vendor": "Cognition"},
+        {"identity": "agent:backup", "vendor": vendor, "fallback": True},
+    ]
+    settings, report = read_settings(changed(["roles", "reviewers"], listed))
+    assert settings is None and "fallback-vendor-same" in report.codes
+
+
+def test_a_fallback_reviewer_of_a_third_or_unknown_vendor_is_read() -> None:
+    third = [{"identity": "agent:b", "vendor": "Google", "fallback": True}]
+    assert read_settings(changed(["roles", "reviewers"], third))[1].ok
+    unknown = [{"identity": "agent:b", "fallback": True}]
+    assert read_settings(changed(["roles", "reviewers"], unknown))[1].ok
+
+
 def test_no_reviewers_are_listed_by_default() -> None:
     settings, _ = read_settings(GOOD)
     assert settings is not None and settings.reviewers == ()
