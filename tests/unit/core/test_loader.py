@@ -20,7 +20,7 @@ from ggsad.core.project import (
     definitions_hash,
     load_settings,
 )
-from ggsad.core.settings import Settings
+from ggsad.core.settings import Requestor, Reviewer, Settings
 from ggsad.core.state import State
 from ggsad.core.state_store import StateStore
 
@@ -151,6 +151,54 @@ def test_a_spec_without_the_conflict_line_cannot_be_approved(
 def test_a_missing_review_cannot_be_approved(root: Path, settings: Settings) -> None:
     codes = [c for c, _ in load(root, settings).facts.target_issues["approve:review"]]
     assert codes == ["review-missing"]
+
+
+def vendor_settings(settings: Settings) -> Settings:
+    return replace(
+        settings,
+        requestors=(Requestor("agent:builder", "Anthropic"),),
+        reviewers=(Reviewer("agent:twin", "Anthropic"), Reviewer("agent:devin", "Cognition")),
+    )
+
+
+def review_by(root: Path, who: str) -> None:
+    head = (
+        f"# Review\n\nParticipant: {who}\nRole: Reviewer\nReviewed revision: abc1234\n"
+        "Action: review round\nTimestamp: 2026-11-03T10:00:00Z\nResult: no findings\n"
+        "Findings: 0\nDisposition: none\n\n## Findings\n\n"
+    )
+    table = "| Finding | Severity | Decision | Reason | Status |\n|---|---|---|---|---|\n"
+    write(root, "specs/c-1/review.md", head + table)
+
+
+def test_ae322_a_reviewer_of_the_vendor_of_the_requestor_is_declined(
+    root: Path, settings: Settings
+) -> None:
+    start(root, State())
+    review_by(root, "agent:twin")
+    loaded = load(root, vendor_settings(settings))
+    codes = [c for c, _ in loaded.facts.target_issues["approve:review"]]
+    assert codes == ["reviewer-same-vendor"]
+
+
+def test_ae322_a_reviewer_of_another_vendor_can_be_approved(root: Path, settings: Settings) -> None:
+    start(root, State())
+    review_by(root, "agent:devin")
+    loaded = load(root, vendor_settings(settings))
+    assert loaded.facts.target_issues["approve:review"] == ()
+
+
+def test_a_review_of_the_same_vendor_does_not_complete_a_review_gate(
+    root: Path, settings: Settings
+) -> None:
+    start(root, State())
+    review_by(root, "agent:twin")
+    gates = "gates: {fail: [], wait: [], done: [{id: pair, kind: review}]}"
+    definition = CHANGE_YAML.replace("gates: {fail: [], wait: [], done: []}", gates)
+    write(root, "specs/c-1/change.yaml", definition)
+    gaps = load(root, vendor_settings(settings)).facts.review_gaps
+    assert set(gaps) == {"pair"}
+    assert any("same vendor" in message for message in gaps["pair"])
 
 
 def test_a_missing_definition_is_a_problem(root: Path, settings: Settings) -> None:

@@ -39,6 +39,7 @@ from ggsad.core.project import (
     read_yaml_file,
 )
 from ggsad.core.review_report import approval_issues, completion_gaps
+from ggsad.core.reviewers import vendor_issues
 from ggsad.core.settings import Settings, build_context, gates_for
 from ggsad.core.state import State, StateRecordError
 from ggsad.core.state_store import StateStore
@@ -147,14 +148,24 @@ def _has_anchor(anchors: AnchorStore, change_id: str) -> bool:
         return False
 
 
+def _review_problems(settings: Settings, files: _Files) -> list[Problem]:
+    """Why the review result cannot be approved: the report and the vendor rule (Section 14.2)."""
+    problems = approval_issues(files.review_text)
+    if not problems:
+        problems = vendor_issues(
+            files.review_text, settings.requestors, settings.reviewers, files.bodies
+        )
+    return problems
+
+
 def _target_issues(
     context: ProjectContext,
     definition: Mapping[str, object] | None,
     spec_text: str | None,
-    review_text: str | None,
+    review_problems: list[Problem],
 ) -> dict[str, tuple[Problem, ...]]:
     found: dict[str, tuple[Problem, ...]] = {
-        "approve:review": tuple(approval_issues(review_text)),
+        "approve:review": tuple(review_problems),
         "approve:spec": tuple(conflict_line_issues(spec_text)),
     }
     if definition is not None:
@@ -164,9 +175,12 @@ def _target_issues(
     return found
 
 
-def _review_gaps(gates: tuple[Gate, ...], review_text: str | None) -> dict[str, tuple[str, ...]]:
+def _review_gaps(
+    gates: tuple[Gate, ...], review_text: str | None, review_problems: list[Problem]
+) -> dict[str, tuple[str, ...]]:
     ids = [g.id for g in gates if g.kind == "review" and g.group == "done"]
-    return {gate_id: completion_gaps(review_text) for gate_id in ids}
+    gaps = completion_gaps(review_text) or tuple(message for _code, message in review_problems)
+    return dict.fromkeys(ids, gaps)
 
 
 def _scope(
@@ -299,13 +313,14 @@ def _build_facts(
     hash_now = definitions_hash(definition) if definition is not None else None
     approved = approved_hash(current)
     context = _project_context(root, settings, definition, change_id)
-    issues = _target_issues(context, definition, files.spec_text, files.review_text)
+    review_problems = _review_problems(settings, files)
+    issues = _target_issues(context, definition, files.spec_text, review_problems)
     issues["new"] = _new_issues(root, settings, definition, context)
     stale = None if files.spec_text is not None else Check(NOT_EVALUABLE, "spec.md is missing")
     return Facts(
         scope=_scope(root, definition, state, change_dir),
         stale_spec_approval=stale,
-        review_gaps=_review_gaps(gates, files.review_text),
+        review_gaps=_review_gaps(gates, files.review_text, review_problems),
         review_hash=_text_hash(files.review_text),
         not_satisfied_counts=count_not_satisfied(files.bodies),
         definitions_hash=hash_now,

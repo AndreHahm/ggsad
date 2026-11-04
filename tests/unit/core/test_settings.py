@@ -50,6 +50,25 @@ def test_a_good_file_is_read() -> None:
     assert settings.minimum_levels == {"spec_approval": "A0", "gate_approval": "A1"}
 
 
+def test_reviewers_are_read_with_vendor_model_and_fallback() -> None:
+    listed = [
+        {"identity": "agent:devin", "vendor": "Cognition", "model": "m"},
+        {"identity": "agent:backup", "vendor": "Google", "fallback": True},
+    ]
+    settings, report = read_settings(changed(["roles", "reviewers"], listed))
+    assert report.ok and settings is not None
+    first, second = settings.reviewers
+    assert (first.identity, first.vendor, first.model, first.fallback) == (
+        "agent:devin", "Cognition", "m", False,
+    )  # fmt: skip
+    assert second.fallback is True and second.model is None
+
+
+def test_no_reviewers_are_listed_by_default() -> None:
+    settings, _ = read_settings(GOOD)
+    assert settings is not None and settings.reviewers == ()
+
+
 def test_defaults_apply_when_sections_are_short() -> None:
     minimal = {
         "schema_version": "1.0",
@@ -79,6 +98,14 @@ def test_defaults_apply_when_sections_are_short() -> None:
         (["roles", "deputies"], ["human:eve"], "human-not-approved"),
         (["roles", "requestors"], [{"identity": "human:ada"}], "identity-invalid"),
         (["roles", "requestors"], [{"identity": "agent:x", "color": "red"}], "field-unknown"),
+        (["roles", "reviewers"], "devin", "field-type-invalid"),
+        (["roles", "reviewers"], [{"identity": "human:ada"}], "identity-invalid"),
+        (["roles", "reviewers"], [{"identity": "agent:x", "color": "red"}], "field-unknown"),
+        (
+            ["roles", "reviewers"],
+            [{"identity": "agent:x", "fallback": "yes"}],
+            "field-type-invalid",
+        ),
         (["roles", "extra"], 1, "field-unknown"),
         (["defaults", "retry_limit"], 4, "retry-limit-invalid"),
         (["defaults", "retry_limit"], -1, "retry-limit-invalid"),

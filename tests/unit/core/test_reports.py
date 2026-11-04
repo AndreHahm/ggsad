@@ -182,6 +182,19 @@ def test_review_needs_a_complete_report(root: Path) -> None:
     assert [i.code for i in read(root, "review").issues] == ["review-incomplete"]
 
 
+def test_ae322_the_review_command_declines_a_reviewer_of_the_requestor_vendor(root: Path) -> None:
+    config = root / ".ggsad" / "config.yaml"
+    text = config.read_text(encoding="utf-8")
+    text = text.replace('{identity: "agent:builder"}', '{identity: "agent:builder", vendor: Acme}')
+    text += '  reviewers:\n    - {identity: "agent:devin", vendor: acme}\n'
+    config.write_text(text, encoding="utf-8")
+    make_change(root)
+    write(root, "specs/c-1/review.md", HEAD)
+    done = read(root, "review")
+    assert done.result == "rejected" and not done.changed
+    assert [i.code for i in done.issues] == ["reviewer-same-vendor"]
+
+
 def test_a_missing_project_is_an_error(tmp_path: Path) -> None:
     done = run_read_only(tmp_path, "c-1", "check", NOW)
     assert done.result == "error" and done.exit_code == 2

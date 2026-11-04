@@ -7,7 +7,7 @@ Layout (Sections 3.11, 5.1, 24.1, 24.3, 24.7):
 
     schema_version: "1.0"
     project: {id, compliance_profile, team_mode}
-    roles: {owner, approved_humans, deputies, unavailable_approvers, requestors}
+    roles: {owner, approved_humans, deputies, unavailable_approvers, requestors, reviewers}
     defaults: {retry_limit, fail_severity}
     minimum_levels: {<kind of action>: A0|A1|A2}
 """
@@ -42,10 +42,11 @@ _TOP: Final = frozenset(
 )
 _PROJECT: Final = frozenset({"id", "compliance_profile", "team_mode"})
 _ROLES: Final = frozenset(
-    {"owner", "approved_humans", "deputies", "unavailable_approvers", "requestors"}
+    {"owner", "approved_humans", "deputies", "unavailable_approvers", "requestors", "reviewers"}
 )
 _DEFAULTS: Final = frozenset({"retry_limit", "fail_severity"})
 _REQUESTOR: Final = frozenset({"identity", "vendor", "model"})
+_REVIEWER: Final = frozenset({"identity", "vendor", "model", "fallback"})
 _HUMAN: Final = "human:"
 _AGENT: Final = "agent:"
 
@@ -68,6 +69,19 @@ class Requestor:
 
 
 @dataclass(frozen=True)
+class Reviewer:
+    """An agent or review service that may act as Reviewer, with its vendor and model.
+
+    `fallback` marks the fallback Reviewer, which comes from a third vendor (Section 14.2).
+    """
+
+    identity: str
+    vendor: str | None = None
+    model: str | None = None
+    fallback: bool = False
+
+
+@dataclass(frozen=True)
 class Settings:
     """The checked project settings."""
 
@@ -79,6 +93,7 @@ class Settings:
     deputies: tuple[str, ...] = ()
     unavailable_approvers: tuple[str, ...] = ()
     requestors: tuple[Requestor, ...] = ()
+    reviewers: tuple[Reviewer, ...] = ()
     retry_limit: int = MAX_RETRY_LIMIT
     fail_severity: str = "hard"
     minimum_levels: Mapping[str, str] = field(default_factory=dict)
@@ -99,6 +114,7 @@ class _Roles:
     deputies: tuple[str, ...]
     unavailable_approvers: tuple[str, ...]
     requestors: tuple[Requestor, ...]
+    reviewers: tuple[Reviewer, ...] = ()
 
 
 def _check_header(root: Mapping[str, object], rb: ReportBuilder) -> None:
@@ -140,6 +156,7 @@ def read_settings(value: object) -> tuple[Settings | None, Report]:
         deputies=roles.deputies,
         unavailable_approvers=roles.unavailable_approvers,
         requestors=roles.requestors,
+        reviewers=roles.reviewers,
     )
     _check_consistency(settings, rb)
     report = rb.build()
@@ -203,9 +220,12 @@ def _read_roles(value: object, rb: ReportBuilder) -> _Roles | None:
     deputies = _read_humans_list(roles.get("deputies"), "roles.deputies", rb)
     away = _read_humans_list(roles.get("unavailable_approvers"), "roles.unavailable_approvers", rb)
     requestors = _read_requestors(roles.get("requestors"), rb)
-    if owner is None or deputies is None or away is None or requestors is None:
+    reviewers = _read_reviewers(roles.get("reviewers"), rb)
+    if owner is None or deputies is None or away is None:
         return None
-    return _Roles(owner, humans, deputies, away, requestors)
+    if requestors is None or reviewers is None:
+        return None
+    return _Roles(owner, humans, deputies, away, requestors, reviewers)
 
 
 def _read_humans(value: object, rb: ReportBuilder) -> tuple[ApprovedHuman, ...] | None:
@@ -261,6 +281,32 @@ def _read_requestors(value: object, rb: ReportBuilder) -> tuple[Requestor, ...] 
             continue
         found.append(Requestor(identity, as_text(entry.get("vendor")), as_text(entry.get("model"))))
     return tuple(found)
+
+
+def _read_reviewer(item: object, path: str, rb: ReportBuilder) -> Reviewer | None:
+    entry = as_mapping(item) or {}
+    _check_unknown(entry, _REVIEWER, path, rb)
+    identity = as_text(entry.get("identity"))
+    if identity is None or not identity.startswith(_AGENT):
+        rb.error("identity-invalid", f"{path}.identity must be written agent:<name>", path)
+        return None
+    fallback = entry.get("fallback", False)
+    if not isinstance(fallback, bool):
+        rb.error("field-type-invalid", f"{path}.fallback must be true or false", path)
+        return None
+    vendor, model = as_text(entry.get("vendor")), as_text(entry.get("model"))
+    return Reviewer(identity, vendor, model, fallback)
+
+
+def _read_reviewers(value: object, rb: ReportBuilder) -> tuple[Reviewer, ...] | None:
+    if value is None:
+        return ()
+    items = as_list(value)
+    if items is None:
+        rb.error("field-type-invalid", "roles.reviewers must be a list", "roles.reviewers")
+        return None
+    found = [_read_reviewer(item, f"roles.reviewers[{i}]", rb) for i, item in enumerate(items)]
+    return tuple(r for r in found if r is not None)
 
 
 def _read_defaults(value: object, rb: ReportBuilder) -> tuple[int, str] | None:
