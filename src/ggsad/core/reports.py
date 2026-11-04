@@ -110,12 +110,17 @@ def _read_review(path: Path) -> tuple[str | None, Issue | None]:
         return None, Issue("review-unreadable", f"review.md cannot be read: {error}")
 
 
+def _review_problems(text: str | None, loaded: LoadedChange) -> list[tuple[str, str]]:
+    found = loaded.facts.target_issues.get("approve:review") or tuple(approval_issues(text))
+    return list(found) or [("review-incomplete", g) for g in completion_gaps(text)]
+
+
 def _review(root: Path, loaded: LoadedChange) -> Envelope:
     path = root / loaded.change_dir / "review.md"
     text, unreadable = _read_review(path)
     if unreadable is not None:
         return Envelope("review", "error", False, issues=(unreadable,))
-    problems = approval_issues(text) or [("review-incomplete", g) for g in completion_gaps(text)]
+    problems = _review_problems(text, loaded)
     state = loaded.state.to_json() if loaded.state is not None else None
     data = {"review_exists": text is not None, "gaps": [message for _, message in problems]}
     if problems:
