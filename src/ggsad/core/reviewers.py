@@ -2,9 +2,10 @@
 
 A Reviewer with the identity of the Requestor, or from the vendor of the Requestor, is declined.
 
-The Requestor of a change is the agent that started it: the actor of the first `new` or `start`
-entry that is not a human. Its vendor, and the vendor of the Reviewer named in `review.md`, come
-from the settings. When either is not known, nothing is declined, because nothing can be compared.
+The Requestor of a change is the agent that started it: the actor of the first `start` entry that
+is not a human; without a `start`, the agent that created the change (`new`). Its vendor, and the
+vendor of the Reviewer named in `review.md`, come from the settings. When a vendor is not known,
+nothing is declined on the vendor, because nothing can be compared.
 """
 
 from __future__ import annotations
@@ -18,17 +19,21 @@ if TYPE_CHECKING:
 
     from ggsad.core.settings import Requestor, Reviewer
 
-STARTING_ACTIONS: Final = ("new", "start")
 HUMAN_PREFIX: Final = "human:"
 
 
-def _requestor_identity(bodies: Sequence[Mapping[str, object]]) -> str | None:
+def _actor_of(bodies: Sequence[Mapping[str, object]], action: str) -> str | None:
     for body in bodies:
         actor = body.get("actor")
-        starts = body.get("action") in STARTING_ACTIONS
-        if starts and isinstance(actor, str) and not actor.startswith(HUMAN_PREFIX):
-            return actor
+        is_agent = isinstance(actor, str) and not actor.startswith(HUMAN_PREFIX)
+        if body.get("action") == action and is_agent:
+            return str(actor)
     return None
+
+
+def _requestor_identity(bodies: Sequence[Mapping[str, object]]) -> str | None:
+    """The agent that started the work, or the agent that created the change when none started."""
+    return _actor_of(bodies, "start") or _actor_of(bodies, "new")
 
 
 def _vendor(identity: str | None, listed: Sequence[Requestor | Reviewer]) -> str | None:
