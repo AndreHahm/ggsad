@@ -40,9 +40,20 @@ def test_the_requestor_is_the_agent_that_started_the_change() -> None:
     assert codes("agent:twin", other) == []
 
 
-def test_the_first_new_or_start_entry_counts_and_humans_are_skipped() -> None:
-    bodies = (started("human:ada", "approve"), started("agent:builder", "start"))
+def test_the_agent_that_started_the_work_counts_not_the_one_that_created_the_change() -> None:
+    bodies = (started("agent:other", "new"), started("agent:builder", "start"))
     assert codes("agent:twin", bodies) == ["reviewer-same-vendor"]
+    assert codes("agent:builder", bodies) == ["reviewer-is-requestor"]
+    assert codes("agent:devin", bodies) == []
+
+
+def test_without_a_start_the_creating_agent_counts_and_humans_are_skipped() -> None:
+    assert codes("agent:twin", (started("human:ada", "approve"), started())) == [
+        "reviewer-same-vendor"
+    ]
+    assert codes("agent:twin", (started("human:ada", "start"), started())) == [
+        "reviewer-same-vendor"
+    ]
 
 
 @pytest.mark.parametrize(
