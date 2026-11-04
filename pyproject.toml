@@ -63,15 +63,12 @@ target-version = "py313"
 line-length = 100
 src = ["src", "tests"]
 extend-exclude = [
-  ".claude",
   ".codex",
   ".ggsad",
   ".github",
   ".idea",
-  ".qodo",
   "docs",
   "examples",
-  "specs",
 ]
 
 [tool.ruff.lint]

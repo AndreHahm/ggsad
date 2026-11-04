@@ -43,8 +43,7 @@ leading source for GG-SAD method semantics and reference-implementation behavior
 an orientation and usage guide, not a second specification.
 
 [AGENTS.md](AGENTS.md) contains current repository instructions. The repository is developed with
-plain, small, reviewable commits on short-lived branches. GSD is no longer used, and
-[`.planning/`](.planning/) is a historical record. Tool-specific instructions are in
+plain, small, reviewable commits on short-lived branches. Tool-specific instructions are in
 [CLAUDE.md](CLAUDE.md). The [implementation contract](docs/method/GG-SAD_implementation_contract.md)
 defines the operations, the result envelope, and the state document of the reference
 implementation.
@@ -60,10 +59,13 @@ the status report, and the command line. The operation `migrate` converts an old
 
 ```text
 .
-├── .planning/                      # Historical development record (GSD is no longer used)
-├── archive/legacy-ggsad-governance/ # Non-authoritative historical material
+├── .github/workflows/              # Continuous integration
 ├── docs/method/                    # Specification, implementation contract, extensions
 ├── docs/requirements/              # User requirements and use cases
+├── docs/decisions/                 # Decision records
+├── docs/reviews/                   # Independent review briefs and reports
+├── examples/                       # Three example projects (lean, solo, governed)
+├── scripts/                        # Builds the examples with the real command line
 ├── src/ggsad/core/                 # Python reference implementation of the core profile
 ├── tests/unit/core/                # Automated tests
 ├── AGENTS.md
@@ -139,11 +141,6 @@ required reviews and approvals.
 
 Public contribution policy is not yet finalized. A dedicated `CONTRIBUTING.md` will be added before
 broad community participation is invited.
-
-## Historical Material
-
-The [legacy governance archive manifest](archive/legacy-ggsad-governance/MANIFEST.md) explains the
-retired documents and their dispositions. Archive contents are historical and non-authoritative.
 
 ## Security
 
