@@ -7,10 +7,9 @@ semantics and reference-implementation behavior. Development artifacts must not 
 
 ## Development method
 
-This repository is developed with plain, small, reviewable commits on short-lived branches. GSD is
-no longer the development method: the `.planning/` directory is a historical record, and no plan,
-summary, review brief, or state file is required for a change. Do not create or advance GG-SAD change
-state to govern repository development.
+This repository is developed with plain, small, reviewable commits on short-lived branches. No
+plan, summary, review brief, or state file is required for a change. Do not create or advance
+GG-SAD change state to govern repository development.
 
 ## Approval and review
 
@@ -34,5 +33,5 @@ Run the applicable baseline before completion:
 `uv run pytest`
 `uv build`
 
-Installer-owned GSD files are development tooling, not Python product source. Product quality-tool
-scope must be defined explicitly rather than weakened to hide product diagnostics.
+Product quality-tool scope must be defined explicitly rather than weakened to hide product
+diagnostics.
